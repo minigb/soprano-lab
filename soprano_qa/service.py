@@ -265,6 +265,14 @@ def ask(
             measures=measures,
             topic=None,
             top_k=top_k,
+            web_coaching_supplement=int(
+                (SETTINGS.get("web_coaching") or {}).get("generation_supplement", 0)
+            ),
+            web_coaching_supplement_gate=str(
+                (SETTINGS.get("web_coaching") or {}).get(
+                    "generation_supplement_gate", "always"
+                )
+            ),
         )
         if not results or (
             measure_ranges and not has_primary_grounding(results)

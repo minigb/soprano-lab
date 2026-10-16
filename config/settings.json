@@ -36,5 +36,10 @@
     "temperature": 0.0,
     "top_p": 0.8,
     "max_tokens": 768
+  },
+  "web_coaching": {
+    "enabled": true,
+    "generation_supplement": 4,
+    "generation_supplement_gate": "top_ranked"
   }
 }

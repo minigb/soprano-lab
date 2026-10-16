@@ -145,6 +145,25 @@ Fresh inference and answer-quality metrics are pending until both artifacts
 have been rerun with the final pipeline code. Do not reuse metrics from the
 deprecated all-ranges or direct-expert-answer artifacts.
 
+## Web-coaching question inference
+
+The dataset's `web_coaching/evaluation/questions/` holds 58 questions (33
+narrow, 12 broad, 8 with conflicting sources, 5 unanswerable), each listing
+the web_coaching claims that answer it:
+
+```bash
+conda run -n soprano-qa python evaluation/run_web_coaching_questions.py \
+  --output evaluation/web_coaching_question_results.json
+```
+
+It records the generated answer, the evidence bundle, and gold-claim recall
+over that bundle, summarized by question type; `--no-generate` reports
+retrieval only. Set `SOPRANO_QA_SETTINGS` to a file in `config/experiments/`
+to evaluate another condition. The service re-raises when its only draft is
+an insufficiency statement; the runner records such questions as `rejected`
+instead of stopping. Results and the blind-review summary for the adopted
+configuration are recorded in `docs/pipeline-evolution-log.md` (Approach 7).
+
 ## Direct semantic review
 
 Semantic review is stored in `evaluation/semantic_quality_review.json`,
@@ -181,6 +200,8 @@ than interpreting missing assessments as passes.
   results: 306 paraphrase and 49 knowledge-unit-derived cases.
 - `semantic_quality_review.json` contains the complete, hash-bound direct
   semantic review for all 460 answers.
+- `web_coaching_question_results.json` contains the 58 web-coaching question
+  results.
 
 Runtime `*.log` and `*.json.lock` files are ignored and should not be
 committed.

@@ -174,6 +174,7 @@ measure-range overrides.
 | `SOPRANO_QA_RAG_DATASET_ROOT` | Dataset/corpus repository root |
 | `SOPRANO_QA_MODEL_PATH` | Local answer GGUF checkpoint |
 | `SOPRANO_QA_EMBEDDING_MODEL_PATH` | Local embedding GGUF checkpoint |
+| `SOPRANO_QA_SETTINGS` | Alternative settings file, e.g. an evaluation condition in `config/experiments/` |
 
 Two details worth knowing before debugging a path problem. Settings resolve at
 import time, so these variables must be set before `soprano_qa.service` is
@@ -185,13 +186,36 @@ dataset they use, with no error.
 Changes to the dataset's review files invalidate the corpus fingerprint, so the
 next query rebuilds and reloads the local artifact automatically.
 
+Web evidence is selected by two settings. `web_export_files` lists the
+answer-eligible `database/exports` partitions; an empty list disables that
+lineage. `web_coaching` controls the dataset's `web_coaching/` lineage:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | Build `web_coaching` records (claims from web pages and voice-lesson videos) |
+| `generation_supplement` | `4` | Up to this many web_coaching records appended after expert evidence (no-range questions only) |
+| `generation_supplement_gate` | `"top_ranked"` | Append only when the best-ranked retrieval candidate is web_coaching; `"always"` appends regardless |
+
+The four conditions compared in the web_coaching evaluation are kept in
+`config/experiments/`; their corpora are written to the gitignored
+`data/experiments/`.
+
 ## How answers are produced
 
 The corpus combines expert measure annotations with answer-eligible web
-database records, and holds 223 records across the five pieces. Retrieval fuses
+database records and `web_coaching` claims, and holds 946 records across the
+five pieces (122 expert, 101 web database, 723 web_coaching). Retrieval fuses
 BM25 and Qwen3 dense ranks in memory, with corpus vectors cached locally. Piece
 identity, evidence eligibility, and measure scope are deterministic
 constraints.
+
+Expert evidence stays authoritative. A web_coaching claim reaches generation
+only for a question without a selected range whose best-ranked candidate is
+itself web_coaching evidence; up to four such claims are then appended after
+the expert-led selection. web_coaching records are built only after the
+dataset's own `web_coaching/tools/validate.py` reports no errors, which
+includes checking every claim's excerpt verbatim against its stored page or
+transcript.
 
 Corpus construction is fail-closed: every knowledge unit must have
 `rewrite_status: ready` and a finalized measure status. The reviewed
@@ -214,7 +238,14 @@ full retrieval, measure-routing, prompt-construction, and generation design.
 ```bash
 conda run -n soprano-qa python evaluation/run_qualitative.py
 conda run -n soprano-qa python evaluation/run_synthesized_questions.py
+conda run -n soprano-qa python evaluation/run_web_coaching_questions.py \
+  --output evaluation/web_coaching_question_results.json
 ```
+
+The third runner answers the 58 questions in the dataset's
+`web_coaching/evaluation/questions/`, each annotated with the web_coaching
+claims that answer it, and reports gold-claim recall over the generated
+evidence by question type.
 
 These write `evaluation/qualitative.json` (105 original-question cases) and
 `evaluation/synthesized_question_results.json` (355 cases: 306 paraphrases and

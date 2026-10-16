@@ -2223,7 +2223,9 @@ def collect_system_state(system_root: Path) -> dict[str, Any]:
 
     root = system_root.resolve()
     package_root = root / "soprano_qa"
-    config_path = root / "config" / "settings.json"
+    config_path = Path(
+        os.environ.get("SOPRANO_QA_SETTINGS") or root / "config" / "settings.json"
+    ).resolve()
     if not package_root.is_dir():
         raise EvaluationInputError(f"Missing target package: {package_root}")
     config = load_json(config_path)

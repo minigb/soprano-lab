@@ -10,7 +10,11 @@ from typing import Any, Dict
 
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_SETTINGS = os.path.join(PROJECT_ROOT, "config", "settings.json")
+# SOPRANO_QA_SETTINGS selects an alternative settings file, e.g. for an
+# evaluation condition; it must be set before this module is first imported.
+DEFAULT_SETTINGS = os.environ.get("SOPRANO_QA_SETTINGS") or os.path.join(
+    PROJECT_ROOT, "config", "settings.json"
+)
 PATH_KEYS = {
     "dataset_root",
     "corpus_path",

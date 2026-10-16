@@ -30,11 +30,15 @@ flowchart LR
 
 ## 1. Build a release-only corpus
 
-`python scripts/build_corpus.py` builds `data/corpus.json` from two sources:
+`python scripts/build_corpus.py` builds `data/corpus.json` from three sources:
 
 - reviewed knowledge units under
-  `soprano-qa-dataset/expert_curation/review/`; and
-- validated, answer-eligible records from the web database.
+  `soprano-qa-dataset/expert_curation/review/`;
+- validated, answer-eligible records from the web database; and
+- `web_coaching` claims from `soprano-qa-dataset/web_coaching/`, each a Korean
+  restatement of one web page or voice-lesson/masterclass video, admitted
+  only when the dataset's validator reports no errors (it checks every
+  claim's excerpt verbatim against the stored page or transcript).
 
 An expert corpus record contains only fields needed for retrieval, generation,
 and audit:
@@ -181,6 +185,16 @@ notation, or phrase advice while still allowing several genuinely competitive
 units for a broad question. When the absolute semantic score is weak, an
 oversized bundle is pruned more conservatively; unsupported web neighbors are
 also dropped when finalized expert evidence already grounds the question.
+
+That focus is expert-only, so it would otherwise discard web_coaching claims
+even when they are the best match. After expert selection, if the best-ranked
+stable candidate is itself a web_coaching claim, up to four web_coaching
+candidates are appended in rank order (`web_coaching.generation_supplement`
+and `generation_supplement_gate` in `config/settings.json`). When an expert or
+web-database record ranks first, the bundle is left unchanged: in evaluation,
+adding web_coaching claims to questions the expert units already answer made
+those answers less faithful. Selected-range questions never receive
+web_coaching evidence because those claims carry no confirmed location.
 
 ## 4. Freeze the complete evidence bundle
 

@@ -18,6 +18,7 @@ from soprano_qa.corpus import (
     build_corpus,
     corpus_input_fingerprint,
     file_sha256,
+    is_web_record,
 )
 from soprano_qa.dense import (
     DenseRetrievalUnavailable,
@@ -1430,6 +1431,21 @@ def build_context(
                 "claim applies throughout the work, frequently, or in many "
                 "places."
             )
+        if record.get("evidence_type") == "web_coaching":
+            source = record.get("web_coaching_source") or {}
+            lines.extend(
+                [
+                    "lineage_note: a claim extracted from one public web page or "
+                    "voice-lesson/masterclass video, restating that source's "
+                    "explanation or advice; secondary to expert_annotation.",
+                    "knowledge_scope: %s" % record.get("knowledge_scope", ""),
+                    "category: %s" % record.get("topic", ""),
+                    "lyric_anchor: %s" % (record.get("lyric_anchor") or "(none)"),
+                    "source_kind: %s" % source.get("kind", ""),
+                    "source_title: %s" % source.get("title", ""),
+                    "source_author: %s" % (source.get("author") or "(unknown)"),
+                ]
+            )
         if record.get("evidence_type") == "web_database":
             lines.extend(
                 [
@@ -1517,7 +1533,7 @@ def has_only_web_grounding(results: List[Any]) -> bool:
 
     primary = primary_grounding_results(results)
     return bool(primary) and all(
-        result.record.get("evidence_type") == "web_database"
+        is_web_record(result.record)
         for result in primary
     )
 
@@ -1966,8 +1982,7 @@ def select_generation_evidence(
                 return semantic_focus
             if (
                 results
-                and results[0].record.get("evidence_type")
-                == "web_database"
+                and is_web_record(results[0].record)
                 and _has_direct_query_signal(results[0])
             ):
                 # A direct web result must not carry lower, merely related
@@ -1977,8 +1992,7 @@ def select_generation_evidence(
                 return [
                     result
                     for result in results
-                    if result.record.get("evidence_type")
-                    == "web_database"
+                    if is_web_record(result.record)
                 ]
             return results
         return [
@@ -2911,7 +2925,7 @@ def _focus_no_range_semantic_bundle(
     supported_web = [
         result
         for result in base_results
-        if result.record.get("evidence_type") == "web_database"
+        if is_web_record(result.record)
         and _answers_explicit_requested_slots(result, query)
         and (
             result.text_score > 0
@@ -3098,8 +3112,16 @@ def retrieve_generation_evidence(
     measures: str,
     topic: str | None,
     top_k: int,
+    web_coaching_supplement: int = 0,
+    web_coaching_supplement_gate: str = "always",
 ) -> tuple[List[Any], List[Dict[str, str]]]:
     """Retrieve and freeze the one evidence bundle used for generation.
+
+    ``web_coaching_supplement`` appends up to that many of the best-ranked
+    web_coaching candidates (no-range queries only) after the expert-led
+    selection, which would otherwise replace them with expert-only bundles.
+    With ``web_coaching_supplement_gate="top_ranked"`` this happens only when
+    the best-ranked retrieval candidate is itself web_coaching evidence.
 
     The function performs no model call, repair call, or model fallback. It
     returns the reviewed evidence bundle and prompt for the one natural,
@@ -3256,7 +3278,57 @@ def retrieve_generation_evidence(
             else broad_base[:top_k]
         )
     results = selected_results[: min(top_k, len(selected_results))]
+    results = supplement_web_coaching_evidence(
+        results,
+        stable_candidates,
+        measure_ranges=measure_ranges,
+        limit=web_coaching_supplement,
+        gate=web_coaching_supplement_gate,
+    )
     return results, build_messages(piece, measures, query, results)
+
+
+def supplement_web_coaching_evidence(
+    results: List[Any],
+    candidates: List[Any],
+    *,
+    measure_ranges: List[List[int]],
+    limit: int,
+    gate: str = "always",
+) -> List[Any]:
+    """Append the best-ranked web_coaching candidates after expert evidence.
+
+    Expert-led focusing stays authoritative for which expert records are
+    used; this only keeps relevant web_coaching evidence from being discarded.
+    Ranged queries are left unchanged because web_coaching claims carry no
+    confirmed score location.
+    """
+
+    if gate not in {"always", "top_ranked"}:
+        raise ValueError("Unsupported web_coaching supplement gate %r" % gate)
+    if limit <= 0 or measure_ranges:
+        return results
+    if gate == "top_ranked" and (
+        not candidates
+        or candidates[0].record.get("evidence_type") != "web_coaching"
+    ):
+        # An expert or other record outranks every web_coaching claim, so the
+        # curated evidence already answers the query; adding web claims
+        # invites the model to blend in material the expert did not state.
+        return results
+    selected_ids = {result.record["id"] for result in results}
+    supplement = []
+    for candidate in candidates:
+        if len(supplement) >= limit:
+            break
+        record = candidate.record
+        if (
+            record.get("evidence_type") == "web_coaching"
+            and record["id"] not in selected_ids
+        ):
+            supplement.append(candidate)
+            selected_ids.add(record["id"])
+    return [*results, *supplement]
 
 
 def build_evidence_notices(results: List[Any]) -> List[Dict[str, Any]]:
@@ -3264,9 +3336,32 @@ def build_evidence_notices(results: List[Any]) -> List[Dict[str, Any]]:
     seen_ids = set()
     for result in results:
         record = result.record
-        if record.get("evidence_type") != "web_database" or record["id"] in seen_ids:
+        if not is_web_record(record) or record["id"] in seen_ids:
             continue
         seen_ids.add(record["id"])
+        if record.get("evidence_type") == "web_coaching":
+            source = record.get("web_coaching_source") or {}
+            notices.append(
+                {
+                    "record_id": record["id"],
+                    "usage_class": None,
+                    "generated_text_license": None,
+                    "generated_text_attribution": None,
+                    "generated_text_license_url": None,
+                    "inherited_licenses": [],
+                    "sources": [
+                        {
+                            "web_coaching_source_id": source.get("source_id"),
+                            "kind": source.get("kind"),
+                            "title": source.get("title"),
+                            "author": source.get("author"),
+                            "url": source.get("url"),
+                            "locator": source.get("locator"),
+                        }
+                    ],
+                }
+            )
+            continue
         notices.append(
             {
                 "record_id": record["id"],

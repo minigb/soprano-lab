@@ -35,6 +35,8 @@ chronological engineering record, including unsuccessful approaches.
   35/135.
 - Therefore this one-pass run is a **baseline, not a promotable final result**.
   The generated answers remain available for comparison and red-flag review.
+- 2026-10-17: Approach 7 adds the dataset's `web_coaching` lineage and a
+  gated evidence supplement on top of this baseline; see its section below.
 
 ## RAG+LLM approach branch/worktree registry
 
@@ -479,6 +481,94 @@ driven selection and cross-unit synthesis from the answer path.
 - Whitespace is ignored by lexical fidelity comparison. This avoids false
   flags for benign Korean spacing fixes, but direct semantic review must still
   catch the rare spacing change that affects meaning.
+
+## Approach 7: web_coaching evidence on the one-pass baseline
+
+Worktree `/home/minhee/codex/web-coaching-integration`, branch
+`web-coaching-integration` (uncommitted at the time of writing), dataset
+`web_coaching/` lineage as of 2026-10-17. Generation is Approach 3 unchanged;
+only corpus inputs and evidence selection change.
+
+### Reason for a new version
+
+The answer-eligible web database (101 records) is mostly catalog, edition,
+and rights facts; only 3 records are performance guidance. Questions about
+singing technique, diction, or interpretation that the 122 expert units do
+not cover were answered from loosely related expert units, often with
+invented advice. The dataset now has a separate `web_coaching/` lineage: 723
+Korean claims from 78 web pages and 27 voice-lesson/masterclass video
+transcripts, each tied to a verbatim excerpt that its validator checks.
+
+### Design
+
+- New `web_coaching` record type (`soprano_qa/corpus.py`), built only after
+  the dataset's `web_coaching/tools/validate.py` reports no errors; exact
+  release schema; global scope, no measure range. `is_web_record()` routes
+  existing web-evidence handling to both web lineages.
+- The expert-led semantic focus replaces no-range bundles with expert-only
+  evidence, so web_coaching claims were retrieved but almost never reached
+  generation (gold recall 0.06). `supplement_web_coaching_evidence()` appends
+  up to `generation_supplement` web_coaching candidates after the expert
+  selection, for no-range questions only.
+- Gate `top_ranked`: append only when the best-ranked candidate is itself
+  web_coaching. Without it, 131 of 460 expert cases received web_coaching
+  evidence and blind review found those answers less faithful.
+- The web_coaching description lives in its evidence block, not in
+  `SYSTEM_PROMPT`, so prompts for questions without web_coaching evidence
+  are byte-identical to the baseline.
+- `SOPRANO_QA_SETTINGS` selects evaluation conditions
+  (`config/experiments/`). An extra dense-candidate switch for web_coaching
+  was tried and removed: web records already receive dense scores through
+  the hybrid path, and the switch changed no result.
+
+### Evaluation
+
+The v7 baseline was first reproduced exactly (460/460 identical answers and
+evidence). New question set: 58 questions in the dataset's
+`web_coaching/evaluation/questions/` (33 narrow, 12 broad, 8 conflicting
+sources, 5 unanswerable), written by Claude from the web_coaching claims with
+every answering claim listed as gold. Answers were judged by blind Claude
+reviewers with shuffled labels (helpfulness and faithfulness 0–2, judged
+against each answer's own evidence).
+
+| Condition | Coaching gold recall | Coaching helpfulness | Coaching faithfulness | Coaching answers with an invented claim | Expert cases given web_coaching | Expert answers changed |
+| --- | --- | --- | --- | --- | --- | --- |
+| baseline (old web only) | 0.00 | 0.67 | 0.83 | 43% | 0 | 0 |
+| + web_coaching, supplement 4, ungated | 0.65 | 1.67 | 1.40 | 12% | 131 | 156 |
+| + web_coaching, supplement 4, `top_ranked` (adopted) | 0.55 | 1.47 | 1.24 | 21% | 8 | 16 |
+
+Coaching helpfulness/faithfulness come from separate pairwise reviews against
+the baseline, so baseline scores vary slightly between rows of the source
+reviews (0.64–0.69, 0.78–0.84). A three-way review found no meaningful
+difference between keeping and dropping the old web database
+(helpfulness 1.64 vs 1.64), so it is kept.
+
+Expert benchmark, adopted configuration: synthesized Hit@1 346/355, Hit@6
+352/355, and MRR 0.983 are unchanged; all expected targets retrieved rises
+from 318 to 319; target-source grounding stays 300; all 31 original-set
+diagnostics are identical. 444/460 answers are byte-identical. Of the 16 that
+changed, 8 received web_coaching evidence, 3 had slightly different expert
+evidence (BM25 statistics shift with the larger corpus), and 5 had identical
+evidence (decoding variation). Blind pairwise review of the 16: helpfulness
+32 vs 32, faithfulness 31 vs 31, no substantive errors on either side
+(baseline best 5, candidate best 4, tie 7). The ungated variant's sampled
+review, by contrast, scored faithfulness 41 (baseline) vs 29.
+
+### Decision and remaining risks
+
+Adopted as the default (`config/settings.json`). Remaining risks:
+
+- The coaching question set and all judgments are model-generated from the
+  same claims; they show that the lineage fills a gap, not that the system
+  is better overall. Human review of the gold sets and a sample of verdicts
+  is the next step before citing these numbers.
+- Unanswerable questions are still usually fabricated (4/5) because the
+  answer-required contract has no abstention path.
+- Answers still mix up evidence about vowel linking and doubled consonants,
+  or apply a passage-specific note to another passage.
+- Ranged questions never receive web_coaching evidence.
+- The synthesized runner aborts on a single exception; one rerun was needed
+  for a case whose first draft varied with llama.cpp prompt-cache history.
 
 ## Evaluation and promotion checklist
 

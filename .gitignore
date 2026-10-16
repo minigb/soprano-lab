@@ -17,3 +17,6 @@ __pycache__/
 
 # Local intermediate evaluation checkpoints
 evaluation/*_pre_*.json
+
+# Generated corpora for evaluation conditions (config/experiments/)
+data/experiments/

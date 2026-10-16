@@ -5,7 +5,9 @@
 from __future__ import annotations
 
 import argparse
+import glob
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -16,6 +18,14 @@ from typing import Any, Dict, Iterable, List, Sequence
 from urllib.parse import urlsplit
 
 from soprano_qa.settings import load_settings
+
+WEB_EVIDENCE_TYPES = ("web_database", "web_coaching")
+
+
+def is_web_record(record: Dict[str, Any]) -> bool:
+    """Return whether a record is externally collected (non-expert) evidence."""
+
+    return record.get("evidence_type") in WEB_EVIDENCE_TYPES
 
 
 SONG_ORDER = [
@@ -237,6 +247,50 @@ EXPERT_FINAL_MEASURE_STATUSES = {
     "unspecified",
 }
 CORPUS_SCHEMA_VERSION = 8
+
+# web_coaching: claims extracted from web pages and lesson/masterclass video
+# transcripts (dataset web_coaching/). Each category maps to a Korean label and
+# search terms used only for retrieval text.
+WEB_COACHING_CATEGORY_TERMS = {
+    "background": "배경 작곡 역사 맥락",
+    "text_and_meaning": "가사 의미 해석 번역 시",
+    "musical_structure": "음악 구조 형식 화성 반주 빠르기",
+    "interpretation": "해석 표현 감정 프레이즈 다이나믹",
+    "vocal_technique": "발성 호흡 테크닉 고음 레가토 소리",
+    "diction": "딕션 발음 자음 모음",
+    "ornamentation": "장식 카덴차 꾸밈음 콜로라투라 변형",
+    "repertoire_advice": "레퍼토리 음역 조성 성부 추천",
+}
+WEB_COACHING_PERFORMANCE_CATEGORIES = {
+    "musical_structure",
+    "interpretation",
+    "vocal_technique",
+    "diction",
+    "ornamentation",
+    "repertoire_advice",
+}
+WEB_COACHING_RECORD_KEYS = (
+    "id",
+    "evidence_type",
+    "piece",
+    "piece_title",
+    "work",
+    "composer",
+    "genre",
+    "language",
+    "topic",
+    "subtopics",
+    "knowledge_scope",
+    "measure_range",
+    "measure_scope",
+    "measure_status",
+    "question",
+    "answer",
+    "lyric_anchor",
+    "web_coaching_source",
+    "relevance_text",
+    "retrieval_text",
+)
 CORPUS_RELEASE_FORBIDDEN_FIELDS = frozenset(
     {
         "annotators",
@@ -347,26 +401,35 @@ def corpus_input_paths(settings: Dict[str, Any]) -> List[tuple[str, str]]:
             song + ".json",
         )
         paths.append((os.path.relpath(path, dataset_root), path))
-    for record_file in ("sources.jsonl", "claims.jsonl", "chunks.jsonl"):
-        record_path = os.path.join(dataset_root, "database", "records", record_file)
-        paths.append((os.path.relpath(record_path, dataset_root), record_path))
-    facts_audit_path = os.path.join(
-        dataset_root,
-        "database",
-        "reports",
-        "facts-only-release-audit.json",
-    )
-    paths.append((os.path.relpath(facts_audit_path, dataset_root), facts_audit_path))
-    facts_review_path = os.path.join(
-        dataset_root,
-        "database",
-        "facts-only-expression-reviews.json",
-    )
-    if os.path.exists(facts_review_path):
-        paths.append((os.path.relpath(facts_review_path, dataset_root), facts_review_path))
-    for export_file in settings.get("web_export_files", ["research-open.jsonl"]):
+    web_export_files = settings.get("web_export_files", ["research-open.jsonl"])
+    if web_export_files:
+        for record_file in ("sources.jsonl", "claims.jsonl", "chunks.jsonl"):
+            record_path = os.path.join(dataset_root, "database", "records", record_file)
+            paths.append((os.path.relpath(record_path, dataset_root), record_path))
+        facts_audit_path = os.path.join(
+            dataset_root,
+            "database",
+            "reports",
+            "facts-only-release-audit.json",
+        )
+        paths.append((os.path.relpath(facts_audit_path, dataset_root), facts_audit_path))
+        facts_review_path = os.path.join(
+            dataset_root,
+            "database",
+            "facts-only-expression-reviews.json",
+        )
+        if os.path.exists(facts_review_path):
+            paths.append((os.path.relpath(facts_review_path, dataset_root), facts_review_path))
+    for export_file in web_export_files:
         path = os.path.join(dataset_root, "database", "exports", export_file)
         paths.append((os.path.relpath(path, dataset_root), path))
+    if web_coaching_enabled(settings):
+        root = os.path.join(dataset_root, "web_coaching")
+        coaching_paths = [os.path.join(root, "tools", "validate.py")]
+        for pattern in ("sources/*.json", "units/*.json", "snapshots/*.txt", "transcripts/*.json"):
+            coaching_paths.extend(sorted(glob.glob(os.path.join(root, pattern))))
+        for path in coaching_paths:
+            paths.append((os.path.relpath(path, dataset_root), path))
     override_path = settings["feature_overrides_path"]
     if os.path.exists(override_path):
         paths.append(("project/feature_overrides.json", override_path))
@@ -625,6 +688,8 @@ def validate_release_corpus(records: Any) -> List[Dict[str, Any]]:
             validate_expert_release_record(record, label=label)
         elif evidence_type == "web_database":
             validate_no_editorial_release_fields(record, label=label)
+        elif evidence_type == "web_coaching":
+            expect_exact_keys(record, WEB_COACHING_RECORD_KEYS, label=label)
         else:
             raise ValueError(
                 "%s has unsupported evidence_type %r"
@@ -1992,6 +2057,92 @@ def build_web_records(
     return records
 
 
+def web_coaching_enabled(settings: Dict[str, Any]) -> bool:
+    return bool((settings.get("web_coaching") or {}).get("enabled", False))
+
+
+def load_web_coaching_lineage(dataset_root: str):
+    """Load web_coaching through the dataset's own validator; refuse on errors."""
+
+    root = os.path.join(os.path.realpath(dataset_root), "web_coaching")
+    validator_path = os.path.join(root, "tools", "validate.py")
+    spec = importlib.util.spec_from_file_location(
+        "soprano_dataset_web_coaching_validate", validator_path
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("Cannot load web_coaching validator at %s" % validator_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    sources, units_by_piece, errors, _warnings = module.collect(root)
+    if errors:
+        raise ValueError(
+            "web_coaching lineage failed validation (%d errors), e.g. %s"
+            % (len(errors), "; ".join(errors[:3]))
+        )
+    return sources, units_by_piece
+
+
+def build_web_coaching_records(dataset_root: str) -> List[Dict[str, Any]]:
+    sources, units_by_piece = load_web_coaching_lineage(dataset_root)
+    source_by_id = {source["source_id"]: source for source in sources}
+    records: List[Dict[str, Any]] = []
+    for song in SONG_ORDER:
+        piece = PIECES[song]
+        for unit in units_by_piece.get(song, []):
+            source = source_by_id[unit["source_id"]]
+            category = unit["category"]
+            if category not in WEB_COACHING_CATEGORY_TERMS:
+                raise ValueError("%s has unsupported category %r" % (unit["unit_id"], category))
+            record = {
+                "id": unit["unit_id"],
+                "evidence_type": "web_coaching",
+                "piece": song,
+                "piece_title": piece["title"],
+                "work": piece["work"],
+                "composer": piece["composer"],
+                "genre": piece["genre"],
+                "language": piece["language"],
+                "topic": category,
+                "subtopics": [],
+                "knowledge_scope": (
+                    "performance_guidance"
+                    if category in WEB_COACHING_PERFORMANCE_CATEGORIES
+                    else "piece_encyclopedia"
+                ),
+                "measure_range": [],
+                "measure_scope": "global",
+                "measure_status": None,
+                "question": "",
+                "answer": unit["claim_ko"],
+                "lyric_anchor": unit.get("lyric_anchor"),
+                "web_coaching_source": {
+                    "source_id": source["source_id"],
+                    "kind": source["kind"],
+                    "title": source.get("title"),
+                    "author": source.get("author"),
+                    "url": source["url"],
+                    "language": source.get("language"),
+                    "locator": unit["locator"],
+                },
+            }
+            text = "\n".join(
+                part
+                for part in (
+                    WEB_COACHING_CATEGORY_TERMS[category],
+                    record["lyric_anchor"] or "",
+                    record["answer"],
+                )
+                if part
+            )
+            record["relevance_text"] = text
+            record["retrieval_text"] = text
+            expect_exact_keys(record, WEB_COACHING_RECORD_KEYS, label="web_coaching record %s" % record["id"])
+            records.append(record)
+    if not records:
+        raise ValueError("web_coaching is enabled but produced no records")
+    return records
+
+
 def build_stats(
     records: List[Dict[str, Any]],
     overrides_applied: int,
@@ -2028,6 +2179,15 @@ def build_stats(
                 ).items()
             )
         ),
+        "web_coaching_records_by_topic": dict(
+            sorted(
+                Counter(
+                    record["topic"]
+                    for record in records
+                    if record["evidence_type"] == "web_coaching"
+                ).items()
+            )
+        ),
         "web_export_files": list(web_export_files),
         "overrides_applied": overrides_applied,
     }
@@ -2042,23 +2202,30 @@ def build_corpus(settings: Dict[str, Any]) -> Dict[str, Any]:
     overrides_applied = apply_overrides(expert_records, overrides)
 
     web_export_files = settings.get("web_export_files", ["research-open.jsonl"])
-    web_source_index = build_web_source_index(dataset_root)
-    web_claim_index = build_web_claim_index(dataset_root, web_source_index)
-    facts_audit_index = build_facts_only_audit_index(
-        dataset_root,
-        web_claim_index,
-        web_source_index,
+    web_records: List[Dict[str, Any]] = []
+    if web_export_files:
+        web_source_index = build_web_source_index(dataset_root)
+        web_claim_index = build_web_claim_index(dataset_root, web_source_index)
+        facts_audit_index = build_facts_only_audit_index(
+            dataset_root,
+            web_claim_index,
+            web_source_index,
+        )
+        canonical_chunk_index = build_canonical_web_chunk_index(dataset_root)
+        web_records = build_web_records(
+            dataset_root,
+            web_export_files,
+            web_source_index,
+            web_claim_index,
+            facts_audit_index,
+            canonical_chunk_index,
+        )
+    coaching_records = (
+        build_web_coaching_records(dataset_root)
+        if web_coaching_enabled(settings)
+        else []
     )
-    canonical_chunk_index = build_canonical_web_chunk_index(dataset_root)
-    web_records = build_web_records(
-        dataset_root,
-        web_export_files,
-        web_source_index,
-        web_claim_index,
-        facts_audit_index,
-        canonical_chunk_index,
-    )
-    records = expert_records + web_records
+    records = expert_records + web_records + coaching_records
     validate_release_corpus(records)
 
     if corpus_input_fingerprint(settings) != input_fingerprint:
