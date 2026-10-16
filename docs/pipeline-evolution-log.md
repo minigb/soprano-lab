@@ -570,6 +570,30 @@ Adopted as the default (`config/settings.json`). Remaining risks:
 - The synthesized runner aborts on a single exception; one rerun was needed
   for a case whose first draft varied with llama.cpp prompt-cache history.
 
+### Revision (2026-10-17): separate index, dense gate, score context
+
+The first integration put web_coaching records into the main index. The
+existing retrieval tests then showed that the 723 extra records shifted BM25
+statistics enough to change expert rankings and two ranged accent cases, and
+that indexing each claim with its category's search terms let every claim of
+a category match any query naming it. The revision:
+
+- ranks web_coaching claims in a separate index (`coaching_index.py`; claim
+  text and lyric anchor only), so the main index is exactly the expert and
+  web-database corpus and its tests pass unchanged;
+- replaces the `top_ranked` gate with `dense_margin`: claims are appended
+  only when the best claim's dense cosine beats every main-index candidate
+  by 0.05. Offline on the same questions this keeps coaching gold recall at
+  0.55 (`top_ranked`: 0.55) while 15 of 262 no-range expert cases would
+  receive web_coaching evidence;
+- adds score context: selected-range questions receive the sung text of the
+  selected bars from the dataset's `sheet_music/lyrics/` (model-transcribed,
+  unverified, validated), and may be answered from it alone when nothing
+  grounds the bars and retrieval did not deliberately abstain.
+
+The adopted-configuration numbers in the table above predate this revision;
+the merged pipeline is re-evaluated on both question sets.
+
 ## Evaluation and promotion checklist
 
 For each new approach, record all of the following here before calling it

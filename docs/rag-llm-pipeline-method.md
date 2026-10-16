@@ -187,14 +187,31 @@ oversized bundle is pruned more conservatively; unsupported web neighbors are
 also dropped when finalized expert evidence already grounds the question.
 
 That focus is expert-only, so it would otherwise discard web_coaching claims
-even when they are the best match. After expert selection, if the best-ranked
-stable candidate is itself a web_coaching claim, up to four web_coaching
-candidates are appended in rank order (`web_coaching.generation_supplement`
-and `generation_supplement_gate` in `config/settings.json`). When an expert or
-web-database record ranks first, the bundle is left unchanged: in evaluation,
-adding web_coaching claims to questions the expert units already answer made
-those answers less faithful. Selected-range questions never receive
-web_coaching evidence because those claims carry no confirmed location.
+even when they are the best match. web_coaching claims are ranked in their own
+index (`soprano_qa/coaching_index.py`): adding 723 claims to the main index
+would shift its BM25 statistics and the thresholds calibrated on expert
+queries. After expert selection, the best web_coaching claims for a no-range
+question are appended (up to `web_coaching.generation_supplement`) only when
+the best claim's dense cosine similarity exceeds that of every main-index
+candidate by `generation_supplement_margin` (0.05). When curated evidence is
+the closer match, the bundle is left unchanged: in evaluation, adding
+web_coaching claims to questions the expert units already answer made those
+answers less faithful. Selected-range questions never receive web_coaching
+evidence because those claims carry no confirmed location.
+
+### Score context for selected ranges
+
+For a selected range, `soprano_qa/score_context.py` supplies the sung text
+printed under the voice staff in each selected bar (up to 24 bars) from the
+dataset's `sheet_music/lyrics/`, after the dataset validator accepts it. The
+block is part of the user prompt, labelled as an unverified transcription
+that may only identify the words sung in those bars; it carries no pitches or
+advice and is never cited with an evidence label. When nothing grounds the
+selected bars and retrieval did not abstain for ambiguity, missing causal
+authority, or an underspecified question, the model may answer from the score
+context alone; non-grounding records stay out of that prompt, and the result
+reports `answer_basis: "score_context"`. An insufficiency draft in that mode
+returns the ordinary unavailable result.
 
 ## 4. Freeze the complete evidence bundle
 

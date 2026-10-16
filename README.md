@@ -194,7 +194,11 @@ lineage. `web_coaching` controls the dataset's `web_coaching/` lineage:
 | --- | --- | --- |
 | `enabled` | `true` | Build `web_coaching` records (claims from web pages and voice-lesson videos) |
 | `generation_supplement` | `4` | Up to this many web_coaching records appended after expert evidence (no-range questions only) |
-| `generation_supplement_gate` | `"top_ranked"` | Append only when the best-ranked retrieval candidate is web_coaching; `"always"` appends regardless |
+| `generation_supplement_gate` | `"dense_margin"` | Append only when the best web_coaching claim's dense similarity beats every main-index candidate by the margin; `"always"` appends regardless |
+| `generation_supplement_margin` | `0.05` | Margin for the `dense_margin` gate |
+
+`score_context.lyrics` (default `true`) supplies the sung text of the selected
+bars, from the dataset's `sheet_music/lyrics/`, to selected-range questions.
 
 The four conditions compared in the web_coaching evaluation are kept in
 `config/experiments/`; their corpora are written to the gitignored
@@ -209,13 +213,21 @@ BM25 and Qwen3 dense ranks in memory, with corpus vectors cached locally. Piece
 identity, evidence eligibility, and measure scope are deterministic
 constraints.
 
-Expert evidence stays authoritative. A web_coaching claim reaches generation
-only for a question without a selected range whose best-ranked candidate is
-itself web_coaching evidence; up to four such claims are then appended after
-the expert-led selection. web_coaching records are built only after the
-dataset's own `web_coaching/tools/validate.py` reports no errors, which
-includes checking every claim's excerpt verbatim against its stored page or
-transcript.
+Expert evidence stays authoritative. web_coaching claims are ranked in a
+separate index (BM25 over the claims plus the same dense model), so the main
+index and its calibrated thresholds see exactly the expert and web-database
+records. For a question without a selected range, up to four web_coaching
+claims are appended after the expert-led selection only when the best claim
+is more similar to the question than every main-index candidate by 0.05
+(dense cosine). web_coaching records are built only after the dataset's own
+`web_coaching/tools/validate.py` reports no errors, which includes checking
+every claim's excerpt verbatim against its stored page or transcript.
+
+For a selected range, the sung text of those bars (model-transcribed,
+labelled unverified in the prompt) is added as score context. It may only
+identify the words sung there; when no evidence grounds the bars and
+retrieval did not deliberately abstain, the model may answer from it alone
+(`answer_basis: "score_context"`).
 
 Corpus construction is fail-closed: every knowledge unit must have
 `rewrite_status: ready` and a finalized measure status. The reviewed
