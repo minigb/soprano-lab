@@ -591,8 +591,33 @@ a category match any query naming it. The revision:
   unverified, validated), and may be answered from it alone when nothing
   grounds the bars and retrieval did not deliberately abstain.
 
-The adopted-configuration numbers in the table above predate this revision;
-the merged pipeline is re-evaluated on both question sets.
+The adopted-configuration numbers in the table above predate this revision.
+Re-evaluation of the merged `main` pipeline (`b3a283a`; artifacts in
+`b7951b0`), with blind pairwise LLM review (labels shuffled, un-blinded
+afterwards; indicative only):
+
+- Coaching questions (58): mean gold recall 0.52, gold hit rate 0.70, 2.55
+  web_coaching passages per answer, 1 rejected answer. Against the pre-coaching
+  baseline: helpfulness 0.76 -> 1.48 and faithfulness 0.88 -> 1.21 (0-2),
+  answers with invented claims 43% -> 14%, fabricated content on unanswerable
+  questions 4/5 -> 3/5; best or tied 53 vs 18.
+- Expert benchmark (460): all 657 retrieval summary metrics are identical to
+  the baseline. 290 answers are byte-identical; 155 selected-range answers
+  changed only through the lyric context and 15 no-range answers received
+  web_coaching evidence; no other drift.
+  - The 155 lyric-context answers: new preferred 43, old 35, tie 77;
+    faithfulness 1.76 -> 1.79, helpfulness 1.97 -> 1.99, fully unfaithful
+    answers 2 -> 0. No answer invented a meaning or musical fact from the
+    lyrics.
+  - The 15 coaching-supplemented expert answers: old preferred 9, new 4, tie 2;
+    faithfulness 1.73 -> 1.33, with two fully unfaithful answers. Both come
+    from one ornament question pair, where a web warning about leaning on the
+    short note of a dotted ornament was turned into advice.
+
+The dense-margin gate therefore helps questions that the expert units do not
+cover but still costs faithfulness on some expert-covered no-range questions.
+Candidate follow-ups: a larger margin, suppressing the supplement when a main
+candidate already scores highly, or a prompt rule that warnings stay warnings.
 
 ## Approach 8: English questions
 
