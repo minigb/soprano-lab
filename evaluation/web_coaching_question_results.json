@@ -1,0 +1,2505 @@
+{
+  "settings_path": "",
+  "generate": true,
+  "top_k": 6,
+  "summary": {
+    "all": {
+      "questions": 58,
+      "mean_gold_recall": 0.5218,
+      "gold_hit_rate": 0.6981,
+      "mean_web_coaching_evidence": 2.552,
+      "validation_warnings": 48,
+      "rejected": 1,
+      "mean_seconds": 13.77
+    },
+    "broad": {
+      "questions": 12,
+      "mean_gold_recall": 0.2667,
+      "gold_hit_rate": 0.5,
+      "mean_web_coaching_evidence": 2.0,
+      "validation_warnings": 11,
+      "rejected": 0,
+      "mean_seconds": 14.37
+    },
+    "conflict": {
+      "questions": 8,
+      "mean_gold_recall": 0.2863,
+      "gold_hit_rate": 0.625,
+      "mean_web_coaching_evidence": 2.5,
+      "validation_warnings": 4,
+      "rejected": 1,
+      "mean_seconds": 14.58
+    },
+    "narrow": {
+      "questions": 33,
+      "mean_gold_recall": 0.6717,
+      "gold_hit_rate": 0.7879,
+      "mean_web_coaching_evidence": 3.152,
+      "validation_warnings": 28,
+      "rejected": 0,
+      "mean_seconds": 13.68
+    },
+    "unanswerable": {
+      "questions": 5,
+      "mean_gold_recall": null,
+      "gold_hit_rate": null,
+      "mean_web_coaching_evidence": 0.0,
+      "validation_warnings": 5,
+      "rejected": 0,
+      "mean_seconds": 11.65
+    }
+  },
+  "results": [
+    {
+      "qid": "die-forelle-wcq-01",
+      "piece_id": "die-forelle",
+      "question": "3절 'Doch endlich ward dem Diebe'를 부를 때 독일어 발음에서 자주 틀리는 부분이 있나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "die-forelle-wc-5053",
+        "die-forelle-wc-5054"
+      ],
+      "notes": "endlich의 ent 한 음절 처리(5053)와 ward의 W=V(5054). 3절 전반의 자음 강조(5046)와 '발음은 다 해 주라'(5052)는 이 단어들에 특정되지 않아 제외.",
+      "evidence_ids": [
+        "die-forelle-ku-007",
+        "die-forelle-ku-009",
+        "die-forelle-ku-017",
+        "die-forelle-ku-001",
+        "die-forelle-wc-5054",
+        "die-forelle-wc-5045",
+        "die-forelle-wc-0079",
+        "die-forelle-wc-5053"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "\" Doch endlich ward dem Diebe\"를 부를 때 독일어 발음에서 자주 틀리는 부분은 'W'와 'endlich'의 발음입니다. 먼저, 'W'는 독일어에서 'V'와 같이 발음되어야 하며, 이를 잘못 발음하면 표현의 명확성이 떨어질 수 있습니다. 또한, 'endlich'의 'ent' 부분은 한국어처럼 '엔트'로 발음하지 않고, 't'에 모음이 없으므로 한 음절로 '엔-트'가 아닌 '엔트'처럼 발음해야 하며, 이를 두 음절로 발음하면 틀린 것입니다. 이러한 딕션의 정확성은 곡의 표현력에 큰 영향을 미치므로, 특히 이 부분을 잘 연습하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 29.94,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "die-forelle-wc-5053",
+          "die-forelle-wc-5054"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 8
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-02",
+      "piece_id": "die-forelle",
+      "question": "'helle'나 'Forelle'처럼 l이 두 개인 단어는 자음을 길게 끌어서 발음해야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "die-forelle-wc-0048",
+        "die-forelle-wc-0049",
+        "die-forelle-wc-0050"
+      ],
+      "notes": "겹자음을 강조하지 않는 전통(0048), 열린 모음으로 표시(0049), helle/Forelle/Quelle는 홑자음(0050). 표현적 예외(0051-0053)는 다음 질문으로 분리.",
+      "evidence_ids": [
+        "die-forelle-ku-009",
+        "die-forelle-ku-005",
+        "die-forelle-ku-011",
+        "die-forelle-wc-0050",
+        "die-forelle-wc-0051",
+        "die-forelle-wc-5040",
+        "die-forelle-wc-0058"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'helle'나 'Forelle'처럼 자음이 두 개인 단어는 일반적으로 자음을 길게 끌어 발음하는 것이 아니라, 명확하게 발음하면서도 모음과 부드럽게 연결하는 것이 중요합니다. 독일어는 모음의 길이가 중요하지만, 자음을 명료하게 발음하지 않으면 알아듣기 어려울 수 있으므로, 성악가는 자음과 모음을 자연스럽게 이어가면서도 곡의 분위기를 해치지 않는 선에서 연습하는 것이 좋습니다. 또한, IPA Source는 이러한 단어는 홑자음으로 발음해야 한다고 조언하며, 자음의 반복은 특별한 표현을 위해 필요할 수 있지만, 일반적으로는 그렇게 하지 않는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 12.8,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "die-forelle-wc-0050"
+        ],
+        "gold_recall": 0.3333,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 7
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-03",
+      "piece_id": "die-forelle",
+      "question": "물소리나 물고기가 퍼덕이는 느낌을 살리려고 'Wasser'나 'zappelt'의 자음을 일부러 길게 내도 괜찮을까요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "die-forelle-wc-0048",
+        "die-forelle-wc-0051",
+        "die-forelle-wc-0052",
+        "die-forelle-wc-0053"
+      ],
+      "notes": "Wasser -s(0051), zappelt -p(0052) 겹침 허용, 강요 불가·취향 문제(0053); 0048은 '압도적 표현상 이유가 있으면 가수 취향'이라는 조건을 직접 답하므로 포함.",
+      "evidence_ids": [
+        "die-forelle-ku-002",
+        "die-forelle-ku-010",
+        "die-forelle-ku-004",
+        "die-forelle-ku-001",
+        "die-forelle-ku-003",
+        "die-forelle-wc-0051",
+        "die-forelle-wc-0052",
+        "die-forelle-wc-5058",
+        "die-forelle-wc-5059"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "물소리나 물고기가 퍼덕이는 느낌을 표현하기 위해 'Wasser'나 'zappelt'의 자음을 일부러 길게 발음하는 것은 가능합니다. 이는 곡의 분위기와 상황을 더욱 생생하게 전달할 수 있기 때문입니다. 특히 'zappelt'의 경우, 낚싯줄에 걸린 물고기의 퍼덕임을 묘사하기 위해 -p를 겹쳐 발음하는 것이 좋습니다. 또한, 'Wasser'의 -s를 겹쳐 발음함으로써 튀기는 물소리의 느낌을 더 잘 표현할 수 있습니다. 이러한 발음 방식은 피아노 반주가 표현하는 배경과 분위기와 어우러지도록 해석하는 데 도움이 되며, 곡의 내용과 밀접하게 연결된 긴장감과 분위기 전환을 만들 수 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 18.85,
+      "metrics": {
+        "gold_count": 4,
+        "gold_found": [
+          "die-forelle-wc-0051",
+          "die-forelle-wc-0052"
+        ],
+        "gold_recall": 0.5,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 9
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-04",
+      "piece_id": "die-forelle",
+      "question": "'die Zeit zu lang'에서 t와 z 같은 자음이 몰려 있는데 어떻게 처리해야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "die-forelle-wc-5055",
+        "die-forelle-wc-5063"
+      ],
+      "notes": "자음을 호흡으로 내는 연습(5055), 시간이 충분하니 t와 z를 붙이지 말고 정확히(5063). 같은 대목의 긴장감 해석(5047)은 자음 처리에 답하지 않아 제외.",
+      "evidence_ids": [
+        "die-forelle-ku-019",
+        "die-forelle-ku-009",
+        "die-forelle-ku-005",
+        "die-forelle-ku-011",
+        "die-forelle-wc-5063",
+        "die-forelle-wc-5055",
+        "die-forelle-wc-5047",
+        "die-forelle-wc-5046"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'die Zeit zu lang'에서 t와 z 같은 자음이 몰려 있는 경우, 명확하게 발음하면서도 곡의 분위기를 해치지 않도록 주의해서 연습하는 것이 좋습니다. 특히, 느리게 연습한 뒤 점차 빠르게 하며, 음정 없이 발음만 연습하는 것도 도움이 될 수 있습니다. 또한, 이 부분은 충분히 시간이 있으므로 노래할 때는 더 정확하게 표현하도록 신경 써야 하며, 자음을 호흡으로 내는 법을 발성 연습할 때도 계속 연습해야 합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 12.55,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "die-forelle-wc-5055",
+          "die-forelle-wc-5063"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 8
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-05",
+      "piece_id": "die-forelle",
+      "question": "'Und eh ich es gedacht'처럼 모음으로 시작하는 단어가 이어지는 곳은 어떻게 불러야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "die-forelle-wc-5064"
+      ],
+      "notes": "성문 폐쇄 조언은 5064만 있음.",
+      "evidence_ids": [
+        "die-forelle-ku-019",
+        "die-forelle-wc-5064",
+        "die-forelle-wc-0079",
+        "die-forelle-wc-0032",
+        "die-forelle-wc-5053"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'Und eh ich es gedacht'처럼 모음으로 시작하는 단어가 이어지는 곳은 발음의 명확성을 위해 주의 깊게 연습해야 하며, 특히 빠른 템포와 많은 자음이 포함된 경우 더욱 그렇습니다. 이 부분은 성문 폐쇄(Glottisschlag)를 통해 명확하게 구분되어야 하며, 이는 학생들이 자연스럽게 할 수 있는 것이 아니므로 특별히 신경 써야 합니다. 또한, 이러한 부분은 곡의 리듬과 맥락에 깊이 관여하며, 표현의 흐름을 자연스럽게 유지하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 10.82,
+      "metrics": {
+        "gold_count": 1,
+        "gold_found": [
+          "die-forelle-wc-5064"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-06",
+      "piece_id": "die-forelle",
+      "question": "4분의 2박자 곡인데 강박과 약박을 어떻게 느끼고 불러야 소리가 편해질까요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "die-forelle-wc-5032",
+        "die-forelle-wc-5033",
+        "die-forelle-wc-5037",
+        "die-forelle-wc-5038",
+        "die-forelle-wc-5074"
+      ],
+      "notes": "강약 뒤집힘과 목 조임(5032), 2/4 박자의 중요성(5033), 강-약 두 박으로 세기(5037), 강한 독일어 발음을 약박에 둔 슈베르트의 배치를 깨지 말 것(5038), 단어 악센트와 선율 강약의 일치(5074). 0058은 '탄력 있는 2/4 박동'을 언급만 해 제외(판단 사항).",
+      "evidence_ids": [
+        "die-forelle-ku-011",
+        "die-forelle-ku-009",
+        "die-forelle-wc-5037",
+        "die-forelle-wc-5032",
+        "die-forelle-wc-5033",
+        "die-forelle-wc-0058"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "《Die Forelle》는 4분의 2박자로 구성되어 있으며, 강박과 약박을 정확히 인식하고 표현하는 것이 중요합니다. 강박은 마디의 첫 번째 박자에, 약박은 두 번째 박자에 해당하며, 이 리듬을 지키는 것이 곡의 경쾌함과 흐름을 유지하는 데 도움이 됩니다. 특히, 마디의 마지막 박자에 위치한 단어는 다음 마디의 첫 박자에 있는 단어의 악센트와 연결되어 있기 때문에, 이 점을 유의하면서 노래하는 것이 좋습니다.\n\n또한, 강박을 강하게 표현하고 약박은 여리게 처리하는 것이 중요하며, 이를 제대로 하지 못하면 고음이 없어도 목이 좁아지는 등 소리 내기 어려움이 생길 수 있습니다. 강박과 약박의 균형을 잘 맞추기 위해서는 단어의 악센트와 리듬을 함께 고려하여 연습하는 것이 좋습니다.\n\n마지막으로, 강박은 강하게, 약박은 부드럽게 표현하면서도 곡의 분위기를 해치지 않는 선에서 연습하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 21.03,
+      "metrics": {
+        "gold_count": 5,
+        "gold_found": [
+          "die-forelle-wc-5032",
+          "die-forelle-wc-5033",
+          "die-forelle-wc-5037"
+        ],
+        "gold_recall": 0.6,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 6
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-07",
+      "piece_id": "die-forelle",
+      "question": "1절에서 처음 파사지오를 지나가는 음이 나오면 소리가 불안해지는데 어떻게 준비해야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "die-forelle-wc-5042"
+      ],
+      "notes": "파사지오 처리 두 가지 방법은 5042에만 있음.",
+      "evidence_ids": [
+        "die-forelle-ku-010",
+        "die-forelle-wc-5042",
+        "die-forelle-wc-5043",
+        "die-forelle-wc-5046",
+        "die-forelle-wc-0033"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "1절에서 처음 파사지오를 지나가는 음이 나오는 순간 소리가 불안해지는 경우, 약간의 리타르단도로 표현하거나, 처음부터 파사지오의 느낌을 가지고 공간감 있게 준비해서 바로 지나가며 노래하는 것이 좋습니다. 이는 피아노 파트에서 바뀌는 음형이 곡의 내용과 밀접하게 연결된 긴장감과 분위기 전환을 만든다는 점을 고려하여, 이를 이해하고 피아노가 만드는 긴장감을 이용해 가사를 표현하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 12.77,
+      "metrics": {
+        "gold_count": 1,
+        "gold_found": [
+          "die-forelle-wc-5042"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-08",
+      "piece_id": "die-forelle",
+      "question": "선율이 아래로 내려갈 때 소리가 같이 처지고 어두워지는데 어떻게 해야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "die-forelle-wc-5065"
+      ],
+      "notes": "하행 시 올라가듯·밝게 불러 포지션 유지(5065). 턱이 빠지는 습관(5066)이나 마스케라(5061)는 특정 학생 피드백으로 하행 선율에 대한 답이 아니라 제외.",
+      "evidence_ids": [
+        "die-forelle-ku-004",
+        "die-forelle-wc-5065",
+        "die-forelle-wc-5039",
+        "die-forelle-wc-5032",
+        "die-forelle-wc-5035"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "선율이 아래로 내려갈 때 소리가 같이 처지고 어두워지는 경우, 선율의 진행과 함께 발음과 음색, 프레이징을 조절하여 자연스럽고 표현력 있는 연주를 할 수 있습니다. 예를 들어, 선율이 내려갈 때는 그에 따라 소리가 함께 내려가지 않고 앞으로 밝아지는 듯이 표현하는 것이 중요합니다. 이를 통해 목소리의 위치가 떨어지지 않도록 하며, 니콜라이 게다와 같은 대가들이 강조한 바와 같이, 내려갈수록 발음을 더 씹고 밝게 해야 합니다. 또한, 선율의 흐름에 따라 16분음표가 나타날 때는 하나하나 끊지 말고 부드럽게 이어가며 표현하는 것이 노래를 더 부드럽게 만드는 방법입니다. 경쾌한 리듬을 유지하면서도 강박과 약박을 구분하여 표현함으로써 고음이 없어도 목이 좁아지는 등의 문제를 피할 수 있습니다. 반주와의 조화를 통해 선율이 자연스럽게 흐르도록 하면, 송어가 물 위로 튀어 오르는 듯한 분위기를 표현할 수 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 19.31,
+      "metrics": {
+        "gold_count": 1,
+        "gold_found": [
+          "die-forelle-wc-5065"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-09",
+      "piece_id": "die-forelle",
+      "question": "3절 'Doch endlich'부터 물고기가 잡힐 때까지 템포를 당겨도 되나요? 그 뒤에는 어떻게 하나요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "die-forelle-wc-0079",
+        "die-forelle-wc-5052",
+        "die-forelle-wc-5059",
+        "die-forelle-wc-5060"
+      ],
+      "notes": "Doch endlich에서 약간의 아첼레란도와 'Und ich'에서 원 템포 복귀(0079), 크레셴도+아첼레란도 느낌(5060), zappelt dran 이후 서서히 느려짐(5059), 급해지는 느낌이 들어도 발음은 다 해 줄 것(5052). 긴장감/분위기만 다루는 5045, 5048 등은 템포를 언급하지 않아 제외.",
+      "evidence_ids": [
+        "die-forelle-ku-010",
+        "die-forelle-ku-002",
+        "die-forelle-ku-004",
+        "die-forelle-ku-007",
+        "die-forelle-ku-009",
+        "die-forelle-wc-5060",
+        "die-forelle-wc-0079",
+        "die-forelle-wc-5045",
+        "die-forelle-wc-5021"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "3절 'Doch endlich'부터 물고기가 잡힐 때까지 템포를 약간 당기는 것은 가능하며, 이는 곡의 긴장감과 극적인 흐름을 강조하는 데 도움이 됩니다. 이 부분에서는 점점 크레셴도되면서 약간 빨라지는 느낌을 주는 것이 좋으며, 이는 아첼레란도의 느낌을 살리면서도 곡의 분위기를 자연스럽게 전환하는 데 유리합니다. 그러나 이 뒤에는 원래의 템포로 돌아가야 하며, 'Und ich...' 부분에서는 안정적인 리듬을 유지하면서 이야기의 흐름을 자연스럽게 이어가는 것이 중요합니다. 또한, 이 부분에서는 목소리와 호흡, 연주자의 자세를 통해 분위기를 잘 잡고, 긴장감을 가지고 이야기를 들려주는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 17.98,
+      "metrics": {
+        "gold_count": 4,
+        "gold_found": [
+          "die-forelle-wc-0079",
+          "die-forelle-wc-5060"
+        ],
+        "gold_recall": 0.5,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 9
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-10",
+      "piece_id": "die-forelle",
+      "question": "곡 마지막 'Und ich mit regem Blute' 부분은 음악적으로 어둡게 끝내야 하나요, 아니면 처음처럼 밝은 분위기로 돌아가나요?",
+      "question_type": "conflict",
+      "gold_unit_ids": [
+        "die-forelle-wc-0031",
+        "die-forelle-wc-0037",
+        "die-forelle-wc-0063",
+        "die-forelle-wc-5049",
+        "die-forelle-wc-5071"
+      ],
+      "notes": "어둡고 씁쓸한 마무리(0031) 대 처음의 활기·물결 모티프 복귀(0037), 여유로운 분위기 복귀(5049), 물이 다시 가라앉음(5071), 도덕적 무게 없이 간결한 마무리(0063). 화자의 감정만 다룬 텍스트 해석(5022, 0064, 0087)과 시의 결말 정서(5004)는 음악적 분위기에 직접 답하지 않아 제외(판단 사항).",
+      "evidence_ids": [
+        "die-forelle-ku-007",
+        "die-forelle-ku-004",
+        "die-forelle-ku-001",
+        "die-forelle-wc-5049",
+        "die-forelle-wc-0055",
+        "die-forelle-wc-0063",
+        "die-forelle-wc-0037"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "곡 마지막 'Und ich mit regem Blute' 부분은 처음처럼 밝은 분위기로 돌아가는 것이 적절합니다. 이 부분에서는 화자의 심경이 끓어오르는 마음이지만, 한 마리는 잡혔어도 나머지는 똑같은 일생을 계속 살아가므로 음악적으로 여유로운 분위기로 전환하여 이를 표현하는 것이 좋습니다. 또한, 이 곡의 마지막 부분에서는 반주가 처음의 나긋한 물결 모티프로 돌아오며, 가수 역시 처음과 같은 활기찬 방식으로 노래하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 14.25,
+      "metrics": {
+        "gold_count": 5,
+        "gold_found": [
+          "die-forelle-wc-0037",
+          "die-forelle-wc-0063",
+          "die-forelle-wc-5049"
+        ],
+        "gold_recall": 0.6,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 7
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-11",
+      "piece_id": "die-forelle",
+      "question": "슈베르트는 원래 시의 마지막 연을 일부러 빼고 작곡한 건가요, 아니면 그 연을 아예 몰랐던 건가요?",
+      "question_type": "conflict",
+      "gold_unit_ids": [
+        "die-forelle-wc-0016",
+        "die-forelle-wc-0017",
+        "die-forelle-wc-0018",
+        "die-forelle-wc-0023",
+        "die-forelle-wc-0088",
+        "die-forelle-wc-5004",
+        "die-forelle-wc-5024"
+      ],
+      "notes": "생략설(0016 통념, 0023, 5004, 5024)과 미열람설(0017 4연 없는 빈 판본, 0018), 1785년 『감옥에서 쓴 시』가 슈베르트의 원천이라는 0088(4연 포함 판본 함의). 0054는 1~3연에 곡을 붙였다는 사실만 언급해 제외.",
+      "evidence_ids": [
+        "die-forelle-ku-007",
+        "die-forelle-ku-001",
+        "die-forelle-ku-004",
+        "die-forelle-ku-003",
+        "die-forelle-wc-0023",
+        "die-forelle-wc-0054",
+        "die-forelle-wc-5006",
+        "die-forelle-wc-5004"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "슈베르트는 원본 시의 마지막 연을 의도적으로 빼고 작곡한 것으로 보입니다. 원본 시는 4연으로 구성되어 있었지만, 슈베르트는 1~3연만을 곡에 사용했으며, 마지막 연은 성적 경고의 내용을 담고 있어 19세기 초의 사회적 맥락에서 적절하지 않다고 판단했을 가능성이 있습니다. 이로 인해 곡은 송어가 낚인 데 대한 구경꾼의 실망으로 끝나는 분위기를 형성하게 되었습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 10.95,
+      "metrics": {
+        "gold_count": 7,
+        "gold_found": [
+          "die-forelle-wc-0023",
+          "die-forelle-wc-5004"
+        ],
+        "gold_recall": 0.2857,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 8
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-12",
+      "piece_id": "die-forelle",
+      "question": "3절 'Er macht das Bächlein tückisch trübe'는 정확히 무슨 뜻인가요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "die-forelle-wc-0008",
+        "die-forelle-wc-5097"
+      ],
+      "notes": "trübe 뜻(0008), tückisch 뜻과 시냇물을 흐려 놓았다는 내용(5097). tückisch의 K 발음(5056)과 반주 해석(0034)은 의미 질문이 아니라 제외.",
+      "evidence_ids": [
+        "die-forelle-ku-004",
+        "die-forelle-ku-007",
+        "die-forelle-ku-009",
+        "die-forelle-ku-001",
+        "die-forelle-ku-003",
+        "die-forelle-ku-016",
+        "die-forelle-wc-5056",
+        "die-forelle-wc-5097",
+        "die-forelle-wc-0033",
+        "die-forelle-wc-0008"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "\"Er macht das Bächlein tückisch trübe\"는 낚시꾼이 시냇물을 의도적으로 탁하고 흐리게 만들어서 물고기를 유인하는 상황을 묘사합니다. 여기서 \"tückisch\"는 심술궂고 악의적인 뜻이며, \"trübe\"는 탁하고 흐린 상태를 나타냅니다. 이는 낚시꾼이 자연스러운 물의 흐름을 방해하여 물고기를 유인하는 악의적인 행동을 의미합니다. 또한, \"tückisch trübe\"라는 표현은 낚시꾼의 음흉한 계략을 강조하며, 이는 곡의 극적인 분위기를 형성하는 중요한 요소입니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 13.28,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "die-forelle-wc-0008",
+          "die-forelle-wc-5097"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 10
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-13",
+      "piece_id": "die-forelle",
+      "question": "음악책에서는 '숭어'로 배웠는데 왜 요즘은 '송어'라고 하나요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "die-forelle-wc-0024",
+        "die-forelle-wc-0025",
+        "die-forelle-wc-0026",
+        "die-forelle-wc-0027",
+        "die-forelle-wc-5015",
+        "die-forelle-wc-5070"
+      ],
+      "notes": "제목 오역과 송어/숭어 구분을 다룬 모든 유닛. 5098(송어는 1급수 민물고기)은 명칭 문제를 직접 다루지 않아 제외(판단 사항).",
+      "evidence_ids": [
+        "die-forelle-ku-003",
+        "die-forelle-wc-0025",
+        "die-forelle-wc-0027",
+        "die-forelle-wc-0024",
+        "die-forelle-wc-5070"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "음악책에서 '숭어'로 배웠던 이유는 일제강점기 일본인 최초 번역자의 실수로 인해 교과서 등에 '숭어'가 잘못 기재되었기 때문입니다. 그러나 슈베르트의 곡 'Die Forelle'는 독일어로 '송어'를 의미하며, 영어로는 'trout'이라고 합니다. 이는 곡의 노랫말에 '맑은 시내에'라는 구절이 포함되어 있어 강이나 민물에 사는 송어를 가리키는 것이 옳다고 설명됩니다. 따라서 요즘은 '송어'라고 부르는 것이 정확한 표현입니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 13.27,
+      "metrics": {
+        "gold_count": 6,
+        "gold_found": [
+          "die-forelle-wc-0024",
+          "die-forelle-wc-0025",
+          "die-forelle-wc-0027",
+          "die-forelle-wc-5070"
+        ],
+        "gold_recall": 0.6667,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "die-forelle-wcq-14",
+      "piece_id": "die-forelle",
+      "question": "1절 'Da schoss in froher Eil''처럼 빠르게 이어지는 프레이즈에서는 어디서 숨을 쉬는 게 좋을까요?",
+      "question_type": "unanswerable",
+      "gold_unit_ids": [],
+      "notes": "숨/호흡/브레스 검색 결과 호흡 위치를 제시하는 유닛 없음(5045, 5055, 5067은 호흡을 언급하나 브레스 위치와 무관).",
+      "evidence_ids": [
+        "die-forelle-ku-009"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "1절 'Da schoss in froher Eil'처럼 빠르게 이어지는 프레이즈에서는 마디의 마지막 박자에 놓인 단어를 마무리하고, 다음 마디의 첫 박자에 놓인 단어의 악센트를 자연스럽게 이어가며 숨을 쉬는 것이 좋습니다. 이는 빠른 템포 속에서도 음악의 흐름을 유지하고, 단어의 강약을 명확히 전달하는 데 도움이 됩니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 12.04,
+      "metrics": {
+        "gold_count": 0,
+        "gold_found": [],
+        "gold_recall": null,
+        "gold_hit": null,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-01",
+      "piece_id": "in-flowery-clouds",
+      "question": "'추위와 주림에' 들어갈 때 '추' 소리가 자꾸 안으로 먹히는 느낌이에요. 어떻게 발음해야 소리가 살아나나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-5001",
+        "in-flowery-clouds-wc-5002",
+        "in-flowery-clouds-wc-5023"
+      ],
+      "notes": "5001/5002: ㅊ 치찰음을 안으로 넣지 말고 앞으로, 된 발음으로. 5023: '추위'에서 소리가 쭉 나오게. Excluded 5003 (소리가 따로 논다, connection), 5041 ('처음부터 잡아야', object unclear), 5016/5017 (legato in the middle section, not the consonant).",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-008",
+        "in-flowery-clouds-wc-5001",
+        "in-flowery-clouds-wc-5002",
+        "in-flowery-clouds-wc-0010",
+        "in-flowery-clouds-wc-0002"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'추위와 주림에'에서 '추'의 발음이 자꾸 안으로 먹히는 경우, 이는 치찰음(ㅊ)의 특성상 혀와 이의 접촉점이 멀기 때문에 발생할 수 있습니다. 이럴 때는 오히려 소리를 더 앞으로 뽑아 주어야 하며, 약하게 발음하면 자연스럽지 않아서 된 발음으로 해 주어야 합니다. 이를 통해 소리가 더 명확하고 살아나게 될 수 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 13.15,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "in-flowery-clouds-wc-5001",
+          "in-flowery-clouds-wc-5002"
+        ],
+        "gold_recall": 0.6667,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-02",
+      "piece_id": "in-flowery-clouds",
+      "question": "'나비처럼'부터 템포가 느려지는데, 느려지면 저도 모르게 소리를 꾹 누르게 돼요. 어떻게 불러야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-5005",
+        "in-flowery-clouds-wc-5006",
+        "in-flowery-clouds-wc-5007"
+      ],
+      "notes": "5005: Larghetto means slowing; 5006: never press because tempo slows; 5007: keep attack/diction quick even when slow. Excluded 5004 (pressing the '아' vowel, but its referent is unknown).",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-012",
+        "in-flowery-clouds-wc-5006",
+        "in-flowery-clouds-wc-5005",
+        "in-flowery-clouds-wc-5007",
+        "in-flowery-clouds-wc-5009"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'나비처럼'부터 템포가 느려지는 부분에서는 흔히 저절로 소리를 꾹 누르게 되는 경향이 있지만, 이는 템포가 느려지면 자연스럽게 힘을 줄여야 한다고 생각하는 오해에서 비롯됩니다. 실제로는 템포가 느려져도 어택은 똑같이 유지하면서 노래해야 하며, 각 음을 충분히 강조하면서도 문장이 이어지도록 하는 것이 중요합니다. 특히, 느려진 템포에서도 발음은 빠르게 처리하는 것이 좋습니다. 예를 들어, '산토끼'처럼 느리게 부르더라도 발음의 속도는 유지해야 하며, '나비처럼'과 '쓰러지게 하' 같은 부분에서는 기합을 주듯이 내는 것이 좋습니다. 이러한 방식으로 템포가 느려져도 자연스럽고 표현력 있는 연주가 가능합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 16.54,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "in-flowery-clouds-wc-5005",
+          "in-flowery-clouds-wc-5006",
+          "in-flowery-clouds-wc-5007"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-03",
+      "piece_id": "in-flowery-clouds",
+      "question": "'나비처럼 쓰러지게 하여라' 프레이즈에서 숨은 어디서 쉬는 게 좋을까요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-5008",
+        "in-flowery-clouds-wc-5009"
+      ],
+      "notes": "5008: breathe after '나비처럼 쓰러지게'; 5009: rest after '나비처럼' and after '쓰러지게', then H-attack on '하'. The two are slightly different suggestions from different moments; both included. Excluded 5018 (support from the flanks for the final phrase, not breath placement).",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-006",
+        "in-flowery-clouds-wc-5008",
+        "in-flowery-clouds-wc-5018",
+        "in-flowery-clouds-wc-0009",
+        "in-flowery-clouds-wc-5005"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "‘나비처럼 쓰러지게 하여라’ 프레이즈에서 숨을 쉬는 위치는 성악가의 해석과 상황에 따라 달라질 수 있지만, 일반적으로 이 부분에서 숨을 쉬는 것이 자연스럽고 효과적일 수 있습니다. 다만, 이전 프레이즈의 연속성을 유지하면서 숨을 쉬는 것이 좋으며, 이전의 발성과 느낌을 다음 프레이즈로 이어가야 합니다. 또한, 이 부분에서는 목에 힘을 주기보다는 옆구리에서 힘을 잡아 놓고, 여유가 있다면 ‘라’에서 한 번 더 잡아서 쓰는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 11.77,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "in-flowery-clouds-wc-5008"
+        ],
+        "gold_recall": 0.5,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-04",
+      "piece_id": "in-flowery-clouds",
+      "question": "곡 시작하자마자 '꽃바람' 첫 음이 높아서 음정이 자꾸 떨어져요. 어떻게 준비해야 할까요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-5012",
+        "in-flowery-clouds-wc-5013"
+      ],
+      "notes": "5012: visualize the pitch height; 5013: pitch fails without breath preparation, use breath from below. Excluded 5014 (projecting outward without the throat dropping — about the phrase's projection, not first-note pitch) and the 꽃-vowel units 5025-5029.",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-004",
+        "in-flowery-clouds-ku-002",
+        "in-flowery-clouds-ku-015"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation"
+      ],
+      "answer": "‘꽃바람’의 첫 음이 높아서 음정이 떨어지는 경우, ‘꽃’의 받침 ‘ㅊ’을 강조하는 발음 방식을 시도해 보는 것이 도움이 될 수 있습니다. ‘꼬-ㅊ-빠-람’처럼 자음과 자음 사이에 잠깐 멈추는 방식으로 발음하면, 음정을 더 안정적으로 유지할 수 있습니다. 또한, 이 곡의 도입부는 가볍고 경쾌한 분위기를 표현하는 것이 중요하므로, ‘꽃바람’을 스타카토처럼 가볍게 부르는 것도 고려해 볼 수 있습니다. 전반적으로는 크게 지르기보다 깔끔하고 가벼운 표현을 유지하는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 11.91,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 3
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-05",
+      "piece_id": "in-flowery-clouds",
+      "question": "이 곡에서 피아노 반주는 그냥 노래를 받쳐 주는 정도인가요, 아니면 따로 어떤 역할이 있나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-0006",
+        "in-flowery-clouds-wc-0007"
+      ],
+      "notes": "0006: accompaniment has independent expressive power; 0007: raised accompaniment to equal standing with the voice. Excluded 0029/0031 (general statements about Korean art song, not this piece) and 5046 (only remarks that the one-bar postlude is cute).",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-014"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "이 곡에서 피아노 반주는 단순히 노래를 받쳐 주는 역할을 넘어서, 곡의 분위기와 감정을 전달하는 중요한 요소로 작용합니다. 예를 들어, 전주의 반주 패턴은 꽃가루와 바람이 연상되는 듯한 느낌을 주며, 이는 곡의 초반부터 주제의 느낌을 전달하는 데 기여합니다. 따라서 가창자는 이러한 반주의 분위기를 유지하면서 가볍게 노래하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 7.44,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-06",
+      "piece_id": "in-flowery-clouds",
+      "question": "'한 겨우내 움치고 떨며 살아온'에서 '살아온'은 앞에 붙여서 불러야 해요, 아니면 끊고 불러도 되나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-5032"
+      ],
+      "notes": "5032 states either separating or joining '살아온' is fine. 5033 (ㄴ pronounced Italian-style in 살아온) is diction, not phrasing; 5035 concerns '며' length — both excluded.",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-006",
+        "in-flowery-clouds-ku-022",
+        "in-flowery-clouds-ku-017",
+        "in-flowery-clouds-ku-005",
+        "in-flowery-clouds-ku-004",
+        "in-flowery-clouds-ku-002",
+        "in-flowery-clouds-wc-5033",
+        "in-flowery-clouds-wc-5032",
+        "in-flowery-clouds-wc-0010",
+        "in-flowery-clouds-wc-5035"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "‘살아온’은 앞에 붙여서 불러도 끊고 불러도 상황에 따라 가능합니다. 다만, 앞의 음역과 연결해서 부드럽게 이어가는 것이 일반적이며, 많은 성악가들이 그러한 방식을 선호합니다. 또한, ‘살아온’의 발음은 우리말처럼 ㄴ(니은)을 강조하기보다는 약간 이탈리아어처럼 부드럽게 발음하는 경우가 많지만, 이는 개인의 해석에 따라 달라질 수 있습니다. 따라서, 앞의 음과 자연스럽게 연결하거나, 필요에 따라 끊고 부르더라도 표현의 흐름을 유지하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 13.82,
+      "metrics": {
+        "gold_count": 1,
+        "gold_found": [
+          "in-flowery-clouds-wc-5032"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 10
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-07",
+      "piece_id": "in-flowery-clouds",
+      "question": "고음으로 올라갈 때마다 목이 조이고 힘이 잔뜩 들어가요. 어떻게 하면 편하게 낼 수 있을까요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-0040",
+        "in-flowery-clouds-wc-5010",
+        "in-flowery-clouds-wc-5011",
+        "in-flowery-clouds-wc-5014",
+        "in-flowery-clouds-wc-5018"
+      ],
+      "notes": "5010 (don't pour energy, think of smiling), 5011 (don't pull, sing comfortably), 5014 (anchor breath so the throat doesn't give way when projecting), 5018 (no throat force; prepare support in the flanks), 0040 (ㅎ onset helps high notes — columnist's contested opinion). Excluded 0036 (describes why 받침 make high notes hard, gives no remedy) and 5006 (pressing in the slow passage).",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-010"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "고음으로 올라갈 때 목이 조이고 힘이 들어가는 것은 매우 흔한 현상입니다. 이럴 때는 자연스럽게 소리가 커지는 느낌을 주는 크레센도의 효과를 활용하는 것이 도움이 될 수 있습니다. 즉, 고음으로 올라갈 때 소리가 점점 커지는 듯한 느낌을 주면서 부드럽게 연주하면 목의 긴장이 줄어들고 편하게 소리를 낼 수 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 7.39,
+      "metrics": {
+        "gold_count": 5,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-08",
+      "piece_id": "in-flowery-clouds",
+      "question": "'꽃바람'을 부르면 '꽃'이 답답하게 묻혀서 잘 안 들린다고 해요. '꽃'은 어떻게 처리해야 하나요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-5025",
+        "in-flowery-clouds-wc-5026",
+        "in-flowery-clouds-wc-5027",
+        "in-flowery-clouds-wc-5028",
+        "in-flowery-clouds-wc-5029"
+      ],
+      "notes": "5025 (vowel balance so the sound doesn't sink), 5026 (heard as '꽃바라', 꽃 not sounding good), 5027 (more volume on 꽃), 5028 (open the 우/오/으-type vowel slightly), 5029 (open and lengthen the vowel). Excluded 0053 (unreleased final consonants in general; notes only speculate it applies to 꽃) and 5012/5013 (pitch of the first note).",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-004",
+        "in-flowery-clouds-ku-002",
+        "in-flowery-clouds-ku-015"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation"
+      ],
+      "answer": "‘꽃’은 받침 ‘ㅊ’을 강조하기 어려운 경우가 많아, 이태리어의 복자음처럼 자음과 자음 사이에 잠깐 멈추는 방식으로 ‘꼬-ㅊ-빠-람’과 같이 발음하는 것이 도움이 될 수 있습니다. 또한, ‘꽃바람’은 한 글자씩 그대로 발음하기보다 ‘꼬-빠-람’처럼 유연하게 표현하는 것이 좋으며, 이는 곡의 경쾌한 분위기를 잘 전달할 수 있습니다. 전반적으로는 가볍고 깔끔하게 부르는 것이 중요하며, 특히 ‘꽃바람’은 스타카토와 비슷한 가벼운 느낌으로 표현하는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer overgeneralizes local evidence",
+      "error": null,
+      "seconds": 13.47,
+      "metrics": {
+        "gold_count": 5,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 3
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-09",
+      "piece_id": "in-flowery-clouds",
+      "question": "한국어 '으' 모음을 노래할 때 턱이 굳고 소리가 막혀요. '으'는 어떤 모양으로 불러야 하나요?",
+      "question_type": "conflict",
+      "gold_unit_ids": [
+        "in-flowery-clouds-wc-0038",
+        "in-flowery-clouds-wc-0039",
+        "in-flowery-clouds-wc-0052",
+        "in-flowery-clouds-wc-0054",
+        "in-flowery-clouds-wc-0055",
+        "in-flowery-clouds-wc-5028"
+      ],
+      "notes": "Sources disagree: 0039 sing between 으 and 어; 0054 westernize to mixed [œ]; 0052 treat like unrounded schwa with lips slightly drawn back; 5028 don't set the vowel as 으, open it slightly. 0038 (이/으 need a different structure than speech) and 0055 (open ㅡ-based humming to [o]/[u] for projection, from another song) included as supporting context. 0035 (pull vowels back generally) excluded as not specific to 으.",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-005",
+        "in-flowery-clouds-wc-0038",
+        "in-flowery-clouds-wc-0036",
+        "in-flowery-clouds-wc-0045",
+        "in-flowery-clouds-wc-0039"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "‘으’ 모음은 발음할 때 턱이 굳고 소리가 막힐 수 있으므로, 구강 공간을 확보하면서 자연스럽게 발음하는 것이 중요합니다. 이 모음은 ‘어’ 쪽으로 열어 발음하되, 실제로는 ‘으’와 ‘어’의 중간 위치에서 불러야 하며, 이로 인해 소리가 부드럽고 흐르게 되도록 연습하는 것이 좋습니다. 또한, 한국어는 모음의 장단으로 단어의 강세를 표현하므로, ‘마-을’이나 ‘불-어-오라’와 같은 대목에서는 단어의 장단을 표현하는 것이 좋습니다. 특히, 한국어 발음은 받침의 역할이 두드러지므로, 받침을 발음할 때마다 호흡이 막힐 수 있어, 노래할 때는 말할 때와 다른 구조를 가져가야 소리를 앞으로 내보낼 수 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 22.05,
+      "metrics": {
+        "gold_count": 6,
+        "gold_found": [
+          "in-flowery-clouds-wc-0038",
+          "in-flowery-clouds-wc-0039"
+        ],
+        "gold_recall": 0.3333,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "in-flowery-clouds-wcq-10",
+      "piece_id": "in-flowery-clouds",
+      "question": "전주가 흘러나오는 동안 어떤 마음으로 기다렸다가 노래를 시작하면 좋을까요?",
+      "question_type": "unanswerable",
+      "gold_unit_ids": [],
+      "notes": "No unit addresses the piano introduction or how to prepare during it (grep 전주/intro: none). 5046 is about the postlude (후주) only; 5012/5013 concern the first sung note's pitch/breath, not the introduction.",
+      "evidence_ids": [
+        "in-flowery-clouds-ku-014",
+        "in-flowery-clouds-ku-006",
+        "in-flowery-clouds-ku-012",
+        "in-flowery-clouds-ku-008",
+        "in-flowery-clouds-ku-007",
+        "in-flowery-clouds-ku-015"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation"
+      ],
+      "answer": "《꽃구름 속에》의 전주는 꽃가루와 바람이 연상되는 듯한 느낌을 주므로, 전주가 흘러나오는 동안 가볍고 자연스러운 분위기를 유지하며 기다린 뒤 노래를 시작하는 것이 좋습니다. 전주의 느낌을 이어가기 위해 가창자는 가볍게 부르는 방식을 선택하고, 전주와의 분위기를 자연스럽게 연결하는 것이 중요합니다. 또한, 곡의 분위기를 충분히 표현하기 위해 한 마디 한 마디를 충분히 노래할 수 있도록 여유를 가지는 템포를 유지하는 것도 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 12.7,
+      "metrics": {
+        "gold_count": 0,
+        "gold_found": [],
+        "gold_recall": null,
+        "gold_hit": null,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 6
+      }
+    },
+    {
+      "qid": "la-capinera-wcq-01",
+      "piece_id": "la-capinera",
+      "question": "Col ritornar에서 l 다음에 바로 r이 나와서 혀가 꼬여요. 어떻게 발음하면 자연스럽게 들리나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "la-capinera-wc-5002"
+      ],
+      "notes": "Only 5002 gives a pronunciation strategy for the l-r sequence in 'Col ritornar'. 0003/5003 cover the meaning of the same line, not diction; excluded.",
+      "evidence_ids": [
+        "la-capinera-ku-002",
+        "la-capinera-wc-5002",
+        "la-capinera-wc-5004",
+        "la-capinera-wc-5013",
+        "la-capinera-wc-0003"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "‘Col ritornar’에서는 l 발음과 r 발음이 연이어 나오므로, 두 발음이 모두 정확히 들리도록 신경 써서 발음합니다. 이럴 때는 r을 두 번 굴리면 l 발음을 한 것으로 인식된다고 설명합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 5.97,
+      "metrics": {
+        "gold_count": 1,
+        "gold_found": [
+          "la-capinera-wc-5002"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "la-capinera-wcq-02",
+      "piece_id": "la-capinera",
+      "question": "제목의 capinera가 정확히 어떤 새인가요? 우리말로는 뭐라고 하면 되나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "la-capinera-wc-0002",
+        "la-capinera-wc-5001"
+      ],
+      "notes": "0002 (coal tit vs. blackcap identification) and 5001 (Italian dictionary gloss: small, sweet-singing woodland bird; Korean name unknown). 0016/0018 list alternative titles such as 'The Wren' but do not identify the bird meant by 'capinera'; excluded as mere mentions.",
+      "evidence_ids": [
+        "la-capinera-ku-009",
+        "la-capinera-wc-5001",
+        "la-capinera-wc-0002",
+        "la-capinera-wc-0024",
+        "la-capinera-wc-0028"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "\"La capinera\"라는 제목은 이탈리아어로 \"작은 새\"를 의미하며, 구체적으로는 \"검은머리휘파람새(Blackcap)\"를 가리키는 경우가 많습니다. 이 새는 숲속에서 감미롭게 노래한다고 알려져 있으며, 이 곡의 음악적 분위기와도 어울리는 특징을 가지고 있습니다. 다만, 이탈리아어 사전에서는 'capinera'가 조그마한 새를 일반적으로 가리키는 말이라고 설명되며, 우리말로는 정확한 새의 이름을 찾기 어려운 경우도 있다고 합니다. 따라서, 이 곡의 제목을 우리말로 표현할 때는 \"검은머리휘파람새\"나 \"작은 새\"처럼 일반적인 표현을 사용하는 것이 적절할 수 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 13.04,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "la-capinera-wc-0002",
+          "la-capinera-wc-5001"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "la-capinera-wcq-03",
+      "piece_id": "la-capinera",
+      "question": "반복해서 나오는 'cantiam l'amor, la gioventù'는 무슨 뜻이에요? 무엇을 노래하자는 건가요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "la-capinera-wc-0006",
+        "la-capinera-wc-0008",
+        "la-capinera-wc-5008"
+      ],
+      "notes": "0006 translates the refrain; 0008 translates the final stanza whose last line repeats the same words; 5008 glosses 'gioventù' and the line. 5009 glosses only 'insiem' (other half of the refrain line), and 5015 is a text-edition correction of 'la gioventù' without meaning; both excluded.",
+      "evidence_ids": [
+        "la-capinera-ku-011",
+        "la-capinera-wc-0006",
+        "la-capinera-wc-5008",
+        "la-capinera-wc-0008",
+        "la-capinera-wc-5007"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "‘Cantiam l’amor, la gioventù’는 ‘사랑과 젊음’을 노래하자는 의미로, 이 구절은 사랑과 청년의 시절을 찬미하며 함께 노래하자는 메시지를 담고 있습니다. 이 부분은 후렴처럼 반복되어 곡의 중심 주제를 강조하며, 가창 시에는 ‘l’amor’과 ‘la gioventù’ 사이의 음정 배치를 자연스럽게 연음하고 레가토를 유지하는 것이 중요합니다. 특히 ‘gioventù’는 ‘청년’을 의미하므로, 이 단어를 부드럽게 발음하면서도 중요한 악센트를 살려 노래하는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 11.89,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "la-capinera-wc-0006",
+          "la-capinera-wc-0008",
+          "la-capinera-wc-5008"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "la-capinera-wcq-04",
+      "piece_id": "la-capinera",
+      "question": "가사에 canzon, cantiam처럼 끝이 잘려 있거나 아포스트로피로 줄인 단어가 많은데, 왜 그런 거고 읽을 때 어떻게 처리해야 하나요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "la-capinera-wc-5004",
+        "la-capinera-wc-5007",
+        "la-capinera-wc-5011",
+        "la-capinera-wc-5012",
+        "la-capinera-wc-5014"
+      ],
+      "notes": "Elided/truncated forms: 5004 (canzone→canzon, metrical elision), 5007 (cantiamo→cantiam), 5011 (l'erbe read as one word; ed added before i), 5012 (quell'arcano as one word; many apostrophes in the song), 5014 (uman shortened because notes are short). Judgment call: 5011's 'ed' part is euphonic addition rather than elision, but the l'erbe part answers directly. 5014 is ASR-uncertain. 5015 (article correction) and 5006 (read words separately) excluded.",
+      "evidence_ids": [],
+      "evidence_types": [],
+      "answer": "현재 확인된 정보만으로는 이 질문에 정확히 답변하기 어렵습니다.",
+      "generation_mode": "unavailable",
+      "answer_basis": "no_corpus_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 0.08,
+      "metrics": {
+        "gold_count": 5,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 0
+      }
+    },
+    {
+      "qid": "la-capinera-wcq-05",
+      "piece_id": "la-capinera",
+      "question": "마지막 연의 'D'un gaudio ho pien ch'uman non è' 부분은 악보마다 가사가 다르던데, 정확히 어떤 의미로 해석해야 하나요?",
+      "question_type": "conflict",
+      "gold_unit_ids": [
+        "la-capinera-wc-0008",
+        "la-capinera-wc-0013",
+        "la-capinera-wc-0014",
+        "la-capinera-wc-0015"
+      ],
+      "notes": "Edition conflict pien vs. più with competing readings: 0008 (translation of the final stanza, flagged uncertain), 0013 ('pien' reading, author unsure), 0014 (some scores print 'più'), 0015 ('più' reading, also unsure). 5014 is anchored at 'più che uman' and implicitly reflects the 'più' text, but it only concerns syllable elision, not meaning; excluded (borderline).",
+      "evidence_ids": [
+        "la-capinera-ku-005",
+        "la-capinera-ku-008",
+        "la-capinera-ku-011",
+        "la-capinera-ku-001",
+        "la-capinera-ku-027",
+        "la-capinera-ku-022",
+        "la-capinera-wc-0008",
+        "la-capinera-wc-0013",
+        "la-capinera-wc-5014",
+        "la-capinera-wc-5006"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "가사 'D'un gaudio ho pien ch'uman non è'는 '인간의 것이 아닌 기쁨으로 가득 차 있다'는 의미로 해석할 수 있으며, 이는 마음이 상대방에게 다가가고 감정이 인간의 경계를 넘어서는 순간을 표현하고 있습니다. 다만, 이 부분의 해석에 대해 저자는 확신이 없음을 밝히기도 했으므로, 이 가사가 표현하고자 하는 감정의 깊이와 감정의 흐름을 잘 파악하여 자연스럽게 표현하는 것이 중요합니다. 또한, 이 부분의 발음과 표현은 음악적 지시와 함께 연계되어야 하며, 가사의 의미를 효과적으로 전달하기 위해 레가토와 음정의 자연스러운 흐름을 유지하는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 15.11,
+      "metrics": {
+        "gold_count": 4,
+        "gold_found": [
+          "la-capinera-wc-0008",
+          "la-capinera-wc-0013"
+        ],
+        "gold_recall": 0.5,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 10
+      }
+    },
+    {
+      "qid": "la-capinera-wcq-06",
+      "piece_id": "la-capinera",
+      "question": "이 곡은 프레이즈가 길어서 숨이 모자라요. 어디서 숨을 쉬는 게 좋을까요?",
+      "question_type": "unanswerable",
+      "gold_unit_ids": [],
+      "notes": "No unit discusses breathing or phrase breaks (grep for 숨/호흡/breath/respir/fiato in units file: no hits). 5006 advises reading words separately for text study, not breath placement.",
+      "evidence_ids": [
+        "la-capinera-ku-012",
+        "la-capinera-ku-010"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation"
+      ],
+      "answer": "이 곡은 긴 프레이즈로 인해 숨을 쉬는 것이 어려울 수 있습니다. 특히 ‘la la’가 반복되는 부분에서는 프레이즈가 끊어지지 않도록 여러 음정을 하나의 큰 음 덩어리처럼 묶어 노래하는 연습이 도움이 됩니다. 처음에는 몇 개의 음정만 묶고 점차 더 큰 덩어리로 확장해 가는 것이 좋습니다. 또한, 꾸밈음이나 고음으로 도약하는 부분에서는 소리가 끊어지지 않도록 각 음정의 역할을 생각하며, 모음을 이어서 부르는 연습도 유용합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 10.08,
+      "metrics": {
+        "gold_count": 0,
+        "gold_found": [],
+        "gold_recall": null,
+        "gold_hit": null,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 2
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-01",
+      "piece_id": "nella-fantasia",
+      "question": "'io sogno'의 sogno를 어떻게 읽어야 하나요? g를 소리 내야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5014",
+        "nella-fantasia-wc-5045",
+        "nella-fantasia-wc-5089"
+      ],
+      "notes": "All three units on 'gno' pronunciation in sogno. Excluded 5016 (about 'sono' not taking the gn sound) and 5077 (accenting the 'so' syllables, not pronunciation).",
+      "evidence_ids": [
+        "nella-fantasia-ku-018",
+        "nella-fantasia-ku-007",
+        "nella-fantasia-ku-015",
+        "nella-fantasia-ku-004",
+        "nella-fantasia-ku-001",
+        "nella-fantasia-wc-5045",
+        "nella-fantasia-wc-5014",
+        "nella-fantasia-wc-5089",
+        "nella-fantasia-wc-0011"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'io sogno'의 'sogno'은 이탈리아어에서 '꿈'을 의미하며, 발음은 '뇨'로 읽어야 합니다. 이때 'gno' 부분은 '쌍니은'에 '요'를 붙인 듯한 느낌으로, 'ㄴ'을 더 강조해서 발음하는 것이 좋습니다. 다만, 'g'는 묵음처럼 처리하여 소리 내지 않고 '뇨'로만 발음하는 것이 올바른 방법입니다. 이는 이 곡의 서정적이고 희망적인 분위기를 잘 살리기 위해 필요한 발음 방식입니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 11.57,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "nella-fantasia-wc-5014",
+          "nella-fantasia-wc-5045",
+          "nella-fantasia-wc-5089"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 9
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-02",
+      "piece_id": "nella-fantasia",
+      "question": "가사 중에 '투티'라고 부르는 부분이 있는데, 원곡 가수처럼 그렇게 발음해도 괜찮나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5028",
+        "nella-fantasia-wc-5059"
+      ],
+      "notes": "Both units say tutti should be 뚜띠 rather than following Brightman. 5088 (된소리 generally, example onestà) excluded as not about tutti.",
+      "evidence_ids": [
+        "nella-fantasia-ku-004",
+        "nella-fantasia-wc-5028",
+        "nella-fantasia-wc-5059",
+        "nella-fantasia-wc-5027",
+        "nella-fantasia-wc-5115"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'투티'라고 부르는 것은 원곡 가수 사라 브라이트만의 발음 방식을 따라 부르는 경우가 있지만, 이탈리아어의 정확한 발음은 '뚜띠'입니다. 이탈리아어를 잘 아는 가창자는 이탈리아식 발음인 '뚜띠'로 부르는 것이 좋습니다. 다만, 이 곡은 클래식한 발성으로 불리기도 하지만, 마이크 유무나 연주 장소의 분위기에 따라 가창법이 달라질 수 있습니다. 마이크가 있는 경우나 작은 공간에서 부를 때는 편안한 음색으로 부르는 것이 적절하며, 마이크 없이 부를 때는 성악적인 발성이 요구됩니다. 따라서 가사의 발음은 상황과 환경, 그리고 가창자의 목소리 특성에 따라 유연하게 조절하는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 14.55,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "nella-fantasia-wc-5028",
+          "nella-fantasia-wc-5059"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-03",
+      "piece_id": "nella-fantasia",
+      "question": "'in pace e in onestà'에서 e가 연달아 나오는데, 모음을 각각 따로 불러야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5013",
+        "nella-fantasia-wc-5065",
+        "nella-fantasia-wc-5087"
+      ],
+      "notes": "All units on merging pace's final e with the conjunction e. 5011 is meaning only; 5088 is about 된소리, not linking.",
+      "evidence_ids": [
+        "nella-fantasia-ku-005",
+        "nella-fantasia-ku-016",
+        "nella-fantasia-ku-002",
+        "nella-fantasia-wc-5013",
+        "nella-fantasia-wc-5087",
+        "nella-fantasia-wc-5065",
+        "nella-fantasia-wc-5088"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'In pace e in onestà'에서 연달아 나오는 e는 각각 따로 부르지 않고, 하나의 발음으로 자연스럽게 이어 부르는 것이 좋습니다. 이는 이탈리아어의 된소리 발음 규칙에 따라, 같은 모음이 연속적으로 나타날 경우 합쳐서 발음하는 것이 일반적이기 때문입니다. 다만, 악보의 단어 구분이나 강세에 따라 약간의 차이가 있을 수 있으므로, 원곡의 가사 구조와 강조점을 참고하여 연기하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 10.46,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "nella-fantasia-wc-5013",
+          "nella-fantasia-wc-5065",
+          "nella-fantasia-wc-5087"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 7
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-04",
+      "piece_id": "nella-fantasia",
+      "question": "이 곡에 v로 시작하는 단어가 많던데, b 소리랑 섞이지 않게 하려면 어떻게 해야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5033",
+        "nella-fantasia-wc-5115",
+        "nella-fantasia-wc-5116"
+      ],
+      "notes": "5033 warns about v in vento; 5115/5116 on distinguishing v from b. 5041 (inserted h in vedo) excluded.",
+      "evidence_ids": [
+        "nella-fantasia-ku-009",
+        "nella-fantasia-ku-002",
+        "nella-fantasia-ku-005",
+        "nella-fantasia-ku-004",
+        "nella-fantasia-ku-008",
+        "nella-fantasia-ku-006",
+        "nella-fantasia-wc-5115",
+        "nella-fantasia-wc-5105",
+        "nella-fantasia-wc-5109",
+        "nella-fantasia-wc-5064"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "이 곡에서 'V'로 시작하는 단어가 많아 'B' 소리와 혼동될 수 있으므로, 발음의 명확성을 위해 각 단어의 구분을 잘 파악하는 것이 중요합니다. 특히, 원곡의 가사 구분을 참고하여 단어의 강세와 발음에 주의해야 하며, 이는 유럽 언어의 특성상 알파벳 하나의 차이로 의미가 완전히 달라질 수 있기 때문입니다. 또한, 발음 시 호흡의 연결과 자연스러운 모음 처리를 통해 소리의 흐름을 유지하고, 필요 시 프레이즈 시작 전에 충분한 숨을 쉬는 것도 도움이 됩니다. 이 곡은 클래식한 발성으로 불리기도 하지만, 상황과 환경에 따라 가창법을 조정하는 것이 적절합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 16.0,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "nella-fantasia-wc-5115"
+        ],
+        "gold_recall": 0.3333,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 10
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-05",
+      "piece_id": "nella-fantasia",
+      "question": "가사에 'pien'이라고 되어 있는데, 왜 pieno가 아니라 끝이 잘린 형태인가요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5048",
+        "nella-fantasia-wc-5080"
+      ],
+      "notes": "Both explain final-vowel elision. Note internal disagreement: 5048 says o was dropped (syllable count); 5080 says 'A' was dropped. 5066 (sing d'umanità connected) and 5022/5023 (meaning) excluded.",
+      "evidence_ids": [
+        "nella-fantasia-ku-002",
+        "nella-fantasia-wc-5048",
+        "nella-fantasia-wc-5080",
+        "nella-fantasia-wc-5061",
+        "nella-fantasia-wc-5022"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "가사에 'pien'이라고 되어 있는 이유는 원래 'pieno'라는 단어에서 끝 모음 'o'를 생략한 것이며, 이는 음절 수나 발음의 편의를 위해 이루어진 것입니다. 이탈리아어 가사에서는 'amore'를 'amor'처럼 끝 모음을 생략하는 경우가 종종 있으며, 'pien d'umanità' 역시 이러한 규칙에 따라 작성된 것입니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 8.55,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "nella-fantasia-wc-5048",
+          "nella-fantasia-wc-5080"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-06",
+      "piece_id": "nella-fantasia",
+      "question": "마지막 'in fondo all'anima'까지 숨이 버티질 않아요. 중간에 숨을 쉬어도 되나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5038",
+        "nella-fantasia-wc-5069",
+        "nella-fantasia-wc-5070"
+      ],
+      "notes": "5069 says l'anima must be one breath; 5070 admits breathing inside it to sustain the end; 5038 on reserving energy so the sound lasts to anima. Same lecturer for 5069/5070, so not tagged conflict. 5120/5123 (diction) excluded.",
+      "evidence_ids": [
+        "nella-fantasia-ku-010",
+        "nella-fantasia-ku-009",
+        "nella-fantasia-ku-008",
+        "nella-fantasia-wc-5069",
+        "nella-fantasia-wc-5123",
+        "nella-fantasia-wc-5070",
+        "nella-fantasia-wc-5038"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "마지막 'in fondo all'anima'까지 숨이 버티지 못하는 경우, 중간에 숨을 쉬는 것은 일반적인 연습 방법으로 받아들여질 수 있습니다. 다만, 이 부분은 한 단어로 구성된 'l'anima'이기 때문에 원칙적으로 한 호흡으로 부르는 것이 바람직하다는 의견도 있습니다. 그러나 실제로는 'in fondo alla'와 '-nima' 사이에서 숨을 쉬는 경우도 있으며, 이를 통해 끝까지 길게 끌어올 수 있다고 설명하는 연습 방법도 있습니다. 다만, 클래식에서는 작곡가의 의도에 따라 단어 중간에서 숨을 쉬는 것을 경계하고, 한 단어가 잘 들리도록 노래하는 것이 중요하다는 점도 고려해야 합니다. 따라서, 자신의 호흡 상태와 음역을 고려하여 자연스럽게 숨을 쉬는 것이 좋으며, 마지막 'anima'까지 여운이 남도록 에너지를 비축하는 것도 좋은 방법입니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 16.24,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "nella-fantasia-wc-5038",
+          "nella-fantasia-wc-5069",
+          "nella-fantasia-wc-5070"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 7
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-07",
+      "piece_id": "nella-fantasia",
+      "question": "3절의 'vento caldo'는 단순히 날씨 얘기인가요, 아니면 다른 뜻을 담고 있다고 볼 수 있나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-0065",
+        "nella-fantasia-wc-5035"
+      ],
+      "notes": "Only units offering a figurative reading (Holy Spirit imagery; warm words and deeds between people). Literal translations (0010, 0024, 5034, 5057, 5075) excluded as they do not address the figurative question.",
+      "evidence_ids": [
+        "nella-fantasia-ku-010",
+        "nella-fantasia-ku-004",
+        "nella-fantasia-ku-018",
+        "nella-fantasia-ku-001",
+        "nella-fantasia-wc-5033",
+        "nella-fantasia-wc-5035",
+        "nella-fantasia-wc-5057",
+        "nella-fantasia-wc-5082"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "\"Vento caldo\"는 단순히 날씨를 말하는 것이 아니라, 사람들 사이에 오가는 따뜻한 말과 행동을 가리키는 것으로 해석할 수 있습니다. 이는 곡의 전체적인 메시지가 서정적이고 희망적이며, 가사의 뜻과 일관되게 해석하는 것이 중요하다는 점에서 더욱 그렇습니다. 또한, 이 표현은 아주 따스한 바람이 존재한다는 의미로도 풀이될 수 있으며, 이는 곡의 감정적 분위기를 더욱 잘 전달하는 데 도움이 됩니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 13.91,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "nella-fantasia-wc-5035"
+        ],
+        "gold_recall": 0.5,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 8
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-08",
+      "piece_id": "nella-fantasia",
+      "question": "한국에서는 이 곡이 어떤 계기로 널리 알려지게 됐나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5003",
+        "nella-fantasia-wc-5063",
+        "nella-fantasia-wc-5083"
+      ],
+      "notes": "All three credit KBS 남자의 자격 choir (5083 also Beethoven Virus). 0045/0049/0053/0069 mention the song or that choir but not why it became famous in Korea.",
+      "evidence_ids": [
+        "nella-fantasia-ku-013"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "《Nella fantasia》는 엔리코 모리꼬네가 영화 *The Mission*에 작업한 곡에서 시작되어, 영화와 어울리는 음악과 평안하고 아름다운 세상을 꿈꾸는 메시지로 인해 세계적으로 많은 사랑을 받게 되었습니다. 한국에서는 예능 프로그램과 합창 프로그램에서 자주 불리기 시작하면서 더욱 널리 알려지게 되었습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 8.74,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-09",
+      "piece_id": "nella-fantasia",
+      "question": "곡에서 제일 높은 음으로 올라가는 부분만 오면 목이 조이고 음정이 덜 올라가요. 어떻게 해야 할까요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5029",
+        "nella-fantasia-wc-5043",
+        "nella-fantasia-wc-5079",
+        "nella-fantasia-wc-5109",
+        "nella-fantasia-wc-5110",
+        "nella-fantasia-wc-5111",
+        "nella-fantasia-wc-5112"
+      ],
+      "notes": "High-note technique: light breath (5029), aiming at pitch (5043), breathing before the leap after 'come le nuvole' (5079), and che volano-specific advice (5109-5112). Excluded 5020/5052/5068/5093 (structure, diction, image of flying) and 5104 (warm-up order for leaps; borderline, judged too general).",
+      "evidence_ids": [
+        "nella-fantasia-ku-006"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "곡에서 제일 높은 음으로 올라가는 부분에서 목이 조이고 음정이 덜 올라가는 경우, 자연스러운 발성과 이완된 상태에서 연습하는 것이 중요합니다. 단숨에 힘을 주기보다는 충분한 시간을 두고 모음과 소리, 울림을 자연스럽게 표현하며, 부자연스러운 힘을 가하지 않도록 주의해야 합니다. 또한, 레가토를 유지하기 위해 고음보다 직전의 중저음을 더 연습하고, 프레이즈를 시작할 때 높은 음 위치의 공간을 확보하며 숨을 쉬는 것도 도움이 됩니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 10.27,
+      "metrics": {
+        "gold_count": 7,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-10",
+      "piece_id": "nella-fantasia",
+      "question": "2절 'mondo chiaro'의 chiaro를 부를 때 발음이 자꾸 어색해요. 주의할 점이 있나요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5031",
+        "nella-fantasia-wc-5041",
+        "nella-fantasia-wc-5117",
+        "nella-fantasia-wc-5118"
+      ],
+      "notes": "Pronunciation/diction of chiaro: chi=끼 (5031), no inserted h (5041), lengthen a (5117), don't split vowels (5118). Meaning units 5030/5073 and structure 5053/5081 excluded.",
+      "evidence_ids": [
+        "nella-fantasia-ku-004",
+        "nella-fantasia-ku-006",
+        "nella-fantasia-ku-009",
+        "nella-fantasia-ku-005",
+        "nella-fantasia-ku-018",
+        "nella-fantasia-wc-5117",
+        "nella-fantasia-wc-5030",
+        "nella-fantasia-wc-5041",
+        "nella-fantasia-wc-5053"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'chiaro'를 부를 때 발음이 어색하게 느껴지는 경우, 발음의 자연스러움과 음의 흐름을 고려하는 것이 중요합니다. 특히, '끼야' 다음의 'a'를 더 길게 늘어나게 부르는 것이 좋으며, 이는 발음의 명확성과 음색의 풍부함을 높이는 데 도움이 됩니다. 또한, 'chiaro'는 '밝고 환하며 잘 보이는' 뜻을 담고 있으므로, 이 뜻을 자연스럽게 표현하기 위해 발음 시 'ㅎ' 소리가 과도하게 섞이지 않도록 주의해야 합니다. 음의 도약이 있는 부분에서는 힘을 과도하게 주기보다는 충분한 시간을 두고 자연스럽게 모음과 소리를 이어가며, 레가토를 유지하는 연습이 필요합니다. 이러한 방법들을 통해 'chiaro'의 발음이 더 부드럽고 자연스러워질 수 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 18.11,
+      "metrics": {
+        "gold_count": 4,
+        "gold_found": [
+          "nella-fantasia-wc-5041",
+          "nella-fantasia-wc-5117"
+        ],
+        "gold_recall": 0.5,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 9
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-11",
+      "piece_id": "nella-fantasia",
+      "question": "이 곡은 오페라 아리아처럼 힘 있게 불러야 하나요, 아니면 좀 더 가볍게 불러야 하나요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-5025",
+        "nella-fantasia-wc-5026",
+        "nella-fantasia-wc-5027",
+        "nella-fantasia-wc-5029",
+        "nella-fantasia-wc-5051"
+      ],
+      "notes": "Overall weight/style: not over-forced but not too light (5025), mic/musical-style delivery (5026, 5027), floating breath (5029), dreamy utopian rather than rigid (5051). 0069 (listener liked a powerful choir version) excluded as personal impression, not advice.",
+      "evidence_ids": [
+        "nella-fantasia-ku-004",
+        "nella-fantasia-ku-015",
+        "nella-fantasia-ku-018",
+        "nella-fantasia-ku-001"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation"
+      ],
+      "answer": "《Nella fantasia》는 오페라 아리아처럼 힘 있게 부르기보다는 서정적이고 유연한 표현이 더 적절합니다. 이 곡은 음 자체가 높거나 빠르지 않지만, 긴 호흡으로 전체적인 레가토를 유지하는 것이 중요하며, 마치 하나의 선을 그리듯 부드럽고 유연하게 표현해야 합니다. 또한, 가사의 뜻과 전체적인 메시지는 일관되게 서정적이고 희망적이므로, 가창자는 호흡의 연결과 다이나믹 등 음악적인 표현을 깊이 있게 고민하여 더 아카데믹하게 표현하는 것이 좋습니다.\n\n또한, 이 곡은 마이크 유무나 연주 장소의 분위기에 따라 발성 방식이 달라질 수 있으며, 마이크가 있거나 작은 공간에서 부를 때는 편안한 음색으로, 마이크 없이 부를 때는 성악적인 발성이 요구될 수 있습니다. 따라서, 상황과 환경을 고려하여 적절한 가창법을 선택하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 22.95,
+      "metrics": {
+        "gold_count": 5,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 4
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-12",
+      "piece_id": "nella-fantasia",
+      "question": "브라이트만이 모리코네에게 노래로 부를 허락을 받기까지 얼마나 걸렸고, 어떻게 설득했나요?",
+      "question_type": "conflict",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-0002",
+        "nella-fantasia-wc-0003",
+        "nella-fantasia-wc-0017",
+        "nella-fantasia-wc-0028",
+        "nella-fantasia-wc-0062",
+        "nella-fantasia-wc-5002",
+        "nella-fantasia-wc-5085"
+      ],
+      "notes": "Duration conflicts: about two years (0017) vs three years (0002, 0028, 0062, 5002, 5085). 0003 gives the bimonthly-letter method from Brightman's own account.",
+      "evidence_ids": [
+        "nella-fantasia-ku-004",
+        "nella-fantasia-ku-009",
+        "nella-fantasia-ku-018",
+        "nella-fantasia-ku-011",
+        "nella-fantasia-ku-015",
+        "nella-fantasia-ku-013",
+        "nella-fantasia-wc-0002",
+        "nella-fantasia-wc-0003",
+        "nella-fantasia-wc-0062",
+        "nella-fantasia-wc-5002"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "사라 브라이트만은 약 3년 전 모리코네에게 이 기악곡을 노래로 만들 허락을 구하는 편지를 썼으나 단호히 거절당했다고 회고했습니다. 이후 두 달마다 간청 편지를 보냈고, 결국 모리코네가 허락했다고 회고하며, 이 곡이 노래로서 아름답게 어울린다고 생각한다고 말했습니다. 또한, 브라이트만이 3년 동안 두 달 간격으로 모리코네에게 편지를 써 허락을 구했다고 전합니다. 강사는 사라 브라이트만이 가사를 붙여 부르기를 요청했으나 모리코네가 허락하지 않았고, 3년간 거의 두 달에 한 번씩 편지로 설득한 끝에 그녀의 앨범에 수록되었다고 전합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 17.51,
+      "metrics": {
+        "gold_count": 7,
+        "gold_found": [
+          "nella-fantasia-wc-0002",
+          "nella-fantasia-wc-0003",
+          "nella-fantasia-wc-0062",
+          "nella-fantasia-wc-5002"
+        ],
+        "gold_recall": 0.5714,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 10
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-13",
+      "piece_id": "nella-fantasia",
+      "question": "이 곡의 이탈리아어 가사는 누가 썼나요?",
+      "question_type": "conflict",
+      "gold_unit_ids": [
+        "nella-fantasia-wc-0004",
+        "nella-fantasia-wc-0027",
+        "nella-fantasia-wc-0063"
+      ],
+      "notes": "0004 names Chiara Ferrau as lyricist; 0027 suggests Ferrau was likely only the translator of Brightman's English; 0063 says it is thought Brightman wrote English and Ferrau translated. 0042/0072 concern Westenra's different text and are excluded.",
+      "evidence_ids": [
+        "webchunk-16d07bb87436816cbb1c",
+        "webchunk-5b26942e7e4ca8c80737",
+        "webchunk-a96699ec458f91d3e3dc"
+      ],
+      "evidence_types": [
+        "web_database",
+        "web_database",
+        "web_database"
+      ],
+      "answer": "「Nella fantasia」의 이탈리아어 가사는 키아라 페라우가 썼습니다. 이 곡의 작곡가는 엔니오 모리코네이며, 이탈리아어로 된 정식 제목은 「Nella fantasia」입니다. 또한, 2006년에 발행된 Hal Leonard의 SATB 판에서는 키아라 페라우를 이탈리아어 작사가로 명시하고 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 10.81,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 3
+      }
+    },
+    {
+      "qid": "nella-fantasia-wcq-14",
+      "piece_id": "nella-fantasia",
+      "question": "중간이나 끝부분에 장식음이나 카덴차를 넣어서 불러도 되나요?",
+      "question_type": "unanswerable",
+      "gold_unit_ids": [],
+      "notes": "Searched 장식, 카덴, ornament, cadenza, 꾸밈, trill, 비브라토, dynamic: no unit discusses adding ornaments or cadenzas. 0073 mentions vibrato only for a different (Westenra) version.",
+      "evidence_ids": [
+        "nella-fantasia-ku-010"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "중간이나 끝부분에 장식음이나 카덴차를 넣어서 불러도 되지만, 이는 곡의 성격과 악보의 지침에 따라 달라집니다. 클래식 곡의 경우, 작곡가의 의도가 반영된 악보에 따라 장식음이나 카덴차를 추가하는 것은 일반적이지 않으며, 악보에 명시된 내용을 따르는 것이 좋습니다. 그러나 대중적인 곡이나 가벼운 가요의 경우, 중간이나 끝부분에 장식음이나 카덴차를 넣어 노래를 마무리하는 느낌을 주는 경우가 많습니다. 이는 곡의 분위기와 표현을 강화하는 데 도움이 될 수 있습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 15.14,
+      "metrics": {
+        "gold_count": 0,
+        "gold_found": [],
+        "gold_recall": null,
+        "gold_hit": null,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-01",
+      "piece_id": "una-voce-poco-fa",
+      "question": "첫 소절 'Una voce'에서 자음을 또박또박 내려다 보니 n이나 c가 두 번 나는 것처럼 들리고 박도 밀린다고 해요. 어떻게 고쳐야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0005",
+        "una-voce-poco-fa-wc-5087",
+        "una-voce-poco-fa-wc-5088"
+      ],
+      "notes": "0005 (N of 'una' not doubled, don't count beats on consonants), 5087/5088 (keep first vowel long, don't double N and C). Excluded 0003/0004 (rhythm of the double-dotted figure, not consonants), 0006 and 5001 (making the V of 'voce' audible; different concern).",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-022",
+        "una-voce-poco-fa-ku-012",
+        "una-voce-poco-fa-ku-002",
+        "una-voce-poco-fa-ku-014",
+        "una-voce-poco-fa-ku-021",
+        "una-voce-poco-fa-wc-5037",
+        "una-voce-poco-fa-wc-0005",
+        "una-voce-poco-fa-wc-5001",
+        "una-voce-poco-fa-wc-0073"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'Una voce'에서 자음이 또박또박 내려다 보이고 n이나 c가 두 번 나는 것처럼 들리며 박도 밀리는 경우, 발음과 리듬을 조절하는 연습이 필요합니다. 특히 짧은 음표가 많고 발음해야 할 것이 많은 부분에서는 리듬을 지키며 아주 느린 박자로 시작한 뒤, 같은 부분을 점차 빠르게 노래하는 방식으로 연습하는 것이 도움이 됩니다. 또한, 자음을 빼고 모음만으로 연습하거나, 레가토를 유의하면서 발음하는 연습도 효과적입니다.\n\n'una'의 N을 겹자음처럼 두 번 내지 않도록 주의해야 하며, 자음으로 박을 세지 말고 리듬 정확성을 유지하는 것이 중요합니다. 'voce'에서 곧바로 모음 'vo'로 가 버려서 단어의 시작(자음)이 들리지 않는 경우도 있으므로, 자음의 발음에 충분한 주의를 기울이는 것이 필요합니다.\n\n악보에서 표기된 'col canto'와 'a piacere'는 성악가가 멜로디와 꾸밈음을 유연하게 표현하되, 반주부와의 조율을 고려해야 함을 의미합니다. 따라서 미리 정한 양만큼 일률적으로 늦추기보다는 프레이즈와 꾸밈음에 필요한 범위에서 템포를 유연하게 조절하고, 반주자와의 합의가 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer overgeneralizes local evidence",
+      "error": null,
+      "seconds": 31.45,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [
+          "una-voce-poco-fa-wc-0005"
+        ],
+        "gold_recall": 0.3333,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 9
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-02",
+      "piece_id": "una-voce-poco-fa",
+      "question": "곡 중간에 나오는 'ma'에서 분위기가 확 바뀐다고 들었는데, 이 단어는 어떻게 불러야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0071",
+        "una-voce-poco-fa-wc-5059",
+        "una-voce-poco-fa-wc-5061"
+      ],
+      "notes": "0071 (vocal line changes character at 'ma'), 5059 (ma marks Rosina's two sides, sing with care), 5061 (pronounce 'ma' explosively). Excluded 0044 (only notes that Hempel's recording contrasts before/after 'ma'; no guidance) and 5072 ('Ma se' s-pronunciation, different issue).",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-019"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "'.ma'는 \"하지만\"이라는 의미를 담고 있으며, 이 단어에서 분위기가 확 바뀌는 것을 표현하기 위해서는 전후의 감정 변화를 자연스럽게 이어가는 것이 중요합니다. 유튜브 영상에서 볼 수 있듯, 'guidar' 뒤에 'ma'가 오는 부분에서는 가창자에 따라 'dar, ma' 또는 'dar / ma'처럼 발음이 달라질 수 있으며, 전통적으로는 'guidar' 뒤에 portamento로 소리를 끌어올려 'ma'를 부르는 방식이 많이 사용되어 왔습니다. 이는 \"난 당신이 이끄는 대로 따르죠… ma 하지만\"이라는 문장의 표현을 극대화하는 방식입니다. 이 방식을 사용할 때에는 'ma'에서 지금까지와 다른 이야기가 펼쳐진다는 점을 정확히 표현하는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 12.51,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-03",
+      "piece_id": "una-voce-poco-fa",
+      "question": "'il mio cor'의 mio는 한 음절로 붙여서 불러야 하나요, 아니면 나눠서 불러야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-5063",
+        "una-voce-poco-fa-wc-5091"
+      ],
+      "notes": "5063 (split mi-o), 5091 (io is two vowels but must move at the speed of the preceding syllable). 0007 concerns pitch on 'il mio cor', not diction; excluded.",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-021",
+        "una-voce-poco-fa-ku-011",
+        "una-voce-poco-fa-ku-007",
+        "una-voce-poco-fa-ku-027",
+        "una-voce-poco-fa-ku-015",
+        "una-voce-poco-fa-ku-033",
+        "una-voce-poco-fa-wc-5063",
+        "una-voce-poco-fa-wc-5091",
+        "una-voce-poco-fa-wc-0007",
+        "una-voce-poco-fa-wc-5067"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'il mio cor'의 'mio'는 한 음절로 붙여서 불러야 할 필요는 없으며, 오히려 'mi-o'로 나누어 발음하는 것이 적절합니다. 이는 이탈리아어 발음에서 앞 단어의 마지막 모음과 뒤 단어의 첫 모음이 자연스럽게 이어지는 경우가 많기 때문입니다. 특히, 'mio'의 'io'는 두 개의 모음으로 구성되어 있으나, 가수는 바로 앞의 쉬운 음절과 같은 속도로 이를 처리해야 하며, 이는 발음의 유연성과 흐름을 유지하는 데 중요합니다. 따라서 'il mio cor'은 'mi-o'로 분리하여 발음하는 것이 자연스럽고, 가사의 흐름과 음악적 표현에 부합합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 15.5,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "una-voce-poco-fa-wc-5063",
+          "una-voce-poco-fa-wc-5091"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 10
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-04",
+      "piece_id": "una-voce-poco-fa",
+      "question": "가사에 trappole, obbediente처럼 같은 자음이 두 번 겹쳐 쓰인 단어들은 발음을 어떻게 해야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-5070",
+        "una-voce-poco-fa-wc-5071",
+        "una-voce-poco-fa-wc-5073"
+      ],
+      "notes": "Units that explicitly instruct pronouncing written double consonants: 5070 (tt in rispettosa), 5071 (bb in obbediente), 5073 (pp in trappole). 0005/5087/5088 are the opposite case (do not double single consonants) and 0020 is about the N of ubbediente; excluded.",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-011"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "이탈리아어 가사에서 같은 자음이 두 번 겹쳐 쓰인 단어들은 앞 단어의 마지막 모음과 뒤 단어의 첫 모음을 이어 발음하는 경우가 많습니다. 예를 들어, 'trappole'와 'obbediente'처럼 자음이 겹쳐 쓰인 경우, 두 모음을 자연스럽게 연결하여 발음하는 것이 좋습니다. 이는 발음의 흐름을 부드럽게 하고, 가사의 리듬을 유지하는 데 도움이 됩니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 7.95,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-05",
+      "piece_id": "una-voce-poco-fa",
+      "question": "'la vincerò'의 빠른 패시지를 부르면 자꾸 허둥대고 음이 뭉개져요. 어떻게 연습하면 좋을까요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0011",
+        "una-voce-poco-fa-wc-0012"
+      ],
+      "notes": "0011 (melt repeated-note pairs into one note), 0012 (hear the hidden B-C#-D# skeleton to stay stable). General hidden-melody advice for other melismas (0013, 0016, 0023) and slow practice (5038) not anchored to this passage; excluded. 5082 is meaning only.",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-012",
+        "una-voce-poco-fa-wc-0011",
+        "una-voce-poco-fa-wc-0012",
+        "una-voce-poco-fa-wc-0003",
+        "una-voce-poco-fa-wc-0028"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'la vincerò'의 빠른 패시지를 연습할 때는 리듬을 지키며 아주 느린 박자로 시작한 뒤, 같은 부분을 점차 빠르게 노래하는 방식으로 연습하는 것이 도움이 됩니다. 이는 짧은 음표가 많고 발음해야 할 것이 많아 노래하기 어려운 부분이기 때문입니다. 또한, 짧은 상행 패시지에 반복음이 있는 경우, 각 쌍을 하나의 음으로 녹여 가사 변화로만 구분하는 것이 좋습니다. 멜리스마의 뼈대는 각 셋잇단음의 첫 음들이 이루는 B-C#-D# 상행에 있으며, 이 숨은 선율을 계속 듣는 것이 안정감을 주고 허둥대는 것을 줄일 수 있습니다. 짧은 음에 기대고 긴 음은 사그라들게 둔 채 잊어버리기 쉬우므로, 긴 음을 어떻게 부르는지 주의 깊게 관찰하는 것도 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 17.41,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "una-voce-poco-fa-wc-0011",
+          "una-voce-poco-fa-wc-0012"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-06",
+      "piece_id": "una-voce-poco-fa",
+      "question": "'lo giurai' 부분은 발음이랑 소리를 각각 어떻게 처리해야 하나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0010",
+        "una-voce-poco-fa-wc-5068"
+      ],
+      "notes": "0010 (don't sing the descending triplets with straight tone; vibrato at least on 'giu-'), 5068 (pronounce 'giu' in one go, not ji-u). 5082 is a paraphrase of the meaning; excluded.",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-011",
+        "una-voce-poco-fa-wc-5068",
+        "una-voce-poco-fa-wc-0010",
+        "una-voce-poco-fa-wc-5048",
+        "una-voce-poco-fa-wc-5049"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'lo giurai' 부분에서는 이탈리아어의 발음 규칙을 따르며, 'giurai'를 '지우-라이'로 끊지 말고 '주'로 한 번에 자연스럽게 발음하는 것이 좋습니다. 또한, 이 부분의 하행 셋잇단음은 스트레이트 톤으로 부르는 습관을 피하고, 최소한 'giu-'에는 비브라토를 주어 벨칸토의 특성을 유지하는 것이 중요합니다. 이탈리아어에서는 앞 단어의 마지막 모음과 뒤 단어의 첫 모음이 이어지는 경우가 많으므로, 이러한 연음 효과를 잘 살려 발음하는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": null,
+      "error": null,
+      "seconds": 11.53,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [
+          "una-voce-poco-fa-wc-0010",
+          "una-voce-poco-fa-wc-5068"
+        ],
+        "gold_recall": 1.0,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 5
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-07",
+      "piece_id": "una-voce-poco-fa",
+      "question": "로시니가 처음에 로지나 역으로 염두에 둔 목소리는 어떤 성부였고, 초연 때는 누가 불렀나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0034",
+        "una-voce-poco-fa-wc-0066",
+        "una-voce-poco-fa-wc-5055"
+      ],
+      "notes": "0034 (premiere 1816 with contralto Giorgi-Righetti), 0066 (Rossini believed a contralto voice suited Rosina better), 5055 (Rossini reportedly sought a coloratura mezzo). Excluded 0037/5056 (later takeover by sopranos, not original intent) and 0067 (general vocal taste).",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-020",
+        "una-voce-poco-fa-ku-006",
+        "una-voce-poco-fa-ku-004"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation"
+      ],
+      "answer": "로시니가 처음에 로지나 역으로 염두에 둔 목소리는 발랄하고 경쾌한 이미지를 나타내는 성부였습니다. 이는 피아노/오케스트라 파트의 스타카토 리듬과 멜로디파트의 트릴과 유사한 음형을 통해 로지나의 캐릭터를 표현하기 위한 것이었습니다. 초연 당시에는 구체적으로 누가 이 역할을 맡았는지에 대한 정보는 제공되지 않았으나, 로지나의 성격은 당차고 활발하며 확신에 차 있고 쾌활한 이미지를 전달하는 것이 중요합니다. 이를 위해 부점을 과장해 노래하는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 10.91,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 3
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-08",
+      "piece_id": "una-voce-poco-fa",
+      "question": "소프라노가 부를 때와 메조소프라노가 부를 때 조가 다른가요? 각각 무슨 조로 부르나요?",
+      "question_type": "narrow",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0035",
+        "una-voce-poco-fa-wc-0087",
+        "una-voce-poco-fa-wc-5057"
+      ],
+      "notes": "0035 (some sopranos transpose up a semitone to F major), 0087 (published in two keys, soprano version a semitone higher), 5057 (E major for mezzo, F major for soprano). 5042 (Callas sang the original key) and 0031 (high B, or C if higher key) only touch on key; excluded.",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-033"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "소프라노가 부를 때와 메조소프라노가 부를 때 조는 다르지 않습니다. \"Una voce poco fa\"는 Rosina의 성부에 따라 소프라노나 메조소프라노가 부를 수 있지만, 이 곡의 조는 성부와 무관하게 일관되게 유지됩니다. 연출자나 제작자의 결정에 따라 Rosina를 소프라노나 메조소프라노로 캐스팅할 수 있지만, 이는 가창자의 표현 방식에 따라 달라질 수 있으며, 조는 그에 따라 변하지 않습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 8.39,
+      "metrics": {
+        "gold_count": 3,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-09",
+      "piece_id": "una-voce-poco-fa",
+      "question": "'Io sono docile' 부분은 가사대로 정말 얌전하고 순종적인 느낌으로 불러야 하나요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0018",
+        "una-voce-poco-fa-wc-0076",
+        "una-voce-poco-fa-wc-5019",
+        "una-voce-poco-fa-wc-5020",
+        "una-voce-poco-fa-wc-5021"
+      ],
+      "notes": "0018 (ring on 'ci-' of docile, a musical wink), 0076 (vocal smile on 'docile'), 5019 (she is not a cutie but a little snake), 5020 (she means the opposite), 5021 (in this moment she presents herself as sweet but is a manipulator; locator 19:01 follows the docile discussion, so assumed same passage). 0082 is translation only; general Rosina-character units (0051, 5060 etc.) not tied to this passage; excluded.",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-021",
+        "una-voce-poco-fa-ku-003",
+        "una-voce-poco-fa-ku-006",
+        "una-voce-poco-fa-wc-0082",
+        "una-voce-poco-fa-wc-5019",
+        "una-voce-poco-fa-wc-5020",
+        "una-voce-poco-fa-wc-0076"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "'Io sono docile' 부분은 가사의 직역인 '나는 유순하고 순종적이다'라는 의미를 그대로 표현하는 것이 중요하지만, 이는 단순히 얌전하고 순종적인 느낌만으로는 표현되지 않습니다. 이 부분은 로지나의 캐릭터와 상황을 고려하여 해석해야 하며, 그녀가 실제로는 순종적인 듯 하면서도 내면적으로는 반대의 의도를 담고 있다는 해석도 가능합니다. 따라서 이 가사를 부르는 방식은 단순히 '유순하고 공손하게' 말하는 것보다는, 그녀의 말투와 감정의 이중성을 표현하는 데 초점을 맞추는 것이 좋습니다. 또한, 이 부분은 성악가의 프레이징과 꾸밈음에 따라 유연하게 표현되며, 반주자와의 조율이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 14.6,
+      "metrics": {
+        "gold_count": 5,
+        "gold_found": [
+          "una-voce-poco-fa-wc-0076",
+          "una-voce-poco-fa-wc-5019",
+          "una-voce-poco-fa-wc-5020"
+        ],
+        "gold_recall": 0.6,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 7
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-10",
+      "piece_id": "una-voce-poco-fa",
+      "question": "반복 부분에 넣을 장식을 유명 가수들이 하는 걸 그대로 따라 해야 할지, 제 목소리에 맞게 바꿔야 할지 고민이에요.",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0015",
+        "una-voce-poco-fa-wc-0033",
+        "una-voce-poco-fa-wc-0040",
+        "una-voce-poco-fa-wc-0041",
+        "una-voce-poco-fa-wc-0042",
+        "una-voce-poco-fa-wc-5039"
+      ],
+      "notes": "Units advising how to choose ornaments relative to one's own voice and others' versions: 0015 (pick ornaments showing what you actually do well), 0033 (whatever you choose must work under pressure), 0040 (don't rely on 'traditional' ornaments that don't suit you), 0041 (listen to many recordings), 0042 (combine/use others' choices as a starting point), 5039 (demonstrated variants are suggestions; use what fits your voice). Excluded as different criteria (character/emotion/history): 0002, 0055, 0090, 5030-5032, 5044, 5045, 0083-0085, and 5058 (cadenza can be as florid as ability allows).",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-018",
+        "una-voce-poco-fa-ku-001",
+        "una-voce-poco-fa-ku-010",
+        "una-voce-poco-fa-ku-008",
+        "una-voce-poco-fa-ku-033",
+        "una-voce-poco-fa-ku-017",
+        "una-voce-poco-fa-wc-0055",
+        "una-voce-poco-fa-wc-0015",
+        "una-voce-poco-fa-wc-0040",
+        "una-voce-poco-fa-wc-0036"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "expert_annotation",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching",
+        "web_coaching"
+      ],
+      "answer": "유명 가수들이 반복 부분에 넣는 장식을 그대로 따라하는 것보다는, 자신의 목소리와 기술에 맞게 조정하는 것이 더 효과적일 수 있습니다. 이는 이 아리아가 성악가의 능력과 표현 방식에 따라 여러 변주가 가능하다는 점에서 중요합니다. 자신의 고음, 저음, 스케일과 같은 장점을 잘 나타내는 변주와 꾸밈음을 선택해 자신을 표현하고 음악적 아름다움을 더하는 것이 좋습니다. 또한, 장식의 선택은 인물에 봉사해야 하며, 단순히 희망사항이 아니라 실제로 자신이 잘하는 것을 보여 주는 장식을 고르는 것이 중요합니다. 유명한 아리아는 여러 버전이 존재할 수 있으므로, 작곡가의 의도가 가장 잘 드러나고 원본에 가장 가까운 악보를 찾으려는 노력이 중요합니다. 자신의 능력에 맞고 그것을 돋보이게 하는 변형만 고르는 것이 좋습니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 18.79,
+      "metrics": {
+        "gold_count": 6,
+        "gold_found": [
+          "una-voce-poco-fa-wc-0015",
+          "una-voce-poco-fa-wc-0040"
+        ],
+        "gold_recall": 0.3333,
+        "gold_hit": true,
+        "web_coaching_evidence_count": 4,
+        "evidence_count": 10
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-11",
+      "piece_id": "una-voce-poco-fa",
+      "question": "이 곡은 희극 오페라니까 연기를 좀 과장되게 해도 괜찮을까요?",
+      "question_type": "broad",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-5018",
+        "una-voce-poco-fa-wc-5022",
+        "una-voce-poco-fa-wc-5024",
+        "una-voce-poco-fa-wc-5025",
+        "una-voce-poco-fa-wc-5026",
+        "una-voce-poco-fa-wc-5028"
+      ],
+      "notes": "Units tying comic/buffa genre to exaggerated or vivid acting: 5018 (exaggerate a bit like a Disney cartoon), 5022 (act like a Chaplin film actor), 5024 (opera buffa, a different world from seria), 5025 (audience should go home smiling), 5026 (everything must go together or you are in the wrong opera), 5028 (cartoon-like exaggeration is what Rosina and buffa are). Excluded more general acting advice (5017, 5023, 5029) and 0043 ('circus' caution about the final high note).",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-006",
+        "una-voce-poco-fa-ku-033"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation"
+      ],
+      "answer": "이 곡은 희극 오페라이기 때문에 연기를 어느 정도 과장되게 하여도 자연스러울 수 있습니다. 다만, 곡의 맥락과 캐릭터의 감정을 깊이 이해하고 표현하는 것이 중요합니다. 예를 들어, 이 아리아의 지문에는 특정 상황과 캐릭터의 행동이 설명되어 있으므로, 이를 바탕으로 연기를 구성하는 것이 좋습니다. 또한, Rosina의 성부에 따라 가창자의 표현 방식이 달라질 수 있으므로, 캐릭터의 본질을 유지하면서도 자신의 음색과 연기 스타일에 맞게 표현하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 14.46,
+      "metrics": {
+        "gold_count": 6,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 2
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-12",
+      "piece_id": "una-voce-poco-fa",
+      "question": "낮은 음들에서 흉성(가슴소리)을 써도 되나요, 아니면 소프라노는 피하는 게 좋나요?",
+      "question_type": "conflict",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0047",
+        "una-voce-poco-fa-wc-5016",
+        "una-voce-poco-fa-wc-5037",
+        "una-voce-poco-fa-wc-5041",
+        "una-voce-poco-fa-wc-5042"
+      ],
+      "notes": "Sources differ: 0047 criticizes carrying mixed chest voice high (up to B in the staff) as a rough finish at odds with Rossini; 5037 (use the speaking/chest voice in the opening phrase) and 5041 (old recordings show light sopranos using placed chest notes) endorse chest; 5016 says the singer must decide head vs chest in the low passage; 5042 (Callas, a soprano, sang the original key to get used to these low sounds) included as supporting the chest side - borderline. 0046 (Callas digs into the low G) and 0087 (resonant low B/C#) describe performances without register advice; excluded.",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-034",
+        "una-voce-poco-fa-ku-033"
+      ],
+      "evidence_types": [
+        "expert_annotation",
+        "expert_annotation"
+      ],
+      "answer": "소프라노가 낮은 음에서 흉성을 사용하는 것은 가능하지만, 이는 성부와 연기적 표현에 따라 달라질 수 있습니다. Rosina의 아리아는 부르는 성부에 따라 저음, 고음, 스케일 등 테크닉적으로 어떤 점을 살릴지가 달라질 수 있으므로, 가창자가 자신의 음역과 표현 방식을 고려하여 적절히 선택하는 것이 중요합니다. 또한, Rosina는 때에 따라 메조소프라노가 부르기도 하고 소프라노가 부르기도 하며, 이는 공연의 구성에 따라 달라질 수 있습니다. 성부와 관계없이 Rosina의 캐릭터는 같으므로, 가창자로서 이를 어떻게 표현할지 연구하는 것이 중요합니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 12.02,
+      "metrics": {
+        "gold_count": 5,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 2
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-13",
+      "piece_id": "una-voce-poco-fa",
+      "question": "로시니가 장식을 너무 많이 넣어 부른 가수에게 '이 곡은 누가 썼냐'고 했다는 일화가 있던데, 그 가수가 누구였고 정확히 뭐라고 했나요?",
+      "question_type": "conflict",
+      "gold_unit_ids": [
+        "una-voce-poco-fa-wc-0062",
+        "una-voce-poco-fa-wc-0068"
+      ],
+      "notes": "Two versions of the anecdote: 0062 (unnamed singer, 'A beautiful piece. Who wrote it?') vs 0068 (Adelina Patti, 'Very nice, but who wrote the piece you just sang?'). Unit notes flag them as unreconciled.",
+      "evidence_ids": [],
+      "evidence_types": [],
+      "answer": null,
+      "generation_mode": "rejected",
+      "answer_basis": null,
+      "generation_validation_warning": null,
+      "error": "GeneratedAnswerRejected: Generated answer contains an uncited substantive claim",
+      "seconds": 13.93,
+      "metrics": {
+        "gold_count": 2,
+        "gold_found": [],
+        "gold_recall": 0.0,
+        "gold_hit": false,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 0
+      }
+    },
+    {
+      "qid": "una-voce-poco-fa-wcq-14",
+      "piece_id": "una-voce-poco-fa",
+      "question": "이 아리아의 가사는 누가 썼고, 오페라의 원작은 어떤 작품인가요?",
+      "question_type": "unanswerable",
+      "gold_unit_ids": [],
+      "notes": "No unit names the librettist (Sterbini) or the source play (Beaumarchais). Checked claims and excerpts for Sterbini/스테르비니/Beaumarchais/보마르셰/librett/대본/원작/희곡: only 0093 (stage direction in the libretto translation) and notes mentioning 'libretto', none answering.",
+      "evidence_ids": [
+        "una-voce-poco-fa-ku-006"
+      ],
+      "evidence_types": [
+        "expert_annotation"
+      ],
+      "answer": "이 아리아 \"Una voce poco fa\"는 조세프 로시니가 작곡한 오페라 **《일바르비에레 디 시비지아》**(Il barbiere di Siviglia)에 포함된 곡입니다. 이 오페라는 1816년에 초연되었으며, 가사는 로시니 자신이 썼습니다. 이 아리아는 주인공 로지나가 바르톨로의 집에서 자신의 감정을 표현하는 장면에서 부르며, 그녀의 사랑과 갈등을 드러냅니다.",
+      "generation_mode": "llm",
+      "answer_basis": "retrieved_evidence",
+      "generation_validation_warning": "Generated answer contains an uncited substantive claim",
+      "error": null,
+      "seconds": 8.27,
+      "metrics": {
+        "gold_count": 0,
+        "gold_found": [],
+        "gold_recall": null,
+        "gold_hit": null,
+        "web_coaching_evidence_count": 0,
+        "evidence_count": 1
+      }
+    }
+  ]
+}
