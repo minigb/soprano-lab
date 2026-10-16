@@ -635,6 +635,7 @@ class ServicePipelineTests(unittest.TestCase):
                 "_get_index",
                 return_value=SecondaryOnlyIndex(),
             ),
+            mock.patch.dict(qa.SETTINGS, {"score_context": {"lyrics": False}}),
             mock.patch.object(qa, "generate_llm") as generate,
         ):
             result = qa.ask(
@@ -1057,14 +1058,78 @@ class ServicePipelineTests(unittest.TestCase):
             {item["id"] for item in result["evidence"]},
         )
 
+    def test_score_context_answers_ungrounded_range_without_secondary_text(
+        self,
+    ) -> None:
+        record = {
+            "id": "test-piece-ku-001",
+            "evidence_type": "expert_annotation",
+            "piece": "die-forelle",
+            "work": "Die Forelle",
+            "topic": "performance",
+            "answer": "다른 구간에서만 적용되는 주석입니다.",
+            "measure_range": [[30, 32]],
+            "measure_scope": "local",
+            "measure_status": "specific",
+            "source_ids": ["kim-die-forelle-01"],
+        }
+        secondary = SearchResult(
+            record=record,
+            score=1.0,
+            text_score=2.0,
+            measure_score=-1.0,
+            piece_score=1.0,
+            scope_match="other_range_context",
+        )
+
+        class SecondaryOnlyIndex:
+            @staticmethod
+            def search(**_kwargs):
+                return [secondary]
+
+        lyrics = {
+            "die-forelle": {
+                "status": "model_transcribed_unverified",
+                "line_labels": ["stanza 1"],
+                "measures": {
+                    12: {"measure": 12, "voice": "sung", "lyric_lines": ["sah in sü- -sser"], "notes": ""},
+                },
+            }
+        }
+        with (
+            mock.patch.object(qa, "_get_index", return_value=SecondaryOnlyIndex()),
+            mock.patch.dict(qa.SETTINGS, {"score_context": {"lyrics": True}}),
+            mock.patch.object(qa, "load_measure_lyrics", return_value=lyrics),
+            mock.patch.object(
+                qa,
+                "generate_llm",
+                return_value="선택한 마디에서는 sah in sü- -sser 가사를 부릅니다.",
+            ) as generate,
+        ):
+            result = qa.ask(
+                piece_id="die-forelle",
+                question="이 마디에서는 어떤 가사를 부르나요?",
+                measure_range=(12, 12),
+                generate=True,
+            )
+
+        generate.assert_called_once()
+        prompt = generate.call_args.args[1][1]["content"]
+        self.assertIn("Score context", prompt)
+        self.assertNotIn("다른 구간에서만 적용되는 주석입니다.", prompt)
+        self.assertEqual(result["answer_basis"], "score_context")
+        self.assertEqual(result["generation_mode"], "llm")
+        self.assertFalse(result["has_primary_grounding"])
+        self.assertEqual(result["score_context"]["measures"][0]["measure"], 12)
+
     def test_corpus_stats_come_from_pipeline_snapshot(self) -> None:
         stats = qa.corpus_stats()
         self.assertEqual(stats["pipeline"], "soprano_qa")
         self.assertEqual(stats["corpus_schema_version"], 8)
-        self.assertEqual(stats["total_records"], 223)
+        self.assertEqual(stats["total_records"], 946)
         self.assertEqual(
             stats["records_by_evidence_type"],
-            {"expert_annotation": 122, "web_database": 101},
+            {"expert_annotation": 122, "web_coaching": 723, "web_database": 101},
         )
         for deprecated in (
             "expert_records_by_rewrite_status",

@@ -1711,6 +1711,12 @@ class SearchResult:
 
 class BM25Index:
     def __init__(self, records: List[Dict[str, Any]], k1: float = 1.4, b: float = 0.75) -> None:
+        # web_coaching records are ranked in their own index (coaching_index.py)
+        # so they cannot shift the statistics tuned on expert and web records.
+        records = [
+            record for record in records
+            if record.get("evidence_type") != "web_coaching"
+        ]
         for record in records:
             require_runtime_final_expert_record(record)
         self.records = records

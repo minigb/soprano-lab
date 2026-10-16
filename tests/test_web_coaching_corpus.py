@@ -172,16 +172,23 @@ class WebCoachingSupplementTests(unittest.TestCase):
 
 
 class WebCoachingSupplementGateTests(WebCoachingSupplementTests):
-    def test_top_ranked_gate_requires_a_leading_coaching_candidate(self) -> None:
-        results = supplement_web_coaching_evidence(
-            self.expert, self.candidates, measure_ranges=[], limit=2, gate="top_ranked"
+    def dense(self, record_id: str, evidence_type: str, score: float) -> SimpleNamespace:
+        result = fake_result(record_id, evidence_type)
+        result.dense_score = score
+        return result
+
+    def test_dense_margin_gate_requires_a_closer_coaching_match(self) -> None:
+        coaching = [self.dense("wc-1", "web_coaching", 0.60), self.dense("wc-2", "web_coaching", 0.55)]
+        reference = [self.dense("ku-1", "expert_annotation", 0.58)]
+        kwargs = dict(measure_ranges=[], limit=2, gate="dense_margin", reference_candidates=reference)
+        self.assertEqual(
+            self.ids(supplement_web_coaching_evidence(self.expert, coaching, margin=0.05, **kwargs)),
+            ["ku-1"],
         )
-        self.assertEqual(self.ids(results), ["ku-1"])
-        coaching_first = [self.candidates[1], *self.candidates[:1], *self.candidates[2:]]
-        results = supplement_web_coaching_evidence(
-            self.expert, coaching_first, measure_ranges=[], limit=2, gate="top_ranked"
+        self.assertEqual(
+            self.ids(supplement_web_coaching_evidence(self.expert, coaching, margin=0.0, **kwargs)),
+            ["ku-1", "wc-1", "wc-2"],
         )
-        self.assertEqual(self.ids(results), ["ku-1", "wc-1", "wc-2"])
 
     def test_unknown_gate_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
@@ -192,7 +199,7 @@ class WebCoachingSupplementGateTests(WebCoachingSupplementTests):
 
 class WebCoachingSettingsTests(unittest.TestCase):
     def test_inputs_follow_the_enabled_lineages(self) -> None:
-        settings = dict(load_settings())
+        settings = dict(load_settings(), web_coaching={"enabled": False})
         default_labels = [label for label, _ in corpus_input_paths(settings)]
         self.assertFalse(any(label.startswith("web_coaching") for label in default_labels))
         self.assertTrue(any(label.startswith("database") for label in default_labels))

@@ -2075,7 +2075,14 @@ def select_generation_evidence(
     ]
 
 
-def build_messages(piece: str | None, measures: str, question: str, results: List[Any]) -> List[Dict[str, str]]:
+def build_messages(
+    piece: str | None,
+    measures: str,
+    question: str,
+    results: List[Any],
+    *,
+    score_context: str = "",
+) -> List[Dict[str, str]]:
     measure_ranges = parse_measure_ranges(measures) if measures else []
     user_prompt = """User query
 piece: {piece}
@@ -2098,6 +2105,14 @@ validate and remove the temporary labels before displaying the answer.
         question=question,
         context=build_context(results, measure_ranges),
     )
+    if score_context:
+        # Labelled, unverified score text goes before the evidence; prompts
+        # without it stay byte-identical to the evidence-only template.
+        user_prompt = user_prompt.replace(
+            "\nRetrieved evidence\n",
+            "\n" + score_context.strip() + "\n\nRetrieved evidence\n",
+            1,
+        )
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_prompt},
@@ -3114,14 +3129,16 @@ def retrieve_generation_evidence(
     top_k: int,
     web_coaching_supplement: int = 0,
     web_coaching_supplement_gate: str = "always",
+    web_coaching_supplement_margin: float = 0.0,
+    score_context: str = "",
 ) -> tuple[List[Any], List[Dict[str, str]]]:
     """Retrieve and freeze the one evidence bundle used for generation.
 
     ``web_coaching_supplement`` appends up to that many of the best-ranked
     web_coaching candidates (no-range queries only) after the expert-led
     selection, which would otherwise replace them with expert-only bundles.
-    With ``web_coaching_supplement_gate="top_ranked"`` this happens only when
-    the best-ranked retrieval candidate is itself web_coaching evidence.
+    With ``web_coaching_supplement_gate="dense_margin"`` this happens only
+    when the best web_coaching claim is the semantically closer match.
 
     The function performs no model call, repair call, or model fallback. It
     returns the reviewed evidence bundle and prompt for the one natural,
@@ -3129,7 +3146,7 @@ def retrieve_generation_evidence(
     """
 
     if top_k < 1:
-        return [], build_messages(piece, measures, query, [])
+        return [], build_messages(piece, measures, query, [], score_context=score_context)
     candidate_limit = (
         max(top_k, NO_RANGE_STABLE_CANDIDATE_MIN)
         if not measure_ranges
@@ -3148,7 +3165,7 @@ def retrieve_generation_evidence(
         # Re-running broad semantic selection here would silently undo the
         # retriever's fail-closed decision and let a procedural neighbor
         # answer a why-question.
-        return [], build_messages(piece, measures, query, [])
+        return [], build_messages(piece, measures, query, [], score_context=score_context)
     rejected_candidates = list(
         getattr(index, "last_answer_candidates", []) or []
     )
@@ -3278,14 +3295,26 @@ def retrieve_generation_evidence(
             else broad_base[:top_k]
         )
     results = selected_results[: min(top_k, len(selected_results))]
+    coaching_index = getattr(index, "coaching_index", None)
+    coaching_candidates = (
+        coaching_index.search(query, piece, top_k=web_coaching_supplement)
+        if coaching_index is not None
+        and web_coaching_supplement > 0
+        and not measure_ranges
+        else []
+    )
     results = supplement_web_coaching_evidence(
         results,
-        stable_candidates,
+        coaching_candidates,
         measure_ranges=measure_ranges,
         limit=web_coaching_supplement,
         gate=web_coaching_supplement_gate,
+        reference_candidates=stable_candidates,
+        margin=web_coaching_supplement_margin,
     )
-    return results, build_messages(piece, measures, query, results)
+    return results, build_messages(
+        piece, measures, query, results, score_context=score_context
+    )
 
 
 def supplement_web_coaching_evidence(
@@ -3295,27 +3324,34 @@ def supplement_web_coaching_evidence(
     measure_ranges: List[List[int]],
     limit: int,
     gate: str = "always",
+    reference_candidates: List[Any] = (),
+    margin: float = 0.0,
 ) -> List[Any]:
     """Append the best-ranked web_coaching candidates after expert evidence.
 
-    Expert-led focusing stays authoritative for which expert records are
-    used; this only keeps relevant web_coaching evidence from being discarded.
-    Ranged queries are left unchanged because web_coaching claims carry no
-    confirmed score location.
+    ``candidates`` come from the separate web_coaching index. Expert-led
+    focusing stays authoritative for which expert records are used; this only
+    adds web_coaching evidence. Ranged queries are left unchanged because
+    web_coaching claims carry no confirmed score location. With
+    ``gate="dense_margin"``, claims are added only when the best one is more
+    similar to the question (dense cosine) than every main-index candidate in
+    ``reference_candidates`` by at least ``margin``: when curated evidence is
+    the closer match, adding web claims invites the model to blend in material
+    the expert did not state.
     """
 
-    if gate not in {"always", "top_ranked"}:
+    if gate not in {"always", "dense_margin"}:
         raise ValueError("Unsupported web_coaching supplement gate %r" % gate)
-    if limit <= 0 or measure_ranges:
+    if limit <= 0 or measure_ranges or not candidates:
         return results
-    if gate == "top_ranked" and (
-        not candidates
-        or candidates[0].record.get("evidence_type") != "web_coaching"
-    ):
-        # An expert or other record outranks every web_coaching claim, so the
-        # curated evidence already answers the query; adding web claims
-        # invites the model to blend in material the expert did not state.
-        return results
+    if gate == "dense_margin":
+        best_reference = max(
+            (float(c.dense_score) for c in reference_candidates),
+            default=0.0,
+        )
+        best_coaching = max(float(c.dense_score) for c in candidates)
+        if best_coaching < best_reference + margin:
+            return results
     selected_ids = {result.record["id"] for result in results}
     supplement = []
     for candidate in candidates:

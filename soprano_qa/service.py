@@ -11,6 +11,7 @@ from soprano_qa.answer import (
     NO_CORPUS_EVIDENCE_MESSAGE,
     build_extractive_answer,
     build_evidence_notices,
+    build_messages,
     ensure_corpus,
     finalize_grounded_generated_answer,
     finalize_user_visible_answer,
@@ -38,6 +39,11 @@ from soprano_qa.retrieval import (
     load_corpus,
     scope_evidence_role,
     validate_question_measure_contract,
+)
+from soprano_qa.score_context import (
+    format_score_context,
+    load_measure_lyrics,
+    selected_measure_lyrics,
 )
 from soprano_qa.settings import load_settings
 
@@ -255,6 +261,14 @@ def ask(
     index = _get_index()
     unavailable_reason: str | None = None
     generation_validation_warning: str | None = None
+    score_context = None
+    if measure_ranges and (SETTINGS.get("score_context") or {}).get("lyrics", False):
+        score_context = selected_measure_lyrics(
+            load_measure_lyrics(SETTINGS["dataset_root"]),
+            piece_id,
+            measure_ranges,
+        )
+    score_block = format_score_context(score_context)
 
     if generate:
         results, messages = retrieve_generation_evidence(
@@ -273,21 +287,51 @@ def ask(
                     "generation_supplement_gate", "always"
                 )
             ),
+            web_coaching_supplement_margin=float(
+                (SETTINGS.get("web_coaching") or {}).get(
+                    "generation_supplement_margin", 0.0
+                )
+            ),
+            score_context=score_block,
         )
-        if not results or (
+        grounded = bool(results) and not (
             measure_ranges and not has_primary_grounding(results)
-        ):
-            answer = NO_CORPUS_EVIDENCE_MESSAGE
-            generation_mode = "unavailable"
-            answer_basis = "no_corpus_evidence"
-            unavailable_reason = _retrieval_unavailable_reason(
+        )
+        ungrounded_reason = (
+            None
+            if grounded
+            else _retrieval_unavailable_reason(
                 index,
                 question=question,
                 piece_id=piece_id,
                 measure_ranges=measure_ranges,
                 results=results,
             )
+        )
+        # Score context may answer only where nothing grounds the selected
+        # bars; it never overrides an ambiguity, causal-authority, or
+        # underspecified-question abstention.
+        use_score_context = bool(score_context) and (
+            ungrounded_reason == "no_corpus_evidence"
+        )
+        if not grounded and not use_score_context:
+            answer = NO_CORPUS_EVIDENCE_MESSAGE
+            generation_mode = "unavailable"
+            answer_basis = "no_corpus_evidence"
+            unavailable_reason = ungrounded_reason
         else:
+            # Without grounding evidence for the selected bars, only the
+            # labelled score context may inform the answer; non-grounding
+            # records stay out of the prompt.
+            generation_results = results if grounded else []
+            if not grounded:
+                messages = build_messages(
+                    piece_id,
+                    measures,
+                    question,
+                    [],
+                    score_context=score_block,
+                )
             raw_answer = generate_llm(
                 SETTINGS["model_path"],
                 messages,
@@ -296,7 +340,7 @@ def ask(
             try:
                 answer = finalize_grounded_generated_answer(
                     raw_answer,
-                    results,
+                    generation_results,
                     messages,
                     measure_ranges,
                 )
@@ -309,13 +353,26 @@ def ask(
                     not raw_answer.strip()
                     or is_grounded_insufficiency_answer(raw_answer)
                 ):
-                    raise
-                answer = finalize_user_visible_answer(raw_answer, results)
-                if answer == NO_CORPUS_EVIDENCE_MESSAGE:
-                    raise
-                generation_validation_warning = str(exc)
-            generation_mode = "llm"
-            answer_basis = "retrieved_evidence"
+                    if grounded:
+                        raise
+                    answer = NO_CORPUS_EVIDENCE_MESSAGE
+                else:
+                    answer = finalize_user_visible_answer(
+                        raw_answer, generation_results
+                    )
+                    if answer == NO_CORPUS_EVIDENCE_MESSAGE and grounded:
+                        raise
+                    generation_validation_warning = str(exc)
+            if grounded:
+                generation_mode = "llm"
+                answer_basis = "retrieved_evidence"
+            elif answer == NO_CORPUS_EVIDENCE_MESSAGE:
+                generation_mode = "unavailable"
+                answer_basis = "no_corpus_evidence"
+                unavailable_reason = "score_context_insufficient"
+            else:
+                generation_mode = "llm"
+                answer_basis = "score_context"
     else:
         results = index.search(
             query=question,
@@ -364,6 +421,7 @@ def ask(
         "answer_basis": answer_basis,
         "unavailable_reason": unavailable_reason,
         "generation_validation_warning": generation_validation_warning,
+        "score_context": score_context,
         "has_primary_grounding": has_primary_grounding(results),
         "has_selected_range_grounding": (
             has_selected_range_grounding(results)

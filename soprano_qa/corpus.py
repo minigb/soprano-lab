@@ -249,8 +249,8 @@ EXPERT_FINAL_MEASURE_STATUSES = {
 CORPUS_SCHEMA_VERSION = 8
 
 # web_coaching: claims extracted from web pages and lesson/masterclass video
-# transcripts (dataset web_coaching/). Each category maps to a Korean label and
-# search terms used only for retrieval text.
+# transcripts (dataset web_coaching/). The keys are the accepted categories;
+# the Korean terms describe each category and are not indexed.
 WEB_COACHING_CATEGORY_TERMS = {
     "background": "배경 작곡 역사 맥락",
     "text_and_meaning": "가사 의미 해석 번역 시",
@@ -2125,13 +2125,11 @@ def build_web_coaching_records(dataset_root: str) -> List[Dict[str, Any]]:
                     "locator": unit["locator"],
                 },
             }
+            # Index only the claim and its lyric anchor: category search terms
+            # would let every claim of a category match any query naming it.
             text = "\n".join(
                 part
-                for part in (
-                    WEB_COACHING_CATEGORY_TERMS[category],
-                    record["lyric_anchor"] or "",
-                    record["answer"],
-                )
+                for part in (record["lyric_anchor"] or "", record["answer"])
                 if part
             )
             record["relevance_text"] = text

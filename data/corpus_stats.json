@@ -2,7 +2,7 @@
   "corpus_schema_version": 8,
   "dataset_root": "/home/minhee/soprano-qa-dataset",
   "input_fingerprint": "350f4ba2a1f83c12978c0d1d92411aac4cab0a2a569784162e8b501cac9faf2e",
-  "corpus_sha256": "54c1633f199fab8416befde89ba8561270904acd98e39ee8e73f46adb64d1009",
+  "corpus_sha256": "6a6ae7eda781a3ff7391f6a0b6a7f4f5c9fee81c3ed49c592e89d3c2bb98a44c",
   "total_records": 946,
   "records_by_evidence_type": {
     "expert_annotation": 122,

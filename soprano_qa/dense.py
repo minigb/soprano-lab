@@ -1956,6 +1956,10 @@ class HybridIndex:
             if _record_has_causal_answer_authority(record)
             and (family := _source_family_key(record))
         }
+        records = [
+            record for record in records
+            if record.get("evidence_type") != "web_coaching"
+        ]
         self.lexical = BM25Index(records)
         self.embedder = embedder
         self.dense_min_score = float(dense_min_score)
@@ -2972,10 +2976,20 @@ def build_retrieval_index(
 ) -> SearchIndex:
     """Build the configured local index without downloading models at runtime."""
 
+    from soprano_qa.coaching_index import CoachingIndex, split_web_coaching_records
+
     retrieval = settings["retrieval"]
+    records, coaching_records = split_web_coaching_records(records)
     mode = _configured_retrieval_mode(settings)
     if mode == "lexical":
-        return _build_lexical_index(records)
+        index = _build_lexical_index(records)
+        index.coaching_index = CoachingIndex(
+            coaching_records,
+            lexical_weight=float(retrieval.get("lexical_weight", 0.35)),
+            dense_weight=float(retrieval.get("dense_weight", 0.65)),
+            rrf_k=int(retrieval.get("rrf_k", 60)),
+        )
+        return index
     if embedder is None:
         validate_retrieval_requirements(settings)
 
@@ -3015,6 +3029,19 @@ def build_retrieval_index(
             cache_path=settings.get("embedding_cache_path"),
         )
         index.configured_retrieval_mode = mode
+        cache_path = settings.get("embedding_cache_path")
+        index.coaching_index = CoachingIndex(
+            coaching_records,
+            embedder=active_embedder,
+            cache_path=(
+                cache_path.replace(".json", "") + "-web-coaching.json"
+                if cache_path
+                else None
+            ),
+            lexical_weight=float(retrieval.get("lexical_weight", 0.35)),
+            dense_weight=float(retrieval.get("dense_weight", 0.65)),
+            rrf_k=int(retrieval.get("rrf_k", 60)),
+        )
         return index
     except DenseRetrievalUnavailable:
         raise
