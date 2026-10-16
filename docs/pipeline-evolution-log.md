@@ -594,6 +594,82 @@ a category match any query naming it. The revision:
 The adopted-configuration numbers in the table above predate this revision;
 the merged pipeline is re-evaluated on both question sets.
 
+## Approach 8: English questions
+
+Worktree `/home/minhee/codex/english-support-rag`, branch `english-support`
+(from `fef5f66`), 2026-10-17. `ask(..., language="en")`; `language="ko"`
+(the default) is unchanged: `SYSTEM_PROMPT` is byte-identical, the Korean
+user prompt is unchanged, and no extra model call is made.
+
+### Design
+
+- Retrieval stays Korean. The corpus, lexical concepts, aliases, and dense
+  calibration are Korean, so an English question is first translated to
+  Korean with one extra Qwen3-14B call (same settings, `/no_think`, strict
+  "translate faithfully, keep titles/lyrics/foreign terms/bar numbers"
+  prompt in `soprano_qa/translation.py`, with a short glossary of standard
+  Korean music terms). The translation is the retrieval and gating query and
+  is returned as `retrieval_query`. A translation without Hangul fails
+  closed. The dense query instruction is unchanged.
+- Measure mentions are parsed from the original English question
+  (`validate_question_measure_contract`). An English serial-comma list
+  ("measures 31, 32, 33, and 34") previously raised; it now parses.
+- Generation uses the same frozen evidence bundle with `SYSTEM_PROMPT_EN`, a
+  separate constant that keeps every grounding, scope, citation, and certainty
+  rule, adds faithful-translation rules (no added, dropped, or strengthened
+  hedges; lyric words and foreign terms kept in the original language), and
+  uses English examples. `build_messages(..., language="en")` also appends a
+  two-line English answer contract to the user prompt: without it the model
+  labelled only the last sentence of a paragraph, and 4 of 6 smoke answers
+  carried an "uncited substantive claim" warning.
+- Finalization skips the 합니다체 pass for English and instead rejects a draft
+  whose letters are more than 30% Hangul. `NO_CORPUS_EVIDENCE_MESSAGE_EN`
+  and `no_corpus_evidence_message(language)` replace the Korean message on
+  the English path. `generate=False` still returns Korean evidence text
+  (`answer_language: "ko"`).
+
+### Evaluation
+
+Smoke test, 6 English questions (5 no-range, 1 ranged), `generate=True`: all
+6 answers are English, none raised, none carries a validation warning. The
+ranged answer keeps the hedge ("can be seen as representing the trout's
+leaping motion"). Problems found by reading against the evidence: the Rosina
+answer turns the expert's exaggerated dotted rhythm (겹점8분음표 and
+32분음표) into "exaggerated staccato and rapid note values", and blends a web
+claim about a contralto voice; the 'che volano' answer drops that the word
+has a single l; "the third verse" (translated "3절") retrieves a generic
+verse-colour unit instead of the unit about the changed third stanza (3연).
+
+Retrieval, 105 original evaluation cases (`retrieve_generation_evidence`,
+top_k 6; hit = any expected range-applicable KU in the bundle):
+
+| Question | Korean | English via translation |
+| --- | --- | --- |
+| Inventory paraphrase (102 cases with an English paraphrase) | 102/102 | 100/102 |
+| Original annotator question (74 cases where both pass the measure contract) | 73/74 | 73/74 |
+
+The first English run, before the translation glossary, scored 95/102 on
+the paraphrases; its misses were terminology (grace note translated as
+어절, double-dotted as 이중점음, meter as 박자 구조). The glossary was added
+after inspecting those misses, so 100/102 is partly tuned on this set. The two
+remaining misses are a dataset translation of 박자 as "tempo" and "text"
+fitting under ornamentation. 31 original questions name bars while their case
+passes no range and are rejected by the measure contract in both languages.
+English answers were not scored by blind review.
+
+### Decision and remaining risks
+
+Available behind `language="en"`; the Korean path is unchanged. Risks:
+
+- Retrieval quality depends on one translation call; mistranslated music
+  terms silently change the evidence.
+- The English answer is a translation of Korean evidence by the same model,
+  so terminology errors (dotted rhythm vs staccato) can occur even with the
+  right evidence. No blind faithfulness review of English answers exists yet.
+- English requests make two model calls, and `generate=False` English
+  requests still load the 14B model for translation.
+- `scripts/ask.py` and the `answer.py` CLI have no language option.
+
 ## Evaluation and promotion checklist
 
 For each new approach, record all of the following here before calling it

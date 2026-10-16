@@ -102,6 +102,18 @@ class ScoreContextTests(unittest.TestCase):
         self.assertLess(user.index("Score context"), user.index("Retrieved evidence"))
 
 
+class EnglishScoreContextTests(ScoreContextTests):
+    def test_english_prompt_keeps_score_context(self) -> None:
+        block = format_score_context(selected_measure_lyrics(self.lyrics, "die-forelle", [[2, 2]]))
+        messages = build_messages(
+            "die-forelle", "2", "What is sung here?", [], score_context=block, language="en"
+        )
+        user = messages[1]["content"]
+        self.assertIn("Score context", user)
+        self.assertLess(user.index("Score context"), user.index("Retrieved evidence"))
+        self.assertNotEqual(messages[0], build_messages("die-forelle", "2", "q", [])[0])
+
+
 class DatasetLyricsIntegrationTests(unittest.TestCase):
     def test_real_dataset_lyrics_load(self) -> None:
         root = load_settings()["dataset_root"]

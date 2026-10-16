@@ -10,6 +10,7 @@ from soprano_qa.answer import (
     GeneratedAnswerRejected,
     NO_CORPUS_EVIDENCE_MESSAGE,
     build_extractive_answer,
+    build_messages,
     build_evidence_notices,
     build_messages,
     ensure_corpus,
@@ -19,6 +20,7 @@ from soprano_qa.answer import (
     has_selected_range_grounding,
     is_grounded_insufficiency_answer,
     is_underspecified_ranged_query,
+    no_corpus_evidence_message,
     retrieve_generation_evidence,
 )
 from soprano_qa.llm import (
@@ -46,6 +48,10 @@ from soprano_qa.score_context import (
     selected_measure_lyrics,
 )
 from soprano_qa.settings import load_settings
+from soprano_qa.translation import (
+    translate_question_to_korean,
+    validate_language,
+)
 
 
 SETTINGS = load_settings(use_legacy_dataset_env=False)
@@ -227,6 +233,7 @@ def ask(
     measure_range: Optional[tuple[int, int]],
     generate: bool,
     top_k: int = 6,
+    language: str = "ko",
 ) -> dict:
     """Compose one grounded answer from the retrieved reviewed texts.
 
@@ -236,9 +243,21 @@ def ask(
     check questions the sole draft, the sanitized draft is still returned for
     semantic red-flag review instead of being replaced by extraction or
     internal model knowledge.
+
+    ``language="en"`` accepts an English question and, when generating,
+    answers in English. The Korean-calibrated retriever never sees the
+    English text: one extra local-model call translates the question to
+    Korean, and that translation (returned as ``retrieval_query``) drives
+    retrieval and Korean-oriented gating. Measure mentions are still parsed
+    from the original question, and the generation prompt carries the
+    original English question. ``language="ko"`` (the default) makes no
+    extra model call and is unchanged.
     """
 
-    if generate:
+    validate_language(language)
+    # English questions need the local model for translation even when no
+    # answer is generated.
+    if generate or language != "ko":
         validate_generation_requirements(
             SETTINGS["model_path"],
             SETTINGS["llm"],
@@ -259,6 +278,19 @@ def ask(
     measures = format_measure_range(measure_ranges) if measure_ranges else ""
 
     index = _get_index()
+    # Korean-oriented retrieval and gating always see Korean text.
+    retrieval_query = (
+        translate_question_to_korean(
+            question,
+            model_path=SETTINGS["model_path"],
+            llm_settings=SETTINGS["llm"],
+            generate_fn=generate_llm,
+        )
+        if language == "en"
+        else question
+    )
+    # The extractive path returns Korean evidence text in either language.
+    answer_language = language if generate else "ko"
     unavailable_reason: str | None = None
     generation_validation_warning: str | None = None
     score_context = None
@@ -273,7 +305,7 @@ def ask(
     if generate:
         results, messages = retrieve_generation_evidence(
             index,
-            query=question,
+            query=retrieval_query,
             piece=piece_id,
             measure_ranges=measure_ranges,
             measures=measures,
@@ -294,6 +326,17 @@ def ask(
             ),
             score_context=score_block,
         )
+        if language != "ko":
+            # Same frozen evidence bundle; only the system prompt and the
+            # displayed question change for the answer language.
+            messages = build_messages(
+                piece_id,
+                measures,
+                question,
+                results,
+                score_context=score_block,
+                language=language,
+            )
         grounded = bool(results) and not (
             measure_ranges and not has_primary_grounding(results)
         )
@@ -302,7 +345,7 @@ def ask(
             if grounded
             else _retrieval_unavailable_reason(
                 index,
-                question=question,
+                question=retrieval_query,
                 piece_id=piece_id,
                 measure_ranges=measure_ranges,
                 results=results,
@@ -315,7 +358,7 @@ def ask(
             ungrounded_reason == "no_corpus_evidence"
         )
         if not grounded and not use_score_context:
-            answer = NO_CORPUS_EVIDENCE_MESSAGE
+            answer = no_corpus_evidence_message(language)
             generation_mode = "unavailable"
             answer_basis = "no_corpus_evidence"
             unavailable_reason = ungrounded_reason
@@ -331,6 +374,7 @@ def ask(
                     question,
                     [],
                     score_context=score_block,
+                    language=language,
                 )
             raw_answer = generate_llm(
                 SETTINGS["model_path"],
@@ -343,6 +387,7 @@ def ask(
                     generation_results,
                     messages,
                     measure_ranges,
+                    language=language,
                 )
             except GeneratedAnswerRejected as exc:
                 # Preserve the sole grounded model draft for review instead
@@ -355,18 +400,20 @@ def ask(
                 ):
                     if grounded:
                         raise
-                    answer = NO_CORPUS_EVIDENCE_MESSAGE
+                    answer = no_corpus_evidence_message(language)
                 else:
                     answer = finalize_user_visible_answer(
-                        raw_answer, generation_results
+                        raw_answer,
+                        generation_results,
+                        language=language,
                     )
-                    if answer == NO_CORPUS_EVIDENCE_MESSAGE and grounded:
+                    if answer == no_corpus_evidence_message(language) and grounded:
                         raise
                     generation_validation_warning = str(exc)
             if grounded:
                 generation_mode = "llm"
                 answer_basis = "retrieved_evidence"
-            elif answer == NO_CORPUS_EVIDENCE_MESSAGE:
+            elif answer == no_corpus_evidence_message(language):
                 generation_mode = "unavailable"
                 answer_basis = "no_corpus_evidence"
                 unavailable_reason = "score_context_insufficient"
@@ -375,13 +422,16 @@ def ask(
                 answer_basis = "score_context"
     else:
         results = index.search(
-            query=question,
+            query=retrieval_query,
             piece=piece_id,
             measure_ranges=measure_ranges,
             topic=None,
             top_k=top_k,
         )
         answer = build_extractive_answer(results, max_items=4)
+        if not results and language != "ko":
+            answer = no_corpus_evidence_message(language)
+            answer_language = language
         generation_mode = (
             "retrieval_only" if results else "unavailable"
         )
@@ -393,15 +443,19 @@ def ask(
             answer_basis = "no_corpus_evidence"
             unavailable_reason = _retrieval_unavailable_reason(
                 index,
-                question=question,
+                question=retrieval_query,
                 piece_id=piece_id,
                 measure_ranges=measure_ranges,
                 results=results,
             )
 
-    answer = finalize_user_visible_answer(answer, results)
+    answer = finalize_user_visible_answer(
+        answer,
+        results,
+        language=answer_language,
+    )
     if (
-        answer == NO_CORPUS_EVIDENCE_MESSAGE
+        answer == no_corpus_evidence_message(answer_language)
         and answer_basis not in {
             "no_corpus_evidence",
             "retrieved_secondary_context",
@@ -416,6 +470,10 @@ def ask(
         "piece_id": piece_id,
         "scope": "range" if measure_range else "whole_piece",
         "measure_range": list(measure_range) if measure_range else None,
+        "language": language,
+        "answer_language": answer_language,
+        "evidence_language": "ko",
+        "retrieval_query": retrieval_query,
         "answer": answer,
         "generation_mode": generation_mode,
         "answer_basis": answer_basis,
