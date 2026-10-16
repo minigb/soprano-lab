@@ -4,7 +4,7 @@
   --ink: #1f2430;
   --muted: #6b7280;
   --border: #e2e0da;
-  --accent: #8a4fff;
+  --accent: #1c4586;
   --accent-ink: #ffffff;
   --highlight: #ffd86b;
   --highlight-border: #e8a800;
@@ -189,8 +189,8 @@ html, body {
 }
 
 .measure-box:hover {
-  background: rgba(138, 79, 255, 0.12);
-  border-color: rgba(138, 79, 255, 0.35);
+  background: rgba(28, 69, 134, 0.10);
+  border-color: rgba(28, 69, 134, 0.35);
 }
 
 .measure-box.no-sync {
@@ -429,7 +429,7 @@ html, body {
 .tag.mode-extractive { color: #7a4a00; border-color: #f0c886; background: #fff4e0; }
 .tag.scope-range { color: #1d5fa8; border-color: #bcd9f5; background: #eaf4ff; }
 .tag.scope-whole { color: #6b7280; }
-.tag.pipeline { color: #6d3fc0; border-color: #d9c7f8; background: #f5efff; }
+.tag.pipeline { color: #1c4586; border-color: #b9c8e1; background: #e8eef7; }
 .tag.answer-piece { color: #335d47; border-color: #bdd7c8; background: #edf7f1; }
 .tag.mode-score { color: #0f5e66; border-color: #a9dbe0; background: #e9f8fa; }
 .tag.language { color: #6b7280; }
