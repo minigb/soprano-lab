@@ -1,6 +1,6 @@
-# Soprano Studio
+# Soprano Lab
 
-Soprano Studio is a local web demo for exploring five soprano works. It pairs
+Soprano Lab is a local web demo for exploring five soprano works. It pairs
 audio with a scrollable score, supports measure-range selection, and sends
 questions to the measure-aware Soprano QA RAG and local-LLM pipeline.
 

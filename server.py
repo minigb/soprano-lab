@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Soprano Studio -- dependency-free local web demo server.
+"""Soprano Lab -- dependency-free local web demo server.
 
 Serves the frontend, audio from the source dataset, the demo's concatenated
 sheet-music images and geometry, the alignment JSON needed for playback sync,
@@ -306,7 +306,7 @@ def main():
     args = parser.parse_args()
 
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"Soprano Studio listening on http://{args.host}:{args.port}")
+    print(f"Soprano Lab listening on http://{args.host}:{args.port}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
