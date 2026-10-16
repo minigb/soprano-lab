@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import mimetypes
 import re
@@ -27,6 +28,28 @@ from backend import dataset, qa  # noqa: E402
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
 
 RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)")
+
+SUPPORTED_LANGUAGES = ("ko", "en")
+HANGUL_RE = re.compile(r"[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7af\ud7b0-\ud7ff]")
+
+
+def infer_language(question: str) -> str:
+    """Return "ko" when the question contains Hangul, otherwise "en"."""
+    return "ko" if HANGUL_RE.search(question) else "en"
+
+
+def pipeline_accepts_language(ask_callable) -> bool:
+    """Whether the imported pipeline ask() takes a ``language`` keyword."""
+    try:
+        parameters = inspect.signature(ask_callable).parameters
+    except (TypeError, ValueError):
+        return False
+    if "language" in parameters:
+        return parameters["language"].kind in (
+            inspect.Parameter.KEYWORD_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        )
+    return False
 
 
 def _json_bytes(payload) -> bytes:
@@ -202,6 +225,7 @@ class Handler(BaseHTTPRequestHandler):
         question_value = body.get("question")
         measure_range = body.get("measure_range")
         want_generation = body.get("generate", True)
+        language = body.get("language")
 
         if piece_id not in dataset.PIECE_IDS:
             self._send_error_json(400, "unknown piece_id")
@@ -215,6 +239,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         if not isinstance(want_generation, bool):
             self._send_error_json(400, "generate must be true or false")
+            return
+        if language is None:
+            language = infer_language(question)
+        elif language not in SUPPORTED_LANGUAGES:
+            self._send_error_json(400, 'language must be "ko" or "en"')
             return
 
         piece_status = dataset.piece_status(piece_id)
@@ -243,16 +272,30 @@ class Handler(BaseHTTPRequestHandler):
                 return
             range_tuple = (start, end)
 
+        ask_kwargs = {
+            "piece_id": piece_id,
+            "question": question,
+            "measure_range": range_tuple,
+            "generate": want_generation,
+        }
+        language_supported = pipeline_accepts_language(qa.ask)
+        if language_supported:
+            ask_kwargs["language"] = language
         try:
-            result = qa.ask(
-                piece_id=piece_id,
-                question=question,
-                measure_range=range_tuple,
-                generate=want_generation,
-            )
+            result = qa.ask(**ask_kwargs)
         except ValueError as exc:
             self._send_error_json(400, str(exc))
             return
+        if isinstance(result, dict):
+            result = dict(result)
+            # Report the language actually used: the pipeline's own value when
+            # it returns one, else the request language if it was passed
+            # through, else the pipeline's implicit default (Korean).
+            result.setdefault(
+                "language", language if language_supported else "ko"
+            )
+            result["requested_language"] = language
+            result["language_supported"] = language_supported
         self._send_json(result)
 
 

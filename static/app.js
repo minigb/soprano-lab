@@ -39,6 +39,7 @@ const el = {
   playSelection: document.getElementById("play-selection"),
   rangeHint: document.getElementById("range-hint"),
   question: document.getElementById("question"),
+  exampleQuestions: document.getElementById("example-questions"),
   askBtn: document.getElementById("ask-btn"),
   askStatus: document.getElementById("ask-status"),
   qaHistory: document.getElementById("qa-history"),
@@ -518,6 +519,147 @@ function makeTag(text, cls) {
   return span;
 }
 
+const WEB_COACHING_LABEL = "Web / lesson video (not expert-curated)";
+const SCORE_CONTEXT_NOTICE =
+  "Answered from the score's lyrics only — no expert annotation covers these bars";
+
+function makeLink(url, text) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noreferrer";
+  link.textContent = text;
+  return link;
+}
+
+// Parse the start of a locator such as "[12:01-12:20]" or "[1:02:03-1:02:30]"
+// into seconds. Returns null when the locator has no leading timestamp.
+function locatorStartSeconds(locator) {
+  if (typeof locator !== "string") return null;
+  const m = locator.match(/^\s*\[?\s*(\d+(?::\d{1,2}){1,2})/);
+  if (!m) return null;
+  return m[1].split(":").reduce((total, part) => total * 60 + parseInt(part, 10), 0);
+}
+
+function isYouTubeUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\.|^m\./, "");
+    return host === "youtube.com" || host === "youtu.be" || host === "music.youtube.com";
+  } catch (_) {
+    return false;
+  }
+}
+
+// Link to a web-coaching source; YouTube videos jump to the cited timestamp.
+function webCoachingSourceUrl(source) {
+  if (!source || !source.url) return null;
+  const seconds = locatorStartSeconds(source.locator);
+  if (source.kind !== "video" || seconds == null || !isYouTubeUrl(source.url)) {
+    return source.url;
+  }
+  try {
+    const url = new URL(source.url);
+    url.searchParams.set("t", String(seconds));
+    return url.toString();
+  } catch (_) {
+    return source.url;
+  }
+}
+
+function appendWebCoachingSources(container, sources) {
+  container.appendChild(document.createTextNode("Source: "));
+  sources.forEach((source, index) => {
+    if (index) container.appendChild(document.createTextNode(" · "));
+    const kind = source.kind === "video" ? "Lesson video" : "Web page";
+    const title = source.title || source.url || source.web_coaching_source_id || "source";
+    const href = webCoachingSourceUrl(source);
+    container.appendChild(document.createTextNode(`${kind}: `));
+    container.appendChild(href ? makeLink(href, title) : document.createTextNode(title));
+    const extras = [source.author, source.locator].filter(Boolean);
+    if (extras.length) {
+      container.appendChild(document.createTextNode(` (${extras.join(", ")})`));
+    }
+  });
+}
+
+function renderScoreContext(scoreContext) {
+  const box = document.createElement("div");
+  box.className = "lyrics-box";
+
+  const head = document.createElement("div");
+  head.className = "lyrics-head";
+  const title = document.createElement("strong");
+  title.textContent = "Lyrics in the selected bars";
+  head.appendChild(title);
+  const note = document.createElement("span");
+  note.className = "lyrics-note";
+  note.textContent = "model-transcribed, unverified";
+  head.appendChild(note);
+  box.appendChild(head);
+
+  // Line labels can be long ("upper printed verse line (stanza 1 ...)"), so
+  // show them once as numbered captions and tag each lyric line by number.
+  const labels = scoreContext.line_labels || [];
+  const numberLines = labels.length > 1;
+  if (labels.length) {
+    const legend = document.createElement("div");
+    legend.className = "lyrics-legend";
+    labels.forEach((label, index) => {
+      const caption = document.createElement("div");
+      caption.textContent = numberLines ? `${index + 1} = ${label}` : label;
+      legend.appendChild(caption);
+    });
+    box.appendChild(legend);
+  }
+  const table = document.createElement("div");
+  table.className = "lyrics-rows";
+  for (const m of scoreContext.measures || []) {
+    const row = document.createElement("div");
+    row.className = "lyrics-row";
+    const bar = document.createElement("span");
+    bar.className = "lyrics-bar";
+    bar.textContent = `m. ${m.measure}`;
+    row.appendChild(bar);
+
+    const lines = document.createElement("div");
+    lines.className = "lyrics-lines";
+    const lyricLines = m.lyric_lines || [];
+    if (m.voice !== "sung" || !lyricLines.some((line) => line)) {
+      const rest = document.createElement("span");
+      rest.className = "lyrics-empty";
+      rest.textContent =
+        m.voice === "no_voice_staff" ? "no vocal staff" : m.voice === "rest" ? "rest" : "—";
+      lines.appendChild(rest);
+    } else {
+      lyricLines.forEach((text, index) => {
+        if (!text) return;
+        const line = document.createElement("div");
+        line.className = "lyrics-line";
+        if (numberLines) {
+          const caption = document.createElement("span");
+          caption.className = "lyrics-label";
+          caption.textContent = String(index + 1);
+          caption.title = labels[index] || "";
+          line.appendChild(caption);
+        }
+        line.appendChild(document.createTextNode(text));
+        lines.appendChild(line);
+      });
+    }
+    row.appendChild(lines);
+    table.appendChild(row);
+  }
+  box.appendChild(table);
+
+  if (scoreContext.truncated) {
+    const more = document.createElement("div");
+    more.className = "lyrics-note";
+    more.textContent = "Only the first bars of the selection are shown.";
+    box.appendChild(more);
+  }
+  return box;
+}
+
 function renderQAItem(question, result) {
   const item = document.createElement("div");
   item.className = "qa-item";
@@ -532,6 +674,7 @@ function renderQAItem(question, result) {
   const usesInternalKnowledge = result.answer_basis === "internal_knowledge";
   const generationUnavailable = result.answer_basis === "generation_unavailable";
   const noCorpusEvidence = result.answer_basis === "no_corpus_evidence";
+  const scoreContextOnly = result.answer_basis === "score_context";
   let modeLabel = "Retrieval (extractive)";
   let modeClass = "mode-extractive";
   if (usesInternalKnowledge) {
@@ -540,6 +683,9 @@ function renderQAItem(question, result) {
   } else if (generationUnavailable) {
     modeLabel = "LLM unavailable";
     modeClass = "mode-unavailable";
+  } else if (scoreContextOnly) {
+    modeLabel = "Score lyrics only";
+    modeClass = "mode-score";
   } else if (noCorpusEvidence) {
     modeLabel = "No corpus match";
     modeClass = "mode-unavailable";
@@ -567,7 +713,19 @@ function renderQAItem(question, result) {
   } else {
     meta.appendChild(makeTag("Whole piece", "scope-whole"));
   }
+  if (result.language) {
+    meta.appendChild(
+      makeTag(result.language === "en" ? "English" : "Korean", "language")
+    );
+  }
   item.appendChild(meta);
+
+  if (scoreContextOnly) {
+    const badge = document.createElement("div");
+    badge.className = "qa-caveat qa-score-only";
+    badge.textContent = SCORE_CONTEXT_NOTICE + ".";
+    item.appendChild(badge);
+  }
 
   const ans = document.createElement("div");
   ans.className = "qa-answer";
@@ -583,6 +741,13 @@ function renderQAItem(question, result) {
     item.appendChild(caveat);
   }
 
+  if (result.score_context && (result.score_context.measures || []).length) {
+    item.appendChild(renderScoreContext(result.score_context));
+  }
+
+  const notices = result.evidence_notices || [];
+  const noticeById = new Map(notices.map((notice) => [notice.record_id, notice]));
+
   const details = document.createElement("details");
   details.className = "qa-evidence";
   const summary = document.createElement("summary");
@@ -593,9 +758,13 @@ function renderQAItem(question, result) {
     evEl.className = "evidence-item" + (ev.in_requested_scope ? "" : " out-of-scope");
     const metaLine = document.createElement("div");
     metaLine.className = "evidence-meta";
+    const isWebCoaching = ev.evidence_type === "web_coaching";
+    if (isWebCoaching) evEl.classList.add("web-coaching");
     const kindLabel =
       ev.kind === "expert"
         ? "Expert annotation"
+        : isWebCoaching
+        ? WEB_COACHING_LABEL
         : ev.usage_class === "research_conditional"
         ? "Web reference (conditional rights)"
         : "Web reference";
@@ -623,12 +792,19 @@ function renderQAItem(question, result) {
         sourceLine.appendChild(link);
       });
       evEl.appendChild(sourceLine);
+    } else if (isWebCoaching) {
+      const notice = noticeById.get(ev.id);
+      if (notice && notice.sources && notice.sources.length) {
+        const sourceLine = document.createElement("div");
+        sourceLine.className = "evidence-sources";
+        appendWebCoachingSources(sourceLine, notice.sources);
+        evEl.appendChild(sourceLine);
+      }
     }
     details.appendChild(evEl);
   }
   item.appendChild(details);
 
-  const notices = result.evidence_notices || [];
   if (notices.length) {
     const noticeDetails = document.createElement("details");
     noticeDetails.className = "qa-evidence qa-notices";
@@ -640,6 +816,19 @@ function renderQAItem(question, result) {
       noticeEl.className = "evidence-item";
       const noticeMeta = document.createElement("div");
       noticeMeta.className = "evidence-meta";
+      const noticeIsWebCoaching = (notice.sources || []).some(
+        (source) => source.web_coaching_source_id || source.kind === "video" || source.kind === "web_page"
+      );
+      if (noticeIsWebCoaching) {
+        noticeMeta.textContent = `[${notice.record_id}] · ${WEB_COACHING_LABEL}`;
+        noticeEl.appendChild(noticeMeta);
+        const sourceLine = document.createElement("div");
+        sourceLine.className = "rights-condition";
+        appendWebCoachingSources(sourceLine, notice.sources);
+        noticeEl.appendChild(sourceLine);
+        noticeDetails.appendChild(noticeEl);
+        continue;
+      }
       noticeMeta.textContent =
         `[${notice.record_id}] · ${notice.usage_class || "web evidence"}` +
         (notice.generated_text_license
@@ -723,6 +912,8 @@ async function askQuestion() {
     const result = await fetchJSON("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      // "language" is omitted: the server infers it from the question
+      // (Hangul -> Korean, otherwise English).
       body: JSON.stringify({
         piece_id: state.currentPieceId,
         question,
@@ -741,6 +932,35 @@ async function askQuestion() {
 }
 
 el.askBtn.addEventListener("click", askQuestion);
+
+// Example questions (English; Korean questions work the same way). Range
+// examples switch the scope to the selected measures when a range exists.
+const EXAMPLE_QUESTIONS = [
+  { text: "How should I express the change of mood in these bars?", scope: "range" },
+  { text: "How should I pronounce the lyrics in this passage?", scope: "range" },
+  { text: "What is this piece about, and what character should I convey?", scope: "whole" },
+  { text: "Where should I breathe in this phrase?", scope: "range" },
+];
+
+function renderExampleQuestions() {
+  if (!el.exampleQuestions) return;
+  el.exampleQuestions.innerHTML = "";
+  for (const example of EXAMPLE_QUESTIONS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "example-chip";
+    btn.textContent = example.text;
+    btn.addEventListener("click", () => {
+      el.question.value = example.text;
+      const scope = example.scope === "range" && state.range ? "range" : "whole";
+      const radio = document.querySelector(`input[name="scope"][value="${scope}"]`);
+      if (radio) radio.checked = true;
+      el.question.focus();
+    });
+    el.exampleQuestions.appendChild(btn);
+  }
+}
+renderExampleQuestions();
 el.question.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) askQuestion();
 });

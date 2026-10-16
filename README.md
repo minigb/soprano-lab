@@ -11,6 +11,16 @@ data from `soprano-qa-dataset` and imports the question-answering service from
 Answers show their cited evidence and source notices. When the corpus has no
 answer, any model-only response is labeled as internal knowledge.
 
+Questions may be asked in English or Korean. `POST /api/ask` accepts an
+optional `language` (`"ko"` or `"en"`); when it is omitted, the server infers
+it from the question (Hangul present → `"ko"`, otherwise `"en"`). The value is
+passed to the pipeline only when its `ask()` accepts a `language` parameter,
+and the response reports `language`, `requested_language`, and
+`language_supported`. For selected-range questions, pipelines that return
+`score_context` have the selected bars' model-transcribed lyrics shown beside
+the answer; web and lesson-video coaching evidence is labeled as not
+expert-curated.
+
 ## Requirements
 
 Keep these repositories as immediate siblings with their default names:
