@@ -131,15 +131,33 @@ result = ask(
 ```
 
 Arguments are keyword-only: `piece_id`, `question`, `measure_range`
-(`tuple[int, int] | None`), `generate` (`bool`), and `top_k` (default `6`).
-Valid piece IDs are `die-forelle`, `in-flowery-clouds`, `la-capinera`,
-`nella-fantasia`, and `una-voce-poco-fa`.
+(`tuple[int, int] | None`), `generate` (`bool`), `top_k` (default `6`), and
+`language` (`"ko"`, the default, or `"en"`; anything else raises
+`ValueError`). Valid piece IDs are `die-forelle`, `in-flowery-clouds`,
+`la-capinera`, `nella-fantasia`, and `una-voce-poco-fa`.
+
+```python
+result = ask(
+    piece_id="die-forelle",
+    question="What does the piano accompaniment depict in these bars?",
+    measure_range=(2, 5),
+    generate=True,
+    language="en",
+)
+```
+
+With `language="en"` the question is English and a generated answer is
+English. The extractive `generate=False` path still returns the Korean
+evidence text (`answer_language: "ko"`). `language="ko"` is unchanged and
+makes no extra model call.
 
 `ask()` returns a `dict`. The fields to branch on:
 
 | Field | Values |
 | --- | --- |
-| `answer` | User-visible Korean prose, already sanitized |
+| `answer` | User-visible prose, already sanitized (Korean, or English for a generated `language="en"` answer) |
+| `language` / `answer_language` | Requested language / language of `answer` |
+| `retrieval_query` | The text used for retrieval: the question itself, or its Korean translation for `language="en"` |
 | `generation_mode` | `llm` / `retrieval_only` / `unavailable` |
 | `answer_basis` | `retrieved_evidence` / `retrieved_secondary_context` / `no_corpus_evidence` |
 | `unavailable_reason` | Set only when no answer could be grounded |
@@ -229,6 +247,14 @@ exactly one model call, with no second call and no verbatim, extractive,
 alternate-model, or internal-knowledge fallback. Where evidence is genuinely
 ambiguous the service fails closed with `unavailable` / `no_corpus_evidence`
 rather than choosing a candidate that happens to rank slightly higher.
+
+English questions (`language="en"`) add one call before retrieval: Qwen3-14B
+translates the question into Korean, and that translation drives the
+Korean-calibrated retrieval and gating, while measure mentions are still read
+from the English question. The same frozen evidence bundle is then answered
+with an English variant of the system prompt that keeps every grounding,
+scope, and certainty rule, translates the Korean evidence faithfully, and keeps
+lyric words and foreign terms in their original language.
 
 See [docs/rag-llm-pipeline-method.md](docs/rag-llm-pipeline-method.md) for the
 full retrieval, measure-routing, prompt-construction, and generation design.

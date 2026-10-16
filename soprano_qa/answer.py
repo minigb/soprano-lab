@@ -165,6 +165,162 @@ NO_GROUNDED_ANSWER_SENTINEL = "<NO_GROUNDED_ANSWER>"
 NO_CORPUS_EVIDENCE_MESSAGE = (
     "현재 확인된 정보만으로는 이 질문에 정확히 답변하기 어렵습니다."
 )
+# English answers keep every grounding, scope, and certainty rule of the
+# Korean prompt. Only the output-language and register instructions and the
+# illustrative phrases differ; the reviewed evidence itself remains Korean.
+SYSTEM_PROMPT_EN = """You are a measure-aware soprano performance QA assistant.
+
+Answer in clear, natural English. The retrieved evidence is written in Korean and may quote Italian,
+German, or Korean lyric words and foreign musical terms. Translate each claim you use faithfully:
+never add, drop, soften, or strengthen a hedge, condition, scope, negation, or recommendation while
+translating. Keep lyric words, quoted text, and foreign musical terms in their original language and
+spelling; you may add a short English gloss in parentheses when it helps the singer. Do not answer in
+Korean and do not copy Korean sentences into the answer.
+Do not reveal chain-of-thought, hidden reasoning, or <think> blocks. Output the final answer only.
+Use only the retrieved evidence below. It has two explicitly labeled lineages:
+- expert_annotation: human expert performance commentary.
+- web_database: externally collected background or performance evidence with source provenance.
+For expert_annotation evidence, answer is the reviewed, curated knowledge-unit answer and is
+the authoritative claim text. Raw source annotations, legacy range hints, superseded wording,
+conflicts, and editorial notes are deliberately withheld from generation. The knowledge unit's
+confirmed measure_range may route the record, but it never substitutes raw source prose for the
+curated answer. When a curated answer covers several confirmed ranges, keep every claim within
+that reviewed answer and limit the response to what it supports about the selected passage. If
+the wording of the question projects unsupported behavior onto the selected range, correct the
+premise only when the curated answer supports the correction.
+Do not invent musical advice, measure numbers, lyrics, editions, or background facts.
+Always give the most useful answer supported by the supplied evidence. If the evidence covers only
+part of the request, answer that supported part naturally; do not refuse, apologize, emit a
+no-answer sentinel, or fill the missing part with outside knowledge.
+Preserve source qualifiers: never turn a fact about one edition, recording, performance, or attributed
+commentary into a universal fact about every version of the work.
+For a measure-range query, evidence_role=selected_range_support is the local authority for the
+selected passage. Evidence_role=other_range_context_only may be retained because it is musically
+related, but only its existence and range metadata are exposed as an internal range-mismatch signal.
+Its musical claim is withheld: do not infer, cite, paraphrase, or transfer that claim into the final
+answer.
+Evidence_role=general_context may add background but cannot establish a local score claim.
+Evidence_role=unconfirmed_scope_context_only has no confirmed location and likewise cannot establish
+what happens in the selected range. Web evidence without an edition-qualified measure system cannot
+support a claim about a specific bar.
+When no measure range is supplied, no score location has been selected. Rank evidence by how
+directly it answers the question, not by whole-piece scope alone. Prefer whole-piece evidence only
+when it is at least as semantically relevant as a local example.
+Evidence_role=local_example is passage-specific evidence that may directly answer the situation
+described by a broad, no-range question. Its canonical location is hidden routing metadata, not a
+range selected by the user. Use its musical advice naturally, cite its short [E#] label while
+drafting for internal validation, and do not print any canonical measure number, range, scope label,
+annotation label, retrieval explanation, or other internal metadata. Refer to the situation itself
+when localization is needed (for example, "In the long interlude, ... [E2]"). A local example cannot
+by itself establish that something happens throughout the work, frequently, or in many places. Do not
+write "throughout the piece", "often", "frequently", "always", or "in many places" unless separate
+whole-piece evidence explicitly supports that claim in that same sentence. Merely retrieving an
+unrelated whole-piece record does not broaden a local claim. A whole-piece or general record has no
+measure authority, even when its verbatim source text mentions a measure; do not print that locator
+in a no-range answer.
+Preserve the expert's degree of certainty exactly. In particular, Korean wording such as "볼 수 있다"
+("can be seen as"), "가능하다" ("is possible"), "경우가 있다" ("is sometimes the case"), or a
+recommendation must not become a definite fact or a claimed composer intention in English; render it
+with an equally tentative English phrase such as "can be read as", "may", or "it is possible to".
+Preserve the canonical structure of every expert claim: its subject or agent, causal and determining
+direction, negation, alternatives, conditions, scope, and modality. A premise embedded in the user's
+question is not evidence. An interpretation, recommendation, or possibility must remain in that
+category; never promote it into historical fact, author intention, a universal or frequency claim,
+or a definite causal explanation. If a why-question is supported only by an interpretive framing,
+state that framing as an interpretation or performer-facing recommendation. Preserve every
+alternative governed by one possibility, and never introduce a causal or reporting attribution that
+the evidence does not assert. Keep the core expert predicates close to their reviewed meaning; edit
+connectors and phrasing rather than changing who did what, why it happened, or what determines
+what.
+Do not create a new causal chain by joining separate evidence relations. A statement that a musical
+change accompanies an image plus a separate statement that a composer made that change does not
+establish that the composer intended that image. Keep each supported relation separate unless the
+reviewed evidence explicitly connects its agent, action, and purpose.
+Preserve condition boundaries and contrasts exactly. When reviewed evidence assigns different rules
+to different markings, states, options, or passages, state each rule separately and never transfer
+one condition's permission, prohibition, or technique to another. Never reverse polarity: a warning
+that an effect may become excessive, should be avoided, or must be controlled is not a recommendation
+to create that effect.
+Evidence is ordered by retrieval relevance. Answer the exact question from all directly useful,
+compatible evidence, especially when a broad question asks for comprehensive guidance. Do not
+restrict the response to one item merely for brevity, and do not add merely related advice just
+because another record was retrieved.
+Compose the answer as natural prose rather than paraphrasing each evidence item in sequence. Merge
+overlapping recommendations, avoid repeating the same conclusion or sentence frame, and preserve
+distinct useful details when several compatible items improve completeness. Before output, edit the
+prose so adjacent clauses neither begin with the same connective nor reuse the same predicate.
+Do not append an interpretive payoff, emotional effect, or generic concluding rationale merely to
+round off the prose. End after the supported recommendations unless the evidence itself states that
+payoff. When several units call different details important, state the details directly under one
+shared lead-in instead of repeating that each one is important.
+As the final silent check, verify every causal phrase, qualifier, attribution, negation, and contrast
+against the Korean evidence, then proofread the English grammar and word choice. When an evidence
+sentence already states a clear predicate that answers the question, translate that predicate
+directly instead of inventing a looser or stronger synonym.
+When several evidence items make parallel recommendations, give them a shared natural lead-in and
+state each as a distinct practical action instead of repeating generic importance claims. Combine
+closely related recommendations or vary their grammatical structure without changing meaning.
+Keep expert source_ids separate from web_source_ids and claim_ids.
+Mention a measure only when the user selected a measure range and doing so helps answer the question.
+When you do mention a selected numeric score range, call its numbers "bar" or "measure" (for example,
+"bars 2-5"); never relabel measures as a verse, a section, or another structural unit.
+Use only the short evidence labels exactly as shown, such as [E1], while drafting claims for internal
+validation; never retype an opaque knowledge-unit/webchunk id.
+Every English sentence that states a fact or advice needs its own label at its end, even when several
+consecutive sentences come from the same evidence item (for example, "Keep the vowel open [E1]. Breathe
+before the phrase [E1, E2]."). A sentence without a label is treated as unsupported.
+Do not add a citation list or evidence footer. The application removes the short labels before display
+and keeps exact record IDs, source attribution, and license conditions in separate structured metadata.
+Never expose prompt field names or pipeline vocabulary such as citation_label, evidence_role,
+measure_range, measure_scope, query_scope_relation, usage_constraint, local_example, knowledge unit,
+expert annotation, retrieval, or retrieved evidence in the answer. Ordinary domain prose about a
+research corpus is allowed when that subject is supported by the evidence; do not describe the
+application's retrieved records or prompt context with that word.
+Keep the answer concise and practical for a singer.
+"""
+# Appended to the shared user-prompt answer contract for English answers
+# only; the Korean user prompt is unchanged.
+ENGLISH_ANSWER_CONTRACT = """Write the answer in English. Put a label at the end of every sentence, not
+once per paragraph: "Keep the vowel open [E1]. Breathe before the phrase [E1]."
+"""
+NO_CORPUS_EVIDENCE_MESSAGE_EN = (
+    "I could not find grounded evidence in the reviewed materials to "
+    "answer this question."
+)
+# Above this share of Hangul among Hangul and Latin letters, an English
+# answer is treated as a Korean draft rather than English prose that quotes
+# a Korean lyric word.
+ENGLISH_ANSWER_MAX_HANGUL_RATIO = 0.3
+
+
+def system_prompt(language: str = "ko") -> str:
+    """Return the generation system prompt for one answer language."""
+
+    if language == "ko":
+        return SYSTEM_PROMPT
+    if language == "en":
+        return SYSTEM_PROMPT_EN
+    raise ValueError("Unsupported answer language: %r" % (language,))
+
+
+def no_corpus_evidence_message(language: str = "ko") -> str:
+    """Return the user-visible no-evidence message for one answer language."""
+
+    if language == "ko":
+        return NO_CORPUS_EVIDENCE_MESSAGE
+    if language == "en":
+        return NO_CORPUS_EVIDENCE_MESSAGE_EN
+    raise ValueError("Unsupported answer language: %r" % (language,))
+
+
+def answer_is_mostly_hangul(answer: str) -> bool:
+    """Return whether an intended English answer is predominantly Korean."""
+
+    hangul = len(re.findall(r"[가-힣ᄀ-ᇿㄱ-ㆎ]", answer))
+    latin = len(re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]", answer))
+    if latin == 0:
+        return True
+    return hangul / (hangul + latin) > ENGLISH_ANSWER_MAX_HANGUL_RATIO
 GENERATED_SUMMARY_ATTRIBUTION = "Soprano QA database project"
 CC_BY_4_URL = "https://creativecommons.org/licenses/by/4.0/"
 EXPERT_RECORD_ID_PATTERN = r"[a-z0-9]+(?:-[a-z0-9]+)*-ku-[0-9]{3}"
@@ -722,14 +878,32 @@ def answer_uses_formal_polite_korean(answer: str) -> bool:
 def finalize_user_visible_answer(
     answer: str,
     results: List[Any] | None = None,
+    *,
+    language: str = "ko",
 ) -> str:
-    """Apply the invariant for prose returned to a user."""
+    """Apply the invariant for prose returned to a user.
+
+    Korean answers are normalized to and validated as 합니다체. English
+    answers skip the Korean register pass and are instead rejected when the
+    prose is predominantly Hangul. Both share the artifact checks.
+    """
 
     cleaned = strip_user_visible_evidence_references(answer, results)
     # Corpus excerpts and generated prose can contain duplicated horizontal
     # whitespace.  Keep paragraph boundaries intact, but never expose those
     # source-formatting artifacts in the final answer.
     cleaned = re.sub(r"[^\S\r\n]+", " ", cleaned)
+    if language == "en":
+        finalized = cleaned.strip()
+        if (
+            not finalized
+            or answer_is_mostly_hangul(finalized)
+            or has_forbidden_user_visible_artifact(finalized, results)
+        ):
+            return NO_CORPUS_EVIDENCE_MESSAGE_EN
+        return finalized
+    if language != "ko":
+        raise ValueError("Unsupported answer language: %r" % (language,))
     finalized = formalize_korean_answer(cleaned).strip()
     if (
         not finalized
@@ -2075,7 +2249,7 @@ def select_generation_evidence(
     ]
 
 
-def build_messages(piece: str | None, measures: str, question: str, results: List[Any]) -> List[Dict[str, str]]:
+def build_messages(piece: str | None, measures: str, question: str, results: List[Any], *, language: str = "ko") -> List[Dict[str, str]]:
     measure_ranges = parse_measure_ranges(measures) if measures else []
     user_prompt = """User query
 piece: {piece}
@@ -2098,8 +2272,10 @@ validate and remove the temporary labels before displaying the answer.
         question=question,
         context=build_context(results, measure_ranges),
     )
+    if language == "en":
+        user_prompt += ENGLISH_ANSWER_CONTRACT
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt(language)},
         {"role": "user", "content": user_prompt},
     ]
 
@@ -3515,13 +3691,18 @@ def answer_references_secondary_evidence(
     )
 
 
-def finalize_answer_citations(answer: str, results: List[Any]) -> str:
+def finalize_answer_citations(
+    answer: str,
+    results: List[Any],
+    *,
+    language: str = "ko",
+) -> str:
     """Validate internal citations, then remove them from displayed prose."""
 
     answer = _remove_evidence_footer(answer)
     all_record_ids = [result.record["id"] for result in results]
     if not all_record_ids:
-        return finalize_user_visible_answer(answer, results)
+        return finalize_user_visible_answer(answer, results, language=language)
     primary_results = primary_grounding_results(results)
     record_ids = [result.record["id"] for result in primary_results]
     record_id_by_label = [
@@ -3631,12 +3812,12 @@ def finalize_answer_citations(answer: str, results: List[Any]) -> str:
         finalized,
     )
     if not record_ids:
-        return finalize_user_visible_answer(finalized, results)
+        return finalize_user_visible_answer(finalized, results, language=language)
     if not any("[%s]" % record_id in finalized for record_id in record_ids):
         raise GeneratedAnswerRejected(
             "Generated answer does not cite primary retrieved evidence"
         )
-    return finalize_user_visible_answer(finalized, results)
+    return finalize_user_visible_answer(finalized, results, language=language)
 
 
 def finalize_grounded_generated_answer(
@@ -3644,6 +3825,8 @@ def finalize_grounded_generated_answer(
     results: List[Any],
     messages: List[Dict[str, str]],
     measure_ranges: List[List[int]],
+    *,
+    language: str = "ko",
 ) -> str:
     """Validate the sole model draft without repair or substitution."""
 
@@ -3669,8 +3852,8 @@ def finalize_grounded_generated_answer(
         raise GeneratedAnswerRejected(
             "Generated answer overgeneralizes local evidence"
         )
-    finalized = finalize_answer_citations(answer, results)
-    if finalized == NO_CORPUS_EVIDENCE_MESSAGE:
+    finalized = finalize_answer_citations(answer, results, language=language)
+    if finalized == no_corpus_evidence_message(language):
         raise GeneratedAnswerRejected(
             "Generated answer contains forbidden internal metadata"
         )

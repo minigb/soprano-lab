@@ -1549,8 +1549,9 @@ def extract_question_measure_ranges(text: str) -> List[List[int]]:
     )
 
     def capture_mixed_measure_list(match: re.Match[str]) -> str:
+        # An English serial comma (", and") is one separator, not two.
         normalized_items = re.sub(
-            r"(?:과|와|및|\band\b)",
+            r"(?:과|와|및|(?:[,，]\s*)?\band\b)",
             ",",
             match.group(1),
             flags=re.IGNORECASE,
