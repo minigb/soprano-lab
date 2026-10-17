@@ -26,7 +26,7 @@ Static demo: <https://minigb.github.io/soprano-lab/>.
 | --- | --- | --- |
 | [soprano-qa-dataset](https://github.com/minigb/soprano-qa-dataset) | private | Expert annotations and curated knowledge units, the English translation (`english/`), web evidence (`database/`, `web_coaching/`), scores, audio, alignments and per-measure lyrics |
 | ISMIR26-LBD-Soprano-QA | private | Paper (synced with Overleaf) |
-| soprano-lab-camera-ready | private, archived | Poster, thumbnail and video for the camera-ready, with their build scripts |
+| soprano-lab-camera-ready | private | Poster, thumbnail and video for the camera-ready, with their build scripts |
 
 Data flows dataset → `rag/` → `demo/` → `docs/`.
 
