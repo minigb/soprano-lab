@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta
+    name="description"
+    content="Compare every original and synthesized soprano QA inference result."
+  >
+  <title>Soprano QA · Original and Synthesized Comparison</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script defer src="/review-state.js"></script>
+  <script defer src="/app.js"></script>
+</head>
+<body data-viewer-mode="comparison">
+  <a class="skip-link" href="#review-detail">검토 내용으로 건너뛰기</a>
+
+  <header class="masthead">
+    <div class="masthead-copy">
+      <p class="eyebrow" id="viewer-eyebrow">Soprano QA · all five-piece results</p>
+      <h1 id="viewer-title">Original and synthesized answer comparison</h1>
+      <p class="subtitle" id="viewer-subtitle">
+        모든 인간 원본 질문, 의미 보존 합성 변형, 그리고 검토된 지식 단위에서
+        파생한 합성 전용 질문을 작품·질문·마디 맥락별로 구분해 보여 준다.
+        결과 수는 로드된 최신 평가 산출물에서 동적으로 표시된다.
+      </p>
+    </div>
+    <div class="header-actions" aria-label="검토 데이터 작업">
+      <nav class="viewer-links" aria-label="Viewer pages">
+        <a class="button" id="comparison-page-link" href="/">All results</a>
+        <a class="button" id="red-flags-page-link" href="/red-flags">
+          Semantic red flags
+        </a>
+      </nav>
+      <button class="button primary" id="export-review" type="button">
+        Review JSON 내보내기
+      </button>
+      <input
+        class="visually-hidden"
+        id="import-review"
+        type="file"
+        accept="application/json,.json"
+      >
+      <label
+        class="button"
+        id="import-review-label"
+        for="import-review"
+      >Review JSON 불러오기</label>
+      <button class="button quiet danger-text" id="clear-review" type="button">
+        로컬 검토 지우기
+      </button>
+      <p class="save-status" id="save-status" role="status">데이터 불러오는 중</p>
+    </div>
+  </header>
+
+  <nav class="piece-nav" aria-label="작품 선택">
+    <div class="piece-tabs" id="piece-tabs"></div>
+  </nav>
+
+  <section
+    class="quality-review-banner"
+    id="quality-review-banner"
+    aria-live="polite"
+    hidden
+  ></section>
+
+  <section class="filter-bar" aria-label="질문 필터">
+    <div class="filters">
+      <label class="filter search-filter">
+        <span>검색</span>
+        <input
+          id="search"
+          type="search"
+          placeholder="질문, ID, 답변, KU 검색"
+          autocomplete="off"
+        >
+      </label>
+      <label class="filter">
+        <span>Question family</span>
+        <select id="question-origin-filter">
+          <option value="all">All question families</option>
+          <option value="original">Human originals only</option>
+          <option value="synthesized">All synthesized questions</option>
+          <option value="source_question_paraphrase">
+            Synthesized paraphrases only
+          </option>
+          <option value="knowledge_unit_derived">KU-derived only</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Annotator</span>
+        <select id="annotator-filter">
+          <option value="all">전체</option>
+          <option value="kim">Kim</option>
+          <option value="yeon">Yeon</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Curation status</span>
+        <select id="status-filter">
+          <option value="all">전체</option>
+          <option value="retrievable">Retrievable</option>
+          <option value="measure_review_pending">Measure pending</option>
+          <option value="rewrite_review_pending">Rewrite pending</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Range</span>
+        <select id="range-filter">
+          <option value="all">전체</option>
+          <option value="none">No range</option>
+          <option value="single">Single range</option>
+          <option value="multiple">Multiple ranges</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Run status</span>
+        <select id="run-status-filter">
+          <option value="all">전체</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
+          <option value="error">Error</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Synthesized variant</span>
+        <select id="variant-filter">
+          <option value="all">전체</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Semantic result</span>
+        <select id="semantic-filter">
+          <option value="all">전체</option>
+          <option value="reliable">Reliable RAG+LLM</option>
+          <option value="pass">Semantic pass only</option>
+          <option value="review">Human review</option>
+          <option value="fail">Fail</option>
+          <option value="pending">Pending</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Direct quality review</span>
+        <select id="quality-review-filter">
+          <option value="all">All review states</option>
+          <option value="flagged">Red flags only</option>
+          <option value="pass">Passed only</option>
+          <option value="not_available">Review unavailable</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>Manual semantic fidelity</span>
+        <select id="completion-filter">
+          <option value="all">전체</option>
+          <option value="incomplete">미완료</option>
+          <option value="complete">완료</option>
+          <option value="flagged">Flagged</option>
+        </select>
+      </label>
+      <button class="button quiet reset-button" id="reset-filters" type="button">
+        필터 초기화
+      </button>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <aside class="queue-panel" aria-labelledby="queue-title">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Review queue</p>
+          <h2 id="queue-title">Inference scenarios</h2>
+        </div>
+        <span class="count-pill" id="result-count">0 / 0</span>
+      </div>
+      <div class="queue-actions">
+        <button class="button compact" id="previous-question" type="button">
+          이전
+        </button>
+        <button class="button compact" id="next-question" type="button">
+          다음
+        </button>
+        <button class="button compact accent" id="next-unreviewed" type="button">
+          다음 미완료
+        </button>
+      </div>
+      <div
+        class="queue-list"
+        id="queue-list"
+        role="listbox"
+        aria-label="검토 질문"
+      ></div>
+    </aside>
+
+    <section class="detail-panel" id="review-detail" aria-live="polite">
+      <div class="loading-state" id="loading-state">
+        <strong>검토 결과를 불러오는 중이다.</strong>
+      </div>
+    </section>
+  </main>
+
+  <div class="announcement visually-hidden" id="announcement" aria-live="polite"></div>
+</body>
+</html>

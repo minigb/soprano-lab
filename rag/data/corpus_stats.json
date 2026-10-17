@@ -1,0 +1,48 @@
+{
+  "corpus_schema_version": 8,
+  "dataset_root": "/home/minhee/soprano-qa-dataset",
+  "input_fingerprint": "350f4ba2a1f83c12978c0d1d92411aac4cab0a2a569784162e8b501cac9faf2e",
+  "corpus_sha256": "6a6ae7eda781a3ff7391f6a0b6a7f4f5c9fee81c3ed49c592e89d3c2bb98a44c",
+  "total_records": 946,
+  "records_by_evidence_type": {
+    "expert_annotation": 122,
+    "web_coaching": 723,
+    "web_database": 101
+  },
+  "records_by_piece": {
+    "die-forelle": 244,
+    "in-flowery-clouds": 140,
+    "la-capinera": 96,
+    "nella-fantasia": 223,
+    "una-voce-poco-fa": 243
+  },
+  "records_by_measure_scope": {
+    "global": 881,
+    "local": 38,
+    "multi_range": 27
+  },
+  "expert_records_by_measure_status": {
+    "specific": 65,
+    "unspecified": 3,
+    "whole_piece": 54
+  },
+  "web_records_by_usage_class": {
+    "research_conditional": 20,
+    "research_open": 81
+  },
+  "web_coaching_records_by_topic": {
+    "background": 104,
+    "diction": 133,
+    "interpretation": 124,
+    "musical_structure": 72,
+    "ornamentation": 32,
+    "repertoire_advice": 31,
+    "text_and_meaning": 133,
+    "vocal_technique": 94
+  },
+  "web_export_files": [
+    "research-open.jsonl",
+    "research-conditional.jsonl"
+  ],
+  "overrides_applied": 0
+}
