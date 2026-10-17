@@ -949,39 +949,44 @@ el.askBtn.addEventListener("click", askQuestion);
 
 // Example questions (English; Korean questions work the same way). Range
 // examples switch the scope to the selected measures when a range exists.
-// Example questions are the experts' own questions from the annotations
-// (English translation, verbatim), with the bars their knowledge unit was
-// confirmed for. Whole-piece questions have no range.
+// Example questions follow sample_questions.md in soprano-qa-rag-system: five
+// per piece with their measure ranges, in the English wording of the parallel
+// English dataset (two without a counterpart there are translated directly).
 const EXAMPLE_QUESTIONS = {
   "die-forelle": [
-    { text: "How should I express the change in mood beginning at measure 28?", range: [28, 40] },
-    { text: "What does the accent on the second beat in the piano part mean?", range: [41, 54] },
-    { text: "Why is this piece not easy to sing even though it is not high?", range: null },
-    { text: "Is this song strophic?", range: null },
+    { text: "What does the accent on the second beat in the piano part express?", range: [2, 27] },
+    { text: "Why is this piece difficult to sing even though its notes are not high?", range: null },
+    { text: "How should a change in the piece's mood be expressed?", range: [28, 40] },
+    { text: "What should a singer do when German pronunciation is difficult?", range: null },
+    { text: "What should a singer do to sing this piece well?", range: null },
   ],
   "una-voce-poco-fa": [
-    { text: "When linking dolce amorosa at measure 62, when and how should the vowel change?", range: [62, 62] },
-    { text: "Why do the accent marks at measures 68 and 69 appear on beats other than the first beat?", range: [68, 69] },
-    { text: "Is this a mezzo-soprano piece or a soprano piece?", range: null },
-    { text: "What skills are needed to perform coloratura well?", range: null },
+    { text: "Why did Rossini use a double-dotted rhythm instead of a standard dotted rhythm?", range: [21, 22] },
+    { text: "How can rapid diction be practiced in passages with many short notes?", range: [31, 34] },
+    { text: "The interludes in this piece are so long that I don't know what to do during them.", range: null },
+    { text: "How should one practice coloratura technique effectively?", range: null },
+    { text: "Why does this aria contain so many ornaments?", range: null },
   ],
   "la-capinera": [
-    { text: "How should I sing the leggiero in measure 28?", range: [28, 35] },
-    { text: "How long should I hold the fermata in measure 68?", range: [67, 69] },
-    { text: "How can I sing the double consonant in linguaggio better in measure 84?", range: [83, 85] },
-    { text: "How should I sing the trill in measure 137?", range: [137, 137] },
+    { text: "What musical effect does the contrast between ff and pp express?", range: [117, 124] },
+    { text: "How should a trill be sung?", range: [137, 137] },
+    { text: "How should the beat and rhythm be maintained in a passage without accompaniment?", range: [135, 137] },
+    { text: "How should a slashed ornament be fitted into the rhythm?", range: [22, 22] },
+    { text: "How should the lyrics l’erbe ed i fior be placed on the pitches?", range: [80, 80] },
   ],
   "nella-fantasia": [
-    { text: "What dynamic should I use for the opening note?", range: [7, 8] },
-    { text: "How long should the last note at measure 34 be held?", range: [34, 35] },
-    { text: "Who sings this piece?", range: null },
-    { text: "What kind of vocal production should I use?", range: null },
+    { text: "How should a sudden upward leap be sung?", range: [11, 17] },
+    { text: "What should a singer do when singing is difficult or breath runs short?", range: [44, 52] },
+    { text: "How long should the final note be held?", range: [34, 35] },
+    { text: "Can this piece be regarded as classical, and can it be sung with classical vocal production?", range: null },
+    { text: "With what dynamic should the opening note begin?", range: [7, 8] },
   ],
   "in-flowery-clouds": [
-    { text: "Why does the meter change in measure 47? How does the mood of the piece change?", range: [47, 49] },
-    { text: "What is the marking seen in the accompaniment in measure 56?", range: [56, 59] },
-    { text: "How slowly should the Larghetto in measure 74 be taken?", range: [74, 79] },
-    { text: "This song is too high for me; may I adjust it? May I arrange it?", range: null },
+    { text: "If kkotbaram (\"flower breeze\") is often sung staccato in recordings but has no such marking in the score, what should guide the performance?", range: [11, 12] },
+    { text: "Why does the meter change, and how does the mood of the piece change?", range: [39, 49] },
+    { text: "How slowly should Larghetto be taken?", range: [74, 79] },
+    { text: "If this song is too high, may I adjust or arrange it?", range: null },
+    { text: "What should I do if the first note does not come out well when a phrase begins on a high note?", range: [19, 21] },
   ],
 };
 
