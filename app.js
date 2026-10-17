@@ -549,7 +549,7 @@ function makeTag(text, cls) {
 
 const WEB_COACHING_LABEL = "Web / lesson video (not expert-curated)";
 const SCORE_CONTEXT_NOTICE =
-  "Answered from the score's lyrics only — no expert annotation covers these bars";
+  "Answered from the score's lyrics only — no expert annotation covers these measures";
 
 function makeLink(url, text) {
   const link = document.createElement("a");
@@ -617,7 +617,7 @@ function renderScoreContext(scoreContext) {
   const head = document.createElement("div");
   head.className = "lyrics-head";
   const title = document.createElement("strong");
-  title.textContent = "Lyrics in the selected bars";
+  title.textContent = "Lyrics in the selected measures";
   head.appendChild(title);
   const note = document.createElement("span");
   note.className = "lyrics-note";
@@ -682,7 +682,7 @@ function renderScoreContext(scoreContext) {
   if (scoreContext.truncated) {
     const more = document.createElement("div");
     more.className = "lyrics-note";
-    more.textContent = "Only the first bars of the selection are shown.";
+    more.textContent = "Only the first measures of the selection are shown.";
     box.appendChild(more);
   }
   return box;
@@ -1055,7 +1055,7 @@ function renderExampleQuestions() {
     const [lo, hi] = example.range || [];
     btn.textContent = !example.range
       ? example.text
-      : lo === hi ? `${example.text} (bar ${lo})` : `${example.text} (bars ${lo}–${hi})`;
+      : lo === hi ? `${example.text} (measure ${lo})` : `${example.text} (measures ${lo}–${hi})`;
     btn.addEventListener("click", () => applyExampleQuestion(example));
     el.exampleQuestions.appendChild(btn);
   }
