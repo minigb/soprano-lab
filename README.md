@@ -21,6 +21,37 @@ translation and are shown in Korean, as in the live app.
 Paper: “Soprano Lab: Measure-Aware Question Answering over Expert
 Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).
 
+## Project map
+
+Soprano Lab is spread over several repositories. Everything the final system
+(the ISMIR 2026 version) uses is on each repository's `main` branch.
+
+| Repository | Visibility | Role |
+| --- | --- | --- |
+| [soprano-qa-dataset](https://github.com/minigb/soprano-qa-dataset) | private | Expert annotations and curated knowledge units, the English translation (`english/`), web evidence (`database/`, `web_coaching/`), scores, audio, alignments and per-measure lyrics |
+| [soprano-qa-rag-system](https://github.com/minigb/soprano-qa-rag-system) | public | Measure-aware retrieval and answer generation (hybrid BM25 + Qwen3-Embedding, Qwen3-14B) |
+| [soprano-qa-demo](https://github.com/minigb/soprano-qa-demo) | public | Live web demo: score, audio, measure selection, answers |
+| soprano-lab (this repository) | public | Static snapshot of the demo with precomputed answers |
+| ISMIR26-LBD-Soprano-QA | private | Paper (synced with Overleaf) |
+| soprano-lab-camera-ready | private | Poster, thumbnail and video for the camera-ready, with their build scripts |
+
+Data flows dataset → RAG system → demo → this snapshot. The code repositories
+expect to sit side by side:
+
+```text
+workspace/
+├── soprano-qa-dataset/
+├── soprano-qa-rag-system/
+└── soprano-qa-demo/
+```
+
+Other layouts work through environment variables: `SOPRANO_QA_PIPELINE_ROOT`
+(RAG system), `SOPRANO_QA_DATASET_ROOT` (dataset for the demo's media, scores
+and English translations) and `SOPRANO_QA_RAG_DATASET_ROOT` (dataset for the
+RAG corpus). Set both dataset variables when moving the dataset; the RAG
+service ignores `SOPRANO_QA_DATASET_ROOT`. Setup and the shared `soprano-qa`
+Conda environment are described in the RAG system's README.
+
 ## Layout
 
 All URLs are relative, so the site works under `/soprano-lab/` or any other
