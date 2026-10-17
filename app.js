@@ -621,7 +621,7 @@ function renderScoreContext(scoreContext) {
   head.appendChild(title);
   const note = document.createElement("span");
   note.className = "lyrics-note";
-  note.textContent = "model-transcribed, unverified";
+  note.textContent = "LLM-assisted transcription";
   head.appendChild(note);
   box.appendChild(head);
 

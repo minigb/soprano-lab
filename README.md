@@ -12,7 +12,7 @@ sample question with its listed range (or the whole piece) loads the saved
 response and renders it exactly as the live app does. Any other question or
 range shows a notice instead.
 
-Lyrics shown beside answers are model-transcribed and unverified. Expert
+Lyrics shown beside answers are LLM-assisted transcriptions of the scores. Expert
 evidence is shown in English translation, with the Korean original available;
 three expert units in the saved answers (`in-flowery-clouds-ku-008`,
 `la-capinera-ku-018`, `una-voce-poco-fa-ku-036`) have no up-to-date English
