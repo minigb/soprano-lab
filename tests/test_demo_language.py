@@ -146,10 +146,10 @@ class LanguageEndpointTests(unittest.TestCase):
 class StaticUiLabelTests(unittest.TestCase):
     def test_ui_labels_score_context_and_web_coaching(self) -> None:
         script = (server.STATIC_ROOT / "app.js").read_text(encoding="utf-8")
-        self.assertIn("Lyrics in the selected bars", script)
-        self.assertIn("model-transcribed, unverified", script)
+        self.assertIn("Lyrics in the selected measures", script)
+        self.assertIn("LLM-assisted transcription", script)
         self.assertIn(
-            "Answered from the score's lyrics only — no expert annotation covers these bars",
+            "Answered from the score's lyrics only — no expert annotation covers these measures",
             script,
         )
         self.assertIn("Web / lesson video (not expert-curated)", script)
