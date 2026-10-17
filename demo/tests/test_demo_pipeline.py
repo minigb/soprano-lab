@@ -38,12 +38,12 @@ class DemoPipelineTests(unittest.TestCase):
     def test_adapter_loads_pipeline_from_sibling_repository(self) -> None:
         self.assertEqual(
             qa_adapter.PIPELINE_ROOT,
-            Path(__file__).resolve().parents[2] / "soprano-qa-rag-system",
+            Path(__file__).resolve().parents[2] / "rag",
         )
         self.assertTrue(Path(qa.__file__).is_relative_to(qa_adapter.PIPELINE_ROOT))
 
     def test_adapter_loads_media_from_sibling_dataset_repository(self) -> None:
-        expected_dataset = Path(__file__).resolve().parents[2] / "soprano-qa-dataset"
+        expected_dataset = Path(__file__).resolve().parents[3] / "soprano-qa-dataset"
         self.assertEqual(dataset.DATASET_ROOT, expected_dataset)
         self.assertEqual(
             dataset.SCORE_ASSET_ROOT,
@@ -54,7 +54,7 @@ class DemoPipelineTests(unittest.TestCase):
         self,
     ) -> None:
         expected_dataset = (
-            Path(__file__).resolve().parents[2] / "soprano-qa-dataset"
+            Path(__file__).resolve().parents[3] / "soprano-qa-dataset"
         ).resolve()
         with mock.patch.dict(os.environ, {}, clear=True):
             settings = load_settings(use_legacy_dataset_env=False)

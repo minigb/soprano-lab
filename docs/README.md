@@ -6,7 +6,7 @@ A static copy of the Soprano Lab demo, meant to be served at
 synchronized audio, and measure-range selection, and it answers the 25 sample
 questions with answers precomputed by the full system.
 
-The full demo (`soprano-qa-demo`) sends questions to a measure-aware RAG
+The full demo (`../demo/`) sends questions to a measure-aware RAG
 pipeline and a local Qwen3-14B model. This snapshot runs no model: asking a
 sample question with its listed range (or the whole piece) loads the saved
 response and renders it exactly as the live app does. Any other question or
@@ -21,36 +21,9 @@ translation and are shown in Korean, as in the live app.
 Paper: “Soprano Lab: Measure-Aware Question Answering over Expert
 Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).
 
-## Project map
-
-Soprano Lab is spread over several repositories. Everything the final system
-(the ISMIR 2026 version) uses is on each repository's `main` branch.
-
-| Repository | Visibility | Role |
-| --- | --- | --- |
-| [soprano-qa-dataset](https://github.com/minigb/soprano-qa-dataset) | private | Expert annotations and curated knowledge units, the English translation (`english/`), web evidence (`database/`, `web_coaching/`), scores, audio, alignments and per-measure lyrics |
-| [soprano-qa-rag-system](https://github.com/minigb/soprano-qa-rag-system) | public | Measure-aware retrieval and answer generation (hybrid BM25 + Qwen3-Embedding, Qwen3-14B) |
-| [soprano-qa-demo](https://github.com/minigb/soprano-qa-demo) | public | Live web demo: score, audio, measure selection, answers |
-| soprano-lab (this repository) | public | Static snapshot of the demo with precomputed answers |
-| ISMIR26-LBD-Soprano-QA | private | Paper (synced with Overleaf) |
-| soprano-lab-camera-ready | private | Poster, thumbnail and video for the camera-ready, with their build scripts |
-
-Data flows dataset → RAG system → demo → this snapshot. The code repositories
-expect to sit side by side:
-
-```text
-workspace/
-├── soprano-qa-dataset/
-├── soprano-qa-rag-system/
-└── soprano-qa-demo/
-```
-
-Other layouts work through environment variables: `SOPRANO_QA_PIPELINE_ROOT`
-(RAG system), `SOPRANO_QA_DATASET_ROOT` (dataset for the demo's media, scores
-and English translations) and `SOPRANO_QA_RAG_DATASET_ROOT` (dataset for the
-RAG corpus). Set both dataset variables when moving the dataset; the RAG
-service ignores `SOPRANO_QA_DATASET_ROOT`. Setup and the shared `soprano-qa`
-Conda environment are described in the RAG system's README.
+This directory is published by GitHub Pages at
+<https://minigb.github.io/soprano-lab/>. The repository's top-level README
+describes the whole project.
 
 ## Layout
 
@@ -58,7 +31,7 @@ All URLs are relative, so the site works under `/soprano-lab/` or any other
 path prefix.
 
 ```text
-index.html, app.js, styles.css     frontend (copied from soprano-qa-demo/static)
+index.html, app.js, styles.css     frontend (copied from demo/static)
 api/pieces.json                    GET /api/pieces
 api/pieces/<id>/score.json         GET /api/pieces/<id>/score
 api/pieces/<id>/alignment.json     GET /api/pieces/<id>/alignment
@@ -81,7 +54,7 @@ Start the live demo server with the settings used for the snapshot (it needs
 the `soprano-qa` Conda environment for llama-cpp and a GPU for Qwen3-14B):
 
 ```bash
-cd ~/soprano-qa-demo
+cd demo   # from the repository root
 SOPRANO_QA_SETTINGS=/path/to/settings.json \
   ~/miniconda3/envs/soprano-qa/bin/python server.py --host 127.0.0.1 --port 8792
 ```
@@ -100,12 +73,12 @@ another run's answers.
 
 ## Previewing locally
 
-Serve the parent directory so the `/soprano-lab/` prefix is exercised:
+Serve the repository root so a path prefix (`/docs/`) is exercised:
 
 ```bash
 cd ..
 python3 -m http.server 8793
-# open http://127.0.0.1:8793/soprano-lab/
+# open http://127.0.0.1:8793/docs/
 ```
 
 `python3 -m http.server` ignores HTTP Range requests, so in this preview the

@@ -18,12 +18,12 @@ def _external_root(env_name: str, default: Path) -> Path:
 
 PIPELINE_ROOT = _external_root(
     "SOPRANO_QA_PIPELINE_ROOT",
-    PROJECT_ROOT.parent / "soprano-qa-rag-system",
+    PROJECT_ROOT.parent / "rag",
 )
 if not (PIPELINE_ROOT / "soprano_qa" / "__init__.py").is_file():
     raise RuntimeError(
         "Soprano QA pipeline repository not found at "
-        f"{PIPELINE_ROOT}. Clone it beside this demo or set "
+        f"{PIPELINE_ROOT}. It should be rag/ beside this demo; otherwise set "
         "SOPRANO_QA_PIPELINE_ROOT."
     )
 

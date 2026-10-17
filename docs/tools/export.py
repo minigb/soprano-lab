@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regenerate the static Soprano Lab snapshot from a running demo server.
 
-The script talks to a running ``soprano-qa-demo`` server (``server.py``) and
+The script talks to a running demo server (``demo/server.py``) and
 writes, relative to the site root (the parent of this ``tools/`` directory):
 
 * ``api/pieces.json``, ``api/pieces/<id>/score.json`` and

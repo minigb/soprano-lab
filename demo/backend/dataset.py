@@ -26,7 +26,7 @@ def _external_root(env_name: str, default: Path) -> Path:
 
 DATASET_ROOT = _external_root(
     "SOPRANO_QA_DATASET_ROOT",
-    PROJECT_ROOT.parent / "soprano-qa-dataset",
+    PROJECT_ROOT.parent.parent / "soprano-qa-dataset",
 )
 SCORE_ASSET_ROOT = _external_root(
     "SOPRANO_QA_SCORE_ASSET_ROOT",

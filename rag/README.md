@@ -7,8 +7,9 @@ natural singer-facing Korean answer. Retrieval confidence changes which
 evidence is supplied, but never switches to a verbatim, extractive, ID-only,
 or internal-knowledge answer path.
 
-This repository is the RAG/LLM layer. It reads reviewed expert content from the
-sibling dataset repository and is consumed by the sibling demo application.
+This directory (`rag/` in the soprano-lab repository) is the RAG/LLM layer.
+It reads reviewed expert content from the dataset repository, cloned beside
+soprano-lab, and is consumed by the demo in `../demo/`.
 
 It is a Python library with a CLI, not a deployable service: HTTP transport,
 process management, and authentication are the caller's responsibility.
@@ -17,7 +18,7 @@ be on disk before a grounded request can be served.
 
 ## Setup
 
-### 1. Clone the repositories as siblings
+### 1. Clone the dataset beside soprano-lab
 
 Directory names matter: the default paths in `config/settings.json` resolve
 against this layout.
@@ -26,24 +27,24 @@ against this layout.
 mkdir soprano-qa-workspace
 cd soprano-qa-workspace
 git clone https://github.com/minigb/soprano-qa-dataset.git
-git clone https://github.com/minigb/soprano-qa-rag-system.git
-git clone https://github.com/minigb/soprano-qa-demo.git
+git clone https://github.com/minigb/soprano-lab.git
 ```
 
 ```text
 soprano-qa-workspace/
 ├── soprano-qa-dataset/
-├── soprano-qa-rag-system/
-└── soprano-qa-demo/
+└── soprano-lab/
+    ├── rag/      this RAG system
+    ├── demo/     the live web demo
+    └── docs/     the static snapshot (GitHub Pages)
 ```
 
-The dataset repository is required. The demo repository is optional unless you
-are running the web application.
+The dataset repository is required.
 
 ### 2. Create the shared Conda environment
 
 Install Conda (Miniconda or Miniforge) and initialize it for your shell. All
-three repositories share one `soprano-qa` environment. Run from
+code here and the dataset share one `soprano-qa` environment. Run from
 `soprano-qa-workspace/`:
 
 ```bash
@@ -51,7 +52,7 @@ cd soprano-qa-dataset
 conda env create -f environment.yml   # or: conda env update -n soprano-qa -f environment.yml
 conda activate soprano-qa
 
-cd ../soprano-qa-rag-system
+cd ../soprano-lab/rag
 python -m pip install -r requirements.txt
 ```
 
@@ -321,6 +322,5 @@ pipeline version.
 - [soprano-qa-dataset](https://github.com/minigb/soprano-qa-dataset) — scores,
   audio, expert annotations, and the curated knowledge units this system
   retrieves. Required.
-- [soprano-qa-demo](https://github.com/minigb/soprano-qa-demo) — the
-  presentation web application. See its
-  [demo setup](https://github.com/minigb/soprano-qa-demo#setup).
+- [`../demo/`](../demo/) — the presentation web application. See its
+  [README](../demo/README.md).

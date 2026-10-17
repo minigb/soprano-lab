@@ -60,7 +60,7 @@ from soprano_qa.answer import (  # noqa: E402
 )
 
 DEFAULT_DATASET_ROOT = (
-    PROJECT_ROOT.parent / "soprano-qa-dataset"
+    PROJECT_ROOT.parent.parent / "soprano-qa-dataset"
 )
 DEFAULT_OUTPUT = PROJECT_ROOT / "evaluation" / "synthesized_question_results.json"
 ARTIFACT_TYPE = "soprano_qa_synthesized_hybrid_rag_llm_evaluation"

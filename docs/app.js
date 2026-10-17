@@ -987,7 +987,7 @@ el.askBtn.addEventListener("click", askQuestion);
 
 // Example questions (English; Korean questions work the same way). Range
 // examples switch the scope to the selected measures when a range exists.
-// Example questions follow sample_questions.md in soprano-qa-rag-system: five
+// Example questions follow rag/sample_questions.md: five
 // per piece with their measure ranges, in the English wording of the parallel
 // English dataset (two without a counterpart there are translated directly).
 const EXAMPLE_QUESTIONS = {
