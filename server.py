@@ -183,6 +183,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             self._send_error_json(404, "not found")
+        except qa.BACKEND_UNAVAILABLE_ERRORS as exc:
+            self._send_error_json(503, str(exc))
         except Exception:
             traceback.print_exc()
             self._send_error_json(500, "internal error")
@@ -206,6 +208,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._handle_ask()
                 return
             self._send_error_json(404, "not found")
+        except qa.BACKEND_UNAVAILABLE_ERRORS as exc:
+            self._send_error_json(503, str(exc))
         except Exception:
             traceback.print_exc()
             self._send_error_json(500, "internal error")
@@ -273,6 +277,18 @@ class Handler(BaseHTTPRequestHandler):
                 return
             range_tuple = (start, end)
 
+        # Client-side scope errors are checked here so that a ValueError
+        # raised later inside the pipeline (e.g. an exhausted model context)
+        # is reported as a server error rather than a bad request.
+        try:
+            qa.validate_question_measure_contract(
+                question,
+                [list(range_tuple)] if range_tuple else [],
+            )
+        except ValueError as exc:
+            self._send_error_json(400, str(exc))
+            return
+
         ask_kwargs = {
             "piece_id": piece_id,
             "question": question,
@@ -284,8 +300,10 @@ class Handler(BaseHTTPRequestHandler):
             ask_kwargs["language"] = language
         try:
             result = qa.ask(**ask_kwargs)
-        except ValueError as exc:
-            self._send_error_json(400, str(exc))
+        except qa.GeneratedAnswerRejected as exc:
+            self._send_error_json(
+                502, f"the local model returned no usable grounded answer: {exc}"
+            )
             return
         if isinstance(result, dict):
             result = dict(result)

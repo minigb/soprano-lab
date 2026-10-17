@@ -4,10 +4,15 @@ from __future__ import annotations
 import json
 import threading
 import unittest
+from unittest import mock
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+import server
 from server import Handler, ThreadingHTTPServer
+from soprano_qa.answer import GeneratedAnswerRejected
+from soprano_qa.dense import DenseRetrievalUnavailable
+from soprano_qa.llm import GenerationBackendUnavailable
 
 MOOD_QUERY = "28마디부터 분위기 변화를 어떻게 표현해야 하나요?"
 MOOD_UNIT_ID = "die-forelle-ku-010"
@@ -80,9 +85,15 @@ class DemoServerTests(unittest.TestCase):
             ).encode("utf-8")
         )
 
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 200, msg=result)
         self.assertEqual(result["pipeline"], "soprano_qa")
         self.assertEqual(result["evidence"][0]["id"], MOOD_UNIT_ID)
+        self.assertEqual(result["language"], "ko")
+        self.assertTrue(result["language_supported"])
+        self.assertEqual(
+            [measure["measure"] for measure in result["score_context"]["measures"]],
+            [28],
+        )
 
     def test_http_endpoint_retrieves_reviewed_second_beat_accent_unit(self) -> None:
         status, result = self.post_raw(
@@ -98,9 +109,68 @@ class DemoServerTests(unittest.TestCase):
             ).encode("utf-8")
         )
 
-        self.assertEqual(status, 200)
+        self.assertEqual(status, 200, msg=result)
         self.assertEqual(result["evidence"][0]["id"], SECOND_BEAT_ACCENT_UNIT_ID)
         self.assertIn("송어가 뛰어노는 모습", result["answer"])
+
+    def ask_body(self, **extra) -> bytes:
+        return json.dumps(
+            {
+                "piece_id": "die-forelle",
+                "question": MOOD_QUERY,
+                "measure_range": [28, 30],
+                "generate": True,
+                **extra,
+            }
+        ).encode("utf-8")
+
+    def test_unavailable_backends_are_service_unavailable(self) -> None:
+        for failure in (
+            GenerationBackendUnavailable("generation checkpoint missing"),
+            DenseRetrievalUnavailable("embedding backend missing"),
+        ):
+            with self.subTest(failure=type(failure).__name__):
+                with mock.patch.object(server.qa, "ask", side_effect=failure):
+                    status, result = self.post_raw(self.ask_body())
+                self.assertEqual(status, 503)
+                self.assertEqual(result["error"], str(failure))
+
+    def test_corpus_stats_backend_unavailable_is_service_unavailable(self) -> None:
+        failure = DenseRetrievalUnavailable("embedding backend missing")
+        with mock.patch.object(server.qa, "corpus_stats", side_effect=failure):
+            try:
+                with urlopen(self.base_url + "/api/corpus_stats", timeout=10) as response:
+                    status, result = response.status, json.load(response)
+            except HTTPError as exc:
+                status, result = exc.code, json.load(exc)
+        self.assertEqual(status, 503)
+        self.assertEqual(result["error"], str(failure))
+
+    def test_rejected_generated_draft_is_bad_gateway(self) -> None:
+        failure = GeneratedAnswerRejected("Grounded model returned no usable answer")
+        with mock.patch.object(server.qa, "ask", side_effect=failure):
+            status, result = self.post_raw(self.ask_body())
+        self.assertEqual(status, 502)
+        self.assertIn(str(failure), result["error"])
+
+    def test_question_measures_outside_selection_are_client_errors(self) -> None:
+        with mock.patch.object(server.qa, "ask") as ask:
+            status, result = self.post_raw(
+                self.ask_body(question="40마디는 어떻게 부르나요?")
+            )
+        self.assertEqual(status, 400)
+        self.assertIn("outside", result["error"])
+        ask.assert_not_called()
+
+    def test_pipeline_value_errors_are_not_reported_as_client_errors(self) -> None:
+        failure = ValueError("requested tokens exceed the context window")
+        with (
+            mock.patch.object(server.qa, "ask", side_effect=failure),
+            mock.patch.object(server.traceback, "print_exc"),
+        ):
+            status, result = self.post_raw(self.ask_body())
+        self.assertEqual(status, 500)
+        self.assertEqual(result["error"], "internal error")
 
 
 if __name__ == "__main__":
