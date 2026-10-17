@@ -9,7 +9,8 @@ writes, relative to the site root (the parent of this ``tools/`` directory):
   endpoints;
 * ``media/audio/<id>.mp3`` and ``media/score/<id>/<page>.png``: the media
   files the frontend loads;
-* ``answers/<piece>/<n>.json``: the exact ``POST /api/ask`` responses for the
+* ``answers/<piece>/<n>.json``: the ``POST /api/ask`` responses (absolute local
+  file paths reduced to file names) for the
   sample questions listed in ``EXAMPLE_QUESTIONS`` in ``app.js`` (``n`` is the
   1-based chip position), asked with ``language: "en"`` and the chip's measure
   range (or the whole piece), plus ``answers/index.json``.
@@ -77,6 +78,21 @@ def sample_questions(app_js: Path) -> dict[str, list[dict]]:
     return questions
 
 
+def strip_local_paths(value):
+    """Reduce absolute local file paths (e.g. model files) to their file names.
+
+    The responses are otherwise saved exactly; this only keeps the author's
+    directory layout out of the public site.
+    """
+    if isinstance(value, dict):
+        return {key: strip_local_paths(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [strip_local_paths(item) for item in value]
+    if isinstance(value, str) and value.startswith("/") and "/" in value[1:]:
+        return Path(value).name
+    return value
+
+
 def export_data(server: str) -> list[str]:
     print("Data and media:")
     pieces_body = fetch(server, "/api/pieces")
@@ -115,9 +131,9 @@ def export_answers(server: str) -> None:
                 data=json.dumps(request).encode("utf-8"),
                 timeout=ASK_TIMEOUT_SECONDS,
             )
-            json.loads(body)  # fail rather than save a non-JSON body
+            response = strip_local_paths(json.loads(body))  # fails on a non-JSON body
             rel_path = f"answers/{piece_id}/{n}.json"
-            write(rel_path, body)
+            write(rel_path, (json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8"))
             index.append(
                 {
                     "piece_id": piece_id,
