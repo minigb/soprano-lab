@@ -777,8 +777,21 @@ function renderQAItem(question, result) {
       (ev.in_requested_scope ? "" : " (background only)");
     evEl.appendChild(metaLine);
     const textEl = document.createElement("div");
-    textEl.textContent = ev.text;
+    textEl.textContent = ev.text_en || ev.text;
     evEl.appendChild(textEl);
+    if (ev.text_en) {
+      // English translation of the Korean expert unit; keep the original at hand.
+      const original = document.createElement("details");
+      original.className = "evidence-original";
+      const originalSummary = document.createElement("summary");
+      originalSummary.textContent = "English translation · show the Korean original";
+      original.appendChild(originalSummary);
+      const originalText = document.createElement("div");
+      originalText.lang = "ko";
+      originalText.textContent = ev.text;
+      original.appendChild(originalText);
+      evEl.appendChild(original);
+    }
     if (ev.sources && ev.sources.length) {
       const sourceLine = document.createElement("div");
       sourceLine.className = "evidence-sources";

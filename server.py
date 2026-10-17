@@ -24,6 +24,7 @@ from urllib.parse import unquote, urlsplit
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from backend import dataset, qa  # noqa: E402
+from backend.translations import add_english_text  # noqa: E402
 
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
 
@@ -296,6 +297,8 @@ class Handler(BaseHTTPRequestHandler):
             )
             result["requested_language"] = language
             result["language_supported"] = language_supported
+            if result["language"] == "en":
+                add_english_text(result)
         self._send_json(result)
 
 

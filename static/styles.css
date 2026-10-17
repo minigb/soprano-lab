@@ -609,3 +609,13 @@ html, body {
     max-height: 60vh;
   }
 }
+
+.evidence-original {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.evidence-original summary {
+  cursor: pointer;
+}
