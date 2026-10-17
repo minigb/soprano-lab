@@ -45,6 +45,18 @@ const el = {
   qaHistory: document.getElementById("qa-history"),
 };
 
+// play() returns a promise that rejects with AbortError when playback is
+// interrupted on purpose (pause, a new source on tab switch); only report
+// other failures.
+function playAudio() {
+  const started = el.audio.play();
+  if (started && started.catch) {
+    started.catch((err) => {
+      if (err.name !== "AbortError") console.error(err);
+    });
+  }
+}
+
 async function fetchJSON(url, opts) {
   const res = await fetch(url, opts);
   if (!res.ok) {
@@ -270,7 +282,7 @@ function openOccurrenceMenu(box, measureNumber, occurrences) {
       e.stopPropagation();
       state.selectionEndTime = null;
       el.audio.currentTime = occ.start_seconds;
-      el.audio.play();
+      playAudio();
       closeOccurrenceMenu();
     });
     menu.appendChild(btn);
@@ -352,7 +364,7 @@ function seekToMeasure(measureNumber) {
   if (t == null) return;
   state.selectionEndTime = null;
   el.audio.currentTime = t;
-  el.audio.play();
+  playAudio();
 }
 
 // Find the [start, end) audio window covering an inclusive measure range,
@@ -386,7 +398,7 @@ function playSelection() {
   if (!audioWindow) return;
   state.selectionEndTime = audioWindow.endTime;
   el.audio.currentTime = audioWindow.startTime;
-  el.audio.play();
+  playAudio();
 }
 
 function updatePlaySelectionButton() {
