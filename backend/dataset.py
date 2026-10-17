@@ -58,6 +58,11 @@ FORCE_SYNC_PIECE_IDS = frozenset(
 )
 
 
+# English display titles for the English-language demo UI; the dataset keeps
+# the original titles.
+DISPLAY_TITLES = {"in-flowery-clouds": "In Flowery Clouds"}
+
+
 def alignment_path(piece_id: str) -> Path:
     return DATASET_ROOT / "alignment" / "result" / f"{piece_id}.json"
 
@@ -133,7 +138,7 @@ def piece_status(piece_id: str) -> dict:
     if alignment is None:
         reason = "Audio-score alignment has not been created for this piece yet."
     else:
-        title = alignment["piece"]["title"]
+        title = DISPLAY_TITLES.get(piece_id, alignment["piece"]["title"])
         composer = alignment["piece"].get("composer")
         duration_seconds = alignment["assets"]["audio"]["duration_seconds"]
         complete = bool(alignment.get("complete"))

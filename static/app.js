@@ -137,6 +137,7 @@ async function selectPiece(pieceId) {
   }
 
   renderScorePages();
+  renderExampleQuestions();
   el.rangeFrom.max = state.currentPiece.max_measure_number || "";
   el.rangeTo.max = state.currentPiece.max_measure_number || "";
   updateRangeInputsFromState();
@@ -935,28 +936,71 @@ el.askBtn.addEventListener("click", askQuestion);
 
 // Example questions (English; Korean questions work the same way). Range
 // examples switch the scope to the selected measures when a range exists.
-const EXAMPLE_QUESTIONS = [
-  { text: "How should I express the change of mood in these bars?", scope: "range" },
-  { text: "How should I pronounce the lyrics in this passage?", scope: "range" },
-  { text: "What is this piece about, and what character should I convey?", scope: "whole" },
-  { text: "Where should I breathe in this phrase?", scope: "range" },
-];
+// Example questions are the experts' own questions from the annotations
+// (English translation, verbatim), with the bars their knowledge unit was
+// confirmed for. Whole-piece questions have no range.
+const EXAMPLE_QUESTIONS = {
+  "die-forelle": [
+    { text: "How should I express the change in mood beginning at measure 28?", range: [28, 40] },
+    { text: "What does the accent on the second beat in the piano part mean?", range: [41, 54] },
+    { text: "Why is this piece not easy to sing even though it is not high?", range: null },
+    { text: "Is this song strophic?", range: null },
+  ],
+  "una-voce-poco-fa": [
+    { text: "When linking dolce amorosa at measure 62, when and how should the vowel change?", range: [62, 62] },
+    { text: "Why do the accent marks at measures 68 and 69 appear on beats other than the first beat?", range: [68, 69] },
+    { text: "Is this a mezzo-soprano piece or a soprano piece?", range: null },
+    { text: "What skills are needed to perform coloratura well?", range: null },
+  ],
+  "la-capinera": [
+    { text: "How should I sing the leggiero in measure 28?", range: [28, 35] },
+    { text: "How long should I hold the fermata in measure 68?", range: [67, 69] },
+    { text: "How can I sing the double consonant in linguaggio better in measure 84?", range: [83, 85] },
+    { text: "How should I sing the trill in measure 137?", range: [137, 137] },
+  ],
+  "nella-fantasia": [
+    { text: "What dynamic should I use for the opening note?", range: [7, 8] },
+    { text: "How long should the last note at measure 34 be held?", range: [34, 35] },
+    { text: "Who sings this piece?", range: null },
+    { text: "What kind of vocal production should I use?", range: null },
+  ],
+  "in-flowery-clouds": [
+    { text: "Why does the meter change in measure 47? How does the mood of the piece change?", range: [47, 49] },
+    { text: "What is the marking seen in the accompaniment in measure 56?", range: [56, 59] },
+    { text: "How slowly should the Larghetto in measure 74 be taken?", range: [74, 79] },
+    { text: "This song is too high for me; may I adjust it? May I arrange it?", range: null },
+  ],
+};
+
+function applyExampleQuestion(example) {
+  el.question.value = example.text;
+  if (example.range && state.currentPiece && state.currentPiece.measures_known) {
+    state.range = example.range.slice();
+    state.rangeAnchor = null;
+    updateRangeInputsFromState();
+    updateRangeHighlight();
+    const firstBox = state.measureBoxes.get(example.range[0]);
+    if (firstBox) firstBox.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  const scope = example.range && state.range ? "range" : "whole";
+  const radio = document.querySelector(`input[name="scope"][value="${scope}"]`);
+  if (radio) radio.checked = true;
+  el.question.focus();
+}
 
 function renderExampleQuestions() {
   if (!el.exampleQuestions) return;
   el.exampleQuestions.innerHTML = "";
-  for (const example of EXAMPLE_QUESTIONS) {
+  const examples = EXAMPLE_QUESTIONS[state.currentPieceId] || [];
+  for (const example of examples) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "example-chip";
-    btn.textContent = example.text;
-    btn.addEventListener("click", () => {
-      el.question.value = example.text;
-      const scope = example.scope === "range" && state.range ? "range" : "whole";
-      const radio = document.querySelector(`input[name="scope"][value="${scope}"]`);
-      if (radio) radio.checked = true;
-      el.question.focus();
-    });
+    const [lo, hi] = example.range || [];
+    btn.textContent = !example.range
+      ? example.text
+      : lo === hi ? `${example.text} (bar ${lo})` : `${example.text} (bars ${lo}–${hi})`;
+    btn.addEventListener("click", () => applyExampleQuestion(example));
     el.exampleQuestions.appendChild(btn);
   }
 }
