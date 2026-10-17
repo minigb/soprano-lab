@@ -1,7 +1,8 @@
 """English display text for expert knowledge units.
 
-The parallel English dataset (soprano-qa-dataset-english/english/) translates
-each knowledge unit and keeps the Korean review files it was translated from.
+The parallel English dataset (english/ in the dataset repository) translates
+each knowledge unit and keeps the Korean review files it was translated from
+under english/source_snapshot/.
 A translation is offered only when that Korean text still equals the current
 Korean unit text, so an outdated translation is never shown; otherwise the
 Korean original is displayed.
@@ -12,11 +13,11 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-from backend.dataset import DATASET_ROOT, PROJECT_ROOT, _external_root
+from backend.dataset import DATASET_ROOT, _external_root
 
 ENGLISH_DATASET_ROOT = _external_root(
     "SOPRANO_QA_ENGLISH_DATASET_ROOT",
-    PROJECT_ROOT.parent / "soprano-qa-dataset-english",
+    DATASET_ROOT / "english",
 )
 
 
@@ -32,8 +33,8 @@ def _units(path: Path) -> dict:
 def english_unit_texts() -> dict:
     """Map knowledge_unit_id -> English answer, for up-to-date translations only."""
     current_dir = DATASET_ROOT / "expert_curation" / "review"
-    translated_from_dir = ENGLISH_DATASET_ROOT / "expert_curation" / "review"
-    english_dir = ENGLISH_DATASET_ROOT / "english" / "expert_curation" / "review"
+    translated_from_dir = ENGLISH_DATASET_ROOT / "source_snapshot" / "expert_curation" / "review"
+    english_dir = ENGLISH_DATASET_ROOT / "expert_curation" / "review"
     texts = {}
     for current_path in sorted(current_dir.glob("*.json")):
         current = _units(current_path)

@@ -24,8 +24,8 @@ class EnglishUnitTextTests(unittest.TestCase):
             dataset, english = root / "ko", root / "en"
             review = "expert_curation/review/piece.json"
             _write(dataset / review, {"piece-ku-001": "현재", "piece-ku-002": "바뀐 문장", "piece-ku-003": "번역 없음"})
-            _write(english / review, {"piece-ku-001": "현재", "piece-ku-002": "예전 문장", "piece-ku-003": "번역 없음"})
-            _write(english / "english" / review, {"piece-ku-001": "Current", "piece-ku-002": "Old sentence"})
+            _write(english / "source_snapshot" / review, {"piece-ku-001": "현재", "piece-ku-002": "예전 문장", "piece-ku-003": "번역 없음"})
+            _write(english / review, {"piece-ku-001": "Current", "piece-ku-002": "Old sentence"})
             with mock.patch.object(translations, "DATASET_ROOT", dataset), \
                  mock.patch.object(translations, "ENGLISH_DATASET_ROOT", english):
                 texts = translations.english_unit_texts()
