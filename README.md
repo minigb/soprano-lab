@@ -17,8 +17,12 @@ Static demo: <https://minigb.github.io/soprano-lab/>.
 | [`demo/`](demo/) | Live web demo: score, synchronized audio, measure selection, answers with cited evidence |
 | [`docs/`](docs/) | Static snapshot of the demo with precomputed answers, published by GitHub Pages |
 
-`rag/` and `demo/` were separate repositories (`soprano-qa-rag-system` and
-`soprano-qa-demo`, now archived); their full histories are kept here.
+`rag/` and `demo/` are also their own repositories,
+[soprano-qa-rag-system](https://github.com/minigb/soprano-qa-rag-system) and
+[soprano-qa-demo](https://github.com/minigb/soprano-qa-demo), where work on
+them happens first. Their full histories are kept here, and
+[`tools/upstream`](#syncing-with-the-upstream-repositories) merges new commits
+from them.
 
 ## Related repositories
 
@@ -59,4 +63,39 @@ cd rag && conda run --no-capture-output -n soprano-qa python -m unittest discove
 
 ```bash
 cd demo && conda run --no-capture-output -n soprano-qa python -m unittest discover -s tests -t .
+```
+
+## Syncing with the upstream repositories
+
+Commit and push to soprano-qa-rag-system or soprano-qa-demo as usual, then
+bring the new commits into this repository:
+
+```bash
+tools/upstream status
+```
+
+```bash
+tools/upstream pull
+```
+
+`status` lists the upstream commits not merged yet and what differs here from
+the last merged upstream state; `pull` merges them (`tools/upstream pull rag`
+for one directory). Each pull is a regular `git merge -Xsubtree=rag` (or
+`demo`). Because the upstream histories were merged in whole, git finds the
+last synced commit by itself and upstream commits keep their SHAs here, so
+`git log`, `blame` and `bisect` work across both repositories. Edits that
+exist only here (one more `../` in dataset paths, the README setup text) are
+kept through pulls, and `status` shows them so they stay small. A conflict
+means upstream changed the same lines: resolve it under that directory and run
+`git commit`.
+
+The tool adds `upstream-rag` and `upstream-demo` remotes on first use. To merge
+commits that are not pushed yet, point one at a local checkout, for example
+`git remote set-url upstream-rag ../soprano-qa-rag-system`.
+
+To send a change made here back upstream, export it relative to its directory
+and apply it in a checkout of that repository:
+
+```bash
+git format-patch -1 --relative=rag <commit> --stdout | git -C ../soprano-qa-rag-system am -3
 ```

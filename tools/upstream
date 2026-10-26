@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Merge new commits from the soprano-qa-rag-system and soprano-qa-demo
+# repositories into rag/ and demo/.
+#
+# Both directories were brought in with their full histories, so every
+# upstream commit up to that point is already an ancestor of soprano-lab. A
+# sync is therefore an ordinary three-way merge with -Xsubtree=<dir>: git finds
+# the last merged upstream commit on its own, upstream commits keep their
+# SHAs, and the changes that exist only here (the extra ../ in dataset paths,
+# the README wording) survive unless upstream rewrites the same lines.
+#
+# usage: tools/upstream status [dir...]   what is new upstream, what differs here
+#        tools/upstream pull [dir...]     merge new upstream commits
+#
+# dir is rag or demo; the default is both.
+set -euo pipefail
+
+# dir   repository                                          branch
+UPSTREAMS='
+rag     https://github.com/minigb/soprano-qa-rag-system.git   main
+demo    https://github.com/minigb/soprano-qa-demo.git         main
+'
+
+die() { echo "upstream: $*" >&2; exit 1; }
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Sets url, branch, name, remote and ref for one directory, adds the
+# upstream-<dir> remote on first use and fetches it. An existing remote keeps
+# its URL, so it can point at a local checkout to merge unpushed commits.
+load() {
+  local line
+  line=$(awk -v d="$1" '$1 == d' <<<"$UPSTREAMS")
+  [[ -n $line ]] || die "unknown directory '$1' (expected one of: $(awk 'NF {print $1}' <<<"$UPSTREAMS" | paste -sd' '))"
+  read -r _ url branch <<<"$line"
+  name=$(basename "$url" .git)
+  remote=upstream-$1
+  ref=$remote/$branch
+  if ! git remote get-url "$remote" >/dev/null 2>&1; then
+    git remote add --no-tags "$remote" "$url"
+  fi
+  git fetch --quiet "$remote" "$branch"
+}
+
+status() {
+  local dir=$1 base new
+  load "$dir"
+  base=$(git merge-base HEAD "$ref")
+  new=$(git rev-list --count "HEAD..$ref")
+  echo "$dir/ <- $name $branch ($(git remote get-url "$remote"))"
+  echo "  last merged: $(git log -1 --format='%h %s (%cs)' "$base")"
+  if ((new)); then
+    echo "  $new new upstream commit(s):"
+    git log --format='    %h %s (%an, %cs)' "HEAD..$ref"
+  else
+    echo "  up to date"
+  fi
+  echo "  differs here from the last merged upstream:"
+  git diff --stat=76 "$base" "HEAD:$dir" | sed 's/^/    /'
+}
+
+pull() {
+  local dir=$1 outside
+  load "$dir"
+  if git merge-base --is-ancestor "$ref" HEAD; then
+    echo "$dir/: up to date with $name $branch"
+    return
+  fi
+  if ! git merge --no-ff --log=200 -Xsubtree="$dir" \
+    -m "Merge $name@$(git rev-parse --short "$ref") into $dir/" "$ref"; then
+    cat >&2 <<EOF
+
+upstream: resolve the conflicts under $dir/ and run 'git commit' (or
+'git merge --abort' to give up), then run 'tools/upstream pull' again for
+the remaining directories.
+EOF
+    exit 1
+  fi
+  outside=$(git diff --name-only HEAD^1 HEAD -- . ":(exclude)$dir")
+  if [[ -n $outside ]]; then
+    git reset --quiet --hard HEAD^1
+    die "the merge changed files outside $dir/ and was undone:"$'\n'"$outside"
+  fi
+}
+
+cmd=${1:-}
+shift || true
+(($#)) || set -- $(awk 'NF {print $1}' <<<"$UPSTREAMS")
+case $cmd in
+  status)
+    for dir; do status "$dir"; done
+    ;;
+  pull)
+    ! git rev-parse -q --verify MERGE_HEAD >/dev/null \
+      || die "a merge is in progress; commit or abort it first"
+    git diff --quiet && git diff --cached --quiet \
+      || die "commit or stash your changes first"
+    for dir; do pull "$dir"; done
+    ;;
+  *)
+    sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p}' "$0" >&2
+    exit 2
+    ;;
+esac
