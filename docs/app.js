@@ -190,6 +190,10 @@ function renderScorePages() {
 
     const img = document.createElement("img");
     img.src = dataUrl(page.image_url);
+    // Reserve the page's height before the (multi-MB) image arrives, so the
+    // measure overlay is laid out correctly on a slow connection.
+    img.width = page.image_width;
+    img.height = page.image_height;
     img.alt = page.page_id;
     img.loading = "lazy";
     pageEl.appendChild(img);
@@ -948,7 +952,13 @@ async function askQuestion() {
   }
 
   // Static snapshot: only the sample questions have (precomputed) answers.
-  const saved = await findSavedAnswer(state.currentPieceId, question, measureRange);
+  let saved;
+  try {
+    saved = await findSavedAnswer(state.currentPieceId, question, measureRange);
+  } catch (err) {
+    el.askStatus.textContent = "Something went wrong: " + err.message;
+    return;
+  }
   if (!saved) {
     el.askStatus.textContent = ONLINE_ONLY_SAMPLES_NOTICE;
     return;
@@ -971,7 +981,13 @@ let savedAnswerIndex = null;
 
 async function findSavedAnswer(pieceId, question, measureRange) {
   if (!savedAnswerIndex) {
-    savedAnswerIndex = fetchJSON(dataUrl("answers/index.json")).then((data) => data.answers);
+    savedAnswerIndex = fetchJSON(dataUrl("answers/index.json"))
+      .then((data) => data.answers)
+      .catch((err) => {
+        // Let the next question retry instead of failing until a reload.
+        savedAnswerIndex = null;
+        throw err;
+      });
   }
   const answers = await savedAnswerIndex;
   const rangeKey = JSON.stringify(measureRange || null);

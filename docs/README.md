@@ -44,7 +44,8 @@ tools/export.py                    regenerates api/, media/ and answers/
 ```
 
 Changes from the live frontend are limited to `app.js` (a relative data base
-path, `.json` suffixes for API GETs, and answering from `answers/`),
+path, `.json` suffixes for API GETs, answering from `answers/`, and reserving
+each score image's size before it loads),
 relative asset links and a short note in `index.html`, and the note's style in
 `styles.css`.
 
