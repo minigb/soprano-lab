@@ -12,17 +12,11 @@ sample question with its listed range (or the whole piece) loads the saved
 response and renders it exactly as the live app does. Any other question or
 range shows a notice instead.
 
-The saved answers were last regenerated on 2026-10-27, with the RAG's
-prompt-injection guards and direct-feedback source priority. The guards
-withhold five of them (`die-forelle` 3 and 4, `una-voce-poco-fa` 1 and 4,
-`nella-fantasia` 3), which show the live app's "could not find grounded
-evidence" answer. No saved answer cites direct professional-soprano feedback.
-
 Lyrics shown beside answers are LLM-assisted transcriptions of the scores. Expert
 evidence is shown in English translation, with the Korean original available;
-two expert units in the saved answers (`in-flowery-clouds-ku-008`,
-`la-capinera-ku-018`) have no up-to-date English translation and are shown in
-Korean, as in the live app.
+three expert units in the saved answers (`in-flowery-clouds-ku-008`,
+`la-capinera-ku-018`, `una-voce-poco-fa-ku-036`) have no up-to-date English
+translation and are shown in Korean, as in the live app.
 
 Paper: “Soprano Lab: Measure-Aware Question Answering over Expert
 Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).
