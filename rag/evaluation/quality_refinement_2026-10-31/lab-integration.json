@@ -1,0 +1,16 @@
+{
+  "branch": "codex/refine-rag-quality",
+  "rag_commit": "79cbd7b",
+  "demo_commit": "7f396fc",
+  "integration_commit": "17a180d7c38b11e4c55c52eefcad0ae163d6bb20",
+  "candidate_f_source_hashes_match": true,
+  "demo_tests": 44,
+  "demo_test_log_sha256": "0db0b4b28b01a09c6aa0f1f29ad2b001cf64631c1846f992dc3d4005575d796e",
+  "frontend_node_syntax_checks": "passed",
+  "static_answers_changed": false,
+  "main_checkouts_unchanged": {
+    "rag": "29fe3e2db66dde5bb2604652c8f4f8daddb0de46",
+    "lab": "f3fed8558488eca23c5e213f8ad20d20e82c0e33"
+  },
+  "runtime_note": "Ignored local model files are hardlinks to existing checkpoints; no downloads or weight edits. Sibling dataset symlink supports the worktree layout. Existing live server was not restarted."
+}
