@@ -692,6 +692,16 @@ function renderScoreContext(scoreContext) {
   return box;
 }
 
+function answerWasWithheld(result) {
+  const reason = result.unavailable_reason || "";
+  return result.answer_basis === "no_corpus_evidence" && (
+    reason.startsWith("security_") ||
+    reason.startsWith("unsafe_") ||
+    ["answer_validation_failed", "forbidden_internal_metadata",
+      "prompt_injection_detected", "invalid_question", "question_too_long"].includes(reason)
+  );
+}
+
 function renderQAItem(question, result) {
   const item = document.createElement("div");
   item.className = "qa-item";
@@ -706,6 +716,7 @@ function renderQAItem(question, result) {
   const usesInternalKnowledge = result.answer_basis === "internal_knowledge";
   const generationUnavailable = result.answer_basis === "generation_unavailable";
   const noCorpusEvidence = result.answer_basis === "no_corpus_evidence";
+  const answerWithheld = answerWasWithheld(result);
   const scoreContextOnly = result.answer_basis === "score_context";
   let modeLabel = "Retrieval (extractive)";
   let modeClass = "mode-extractive";
@@ -719,7 +730,7 @@ function renderQAItem(question, result) {
     modeLabel = "Score lyrics only";
     modeClass = "mode-score";
   } else if (noCorpusEvidence) {
-    modeLabel = "No corpus match";
+    modeLabel = answerWithheld ? "Answer unavailable" : "No corpus match";
     modeClass = "mode-unavailable";
   } else if (result.generation_mode === "llm") {
     modeLabel = "LLM · corpus-grounded";
@@ -729,7 +740,9 @@ function renderQAItem(question, result) {
     modeLabel,
     modeClass
   );
-  if (result.generation_fallback_reason) {
+  if (answerWithheld) {
+    modeTag.title = "Could not produce a verified answer.";
+  } else if (result.generation_fallback_reason) {
     modeTag.title = result.generation_fallback_reason;
   }
   meta.appendChild(modeTag);

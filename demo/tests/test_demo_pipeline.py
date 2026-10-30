@@ -13,6 +13,7 @@ from pathlib import Path
 from backend import dataset, qa as qa_adapter
 from soprano_qa import llm as llm_module
 from soprano_qa.llm import GenerationBackendUnavailable
+from soprano_qa.security import SecurityViolation
 from soprano_qa.settings import load_settings
 
 qa = qa_adapter.SERVICE
@@ -36,14 +37,26 @@ class DemoPipelineTests(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def test_adapter_loads_pipeline_from_sibling_repository(self) -> None:
+        expected_pipeline = Path(os.environ.get(
+            "SOPRANO_QA_PIPELINE_ROOT",
+            Path(__file__).resolve().parents[2] / "rag",
+        )).expanduser()
+        if not expected_pipeline.is_absolute():
+            expected_pipeline = Path(__file__).resolve().parents[1] / expected_pipeline
         self.assertEqual(
             qa_adapter.PIPELINE_ROOT,
-            Path(__file__).resolve().parents[2] / "rag",
+            expected_pipeline.resolve(),
         )
         self.assertTrue(Path(qa.__file__).is_relative_to(qa_adapter.PIPELINE_ROOT))
 
     def test_adapter_loads_media_from_sibling_dataset_repository(self) -> None:
-        expected_dataset = Path(__file__).resolve().parents[3] / "soprano-qa-dataset"
+        expected_dataset = Path(os.environ.get(
+            "SOPRANO_QA_DATASET_ROOT",
+            Path(__file__).resolve().parents[3] / "soprano-qa-dataset",
+        )).expanduser()
+        if not expected_dataset.is_absolute():
+            expected_dataset = Path(__file__).resolve().parents[1] / expected_dataset
+        expected_dataset = expected_dataset.resolve()
         self.assertEqual(dataset.DATASET_ROOT, expected_dataset)
         self.assertEqual(
             dataset.SCORE_ASSET_ROOT,
@@ -59,7 +72,7 @@ class DemoPipelineTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             settings = load_settings(use_legacy_dataset_env=False)
 
-        self.assertEqual(Path(settings["dataset_root"]), expected_dataset)
+        self.assertEqual(Path(settings["dataset_root"]).resolve(), expected_dataset)
         self.assertTrue(
             (expected_dataset / "database" / "exports" / "research-open.jsonl").is_file()
         )
@@ -218,23 +231,22 @@ class DemoPipelineTests(unittest.TestCase):
         self.assertEqual(result["evidence"], [])
         self.assertEqual(result["evidence_notices"], [])
 
-    @unittest.expectedFailure
-    def test_no_hit_generation_does_not_answer_from_internal_knowledge(
+    def test_admission_rejection_withholds_answer_despite_retrieval_matches(
         self,
     ) -> None:
-        """An out-of-domain question must not reach the model as grounded.
+        """Retrieval matches cannot override a denied task-safety decision.
 
-        Known upstream failure: ``retrieve_generation_evidence`` in
-        soprano-qa-rag-system supplements an empty ``index.search`` result
-        with low-scoring whole-piece expert units and web_coaching claims, so
-        this question is answered by the LLM with ``answer_basis`` =
-        ``retrieved_evidence``. Remove the decorator once that is fixed.
+        The old test replaced generate_llm entirely, bypassing its admission
+        gate, then expected retrieval alone to detect the unrelated request.
+        Mock only the gate verdict here: the real generation/adapter boundary
+        must withhold the answer before composition. This checks control flow,
+        not the model's ability to classify an out-of-domain question.
         """
         with mock.patch.object(
-            qa,
-            "generate_llm",
-            return_value="일반 음악 지식으로 답한 내용입니다. [E1]",
-        ) as generate:
+            llm_module,
+            "semantic_guard",
+            side_effect=SecurityViolation("security_admission_rejected"),
+        ) as gate, mock.patch.object(llm_module, "load_llama") as loader:
             result = qa.ask(
                 piece_id="die-forelle",
                 question=OUT_OF_DOMAIN_QUERY,
@@ -242,8 +254,12 @@ class DemoPipelineTests(unittest.TestCase):
                 generate=True,
             )
 
-        generate.assert_not_called()
+        gate.assert_called_once()
+        self.assertEqual(gate.call_args.kwargs["stage"], "admission")
+        self.assertEqual(gate.call_args.args[2]["question"], OUT_OF_DOMAIN_QUERY)
+        loader.assert_not_called()
         self.assertEqual(result["generation_mode"], "unavailable")
+        self.assertEqual(result["unavailable_reason"], "security_admission_rejected")
         self.assertEqual(result["answer_basis"], "no_corpus_evidence")
         self.assertEqual(result["evidence"], [])
         self.assertEqual(

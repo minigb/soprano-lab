@@ -13,7 +13,10 @@ writes, relative to the site root (the parent of this ``tools/`` directory):
   file paths reduced to file names) for the
   sample questions listed in ``EXAMPLE_QUESTIONS`` in ``app.js`` (``n`` is the
   1-based chip position), asked with ``language: "en"`` and the chip's measure
-  range (or the whole piece), plus ``answers/index.json``.
+  range (or the whole piece), plus ``answers/index.json``;
+* ``answers/manifest.json``: export timestamps, requests, saved-response hashes,
+  and server-reported model metadata. This describes a static snapshot, not a
+  live API or a verified identity of the server's source/settings/checkpoint.
 
 Only the standard library is used. Example:
 
@@ -24,6 +27,8 @@ Only the standard library is used. Example:
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
+import hashlib
 import json
 import re
 import sys
@@ -114,8 +119,12 @@ def export_data(server: str) -> list[str]:
 
 def export_answers(server: str) -> None:
     print("Sample-question answers (language: en):")
+    started_at = datetime.now(timezone.utc).isoformat()
+    examples_by_piece = sample_questions(SITE_ROOT / "app.js")
     index = []
-    for piece_id, examples in sample_questions(SITE_ROOT / "app.js").items():
+    saved_responses = []
+    provenance = []
+    for piece_id, examples in examples_by_piece.items():
         for n, example in enumerate(examples, start=1):
             request = {
                 "piece_id": piece_id,
@@ -133,7 +142,20 @@ def export_answers(server: str) -> None:
             )
             response = strip_local_paths(json.loads(body))  # fails on a non-JSON body
             rel_path = f"answers/{piece_id}/{n}.json"
-            write(rel_path, (json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8"))
+            saved_body = (json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8")
+            saved_responses.append((rel_path, saved_body))
+            provenance.append({
+                "file": rel_path,
+                "sha256": hashlib.sha256(saved_body).hexdigest(),
+                "received_at_utc": datetime.now(timezone.utc).isoformat(),
+                "request": request,
+                "server_reported_model": response.get("model"),
+                "pipeline": response.get("pipeline"),
+                "generation_mode": response.get("generation_mode"),
+                "answer_basis": response.get("answer_basis"),
+                "unavailable_reason": response.get("unavailable_reason"),
+                "generation_validation_warning": response.get("generation_validation_warning"),
+            })
             index.append(
                 {
                     "piece_id": piece_id,
@@ -144,10 +166,33 @@ def export_answers(server: str) -> None:
                     "file": rel_path,
                 }
             )
+    # Finish every request before replacing a snapshot: an HTTP failure must
+    # not leave a mixture of old and new sample answers.
+    for rel_path, saved_body in saved_responses:
+        write(rel_path, saved_body)
     payload = {"answers": index}
     write(
         "answers/index.json",
         (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+    )
+    manifest = {
+        "schema_version": 1,
+        "snapshot_type": "precomputed_sample_answers",
+        "started_at_utc": started_at,
+        "completed_at_utc": datetime.now(timezone.utc).isoformat(),
+        "request_endpoint": "POST /api/ask",
+        "identity_note": (
+            "Model metadata is reported by the server, with local paths reduced to file names. "
+            "No server source revision, settings identity, or checkpoint hash is inferred "
+            "from the exporter's local checkout. Loading these files performs no inference."
+        ),
+        "exporter_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "frontend_app_sha256": hashlib.sha256((SITE_ROOT / "app.js").read_bytes()).hexdigest(),
+        "answers": provenance,
+    }
+    write(
+        "answers/manifest.json",
+        (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
     )
 
 

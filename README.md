@@ -67,6 +67,14 @@ cd demo && conda run --no-capture-output -n soprano-qa python -m unittest discov
 
 ## Syncing with the upstream repositories
 
+The `codex/refine-rag-quality` branch includes the
+[October 31 security/quality comparison](rag/evaluation/quality_refinement_2026-10-31/report.md)
+and its full static-export audit. The new 25-answer export is a review artifact
+under `rag/evaluation/quality_refinement_2026-10-31/static-preview/`; it has not
+replaced `docs/answers/`. Saved static answers do not change when Python code
+changes. Future exports record their requests, response hashes and timestamps
+in `docs/answers/manifest.json`, including unavailable responses.
+
 Commit and push to soprano-qa-rag-system or soprano-qa-demo as usual, then
 bring the new commits into this repository:
 
