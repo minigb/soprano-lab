@@ -713,6 +713,15 @@ function renderQAItem(question, result) {
   } else if (noCorpusEvidence) {
     modeLabel = answerWithheld ? "Answer unavailable" : "No corpus match";
     modeClass = "mode-unavailable";
+  } else if (result.answer_basis === "general_music_knowledge") {
+    modeLabel = "General music explanation";
+    modeClass = "mode-llm";
+  } else if (result.answer_basis === "retrieved_evidence_with_background") {
+    modeLabel = "Sources + general explanation";
+    modeClass = "mode-llm";
+  } else if (result.answer_basis === "score_context_with_background") {
+    modeLabel = "Lyrics + general explanation";
+    modeClass = "mode-llm";
   } else if (result.generation_mode === "llm") {
     modeLabel = "LLM · corpus-grounded";
     modeClass = "mode-llm";

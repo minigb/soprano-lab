@@ -44,6 +44,16 @@ for (const reason of [...rejected, 'no_corpus_evidence', null, undefined]) {
 render('Question?', {piece_id: 'die-forelle', answer: 'Grounded answer.', evidence: [],
   answer_basis: 'retrieved_evidence', generation_mode: 'llm'});
 assert.equal(rendered.children[1].children[0].textContent, 'LLM · corpus-grounded');
+for (const [basis, label] of [
+  ['general_music_knowledge', 'General music explanation'],
+  ['retrieved_evidence_with_background', 'Sources + general explanation'],
+  ['score_context_with_background', 'Lyrics + general explanation']
+]) {
+  render('Question?', {piece_id: 'die-forelle', answer: 'An explanation.', evidence: [],
+    answer_basis: basis, generation_mode: 'llm'});
+  assert.equal(rendered.children[1].children[0].textContent, label);
+}
+
 """
         for script in (ROOT / "demo/static/app.js", ROOT / "docs/app.js"):
             with self.subTest(script=script):
