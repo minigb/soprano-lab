@@ -75,6 +75,14 @@ replaced `docs/answers/`. Saved static answers do not change when Python code
 changes. Future exports record their requests, response hashes and timestamps
 in `docs/answers/manifest.json`, including unavailable responses.
 
+The follow-up [meaning-fidelity audit](rag/evaluation/meaning_fidelity_2026-10-31/report.md)
+found ten new material regressions, including reversed pronunciation advice
+and incorrect vowel connections, despite unchanged returned evidence. The
+refinement has not established meaning preservation. The [side-by-side review](rag/evaluation/meaning_fidelity_2026-10-31/review.html)
+and complete [Korean](rag/evaluation/meaning_fidelity_2026-10-31/prompts/answer-ko.txt)/[English](rag/evaluation/meaning_fidelity_2026-10-31/prompts/answer-en.txt)
+system prompts are saved for inspection; the running demo and static answers
+have not been updated by this audit.
+
 Commit and push to soprano-qa-rag-system or soprano-qa-demo as usual, then
 bring the new commits into this repository:
 
