@@ -420,7 +420,10 @@ class DemoPipelineTests(unittest.TestCase):
                     completions[kind] += 1
                 content = (
                     json.dumps(
-                        {"sentences": [{"text": GROUNDED_ANSWER, "evidence": ["E1"]}]},
+                        {"sentences": [{"kind": "evidence", "text": (
+                            "" if json.loads(kwargs["messages"][1]["content"]).get("source_preservation")
+                            else GROUNDED_ANSWER
+                        ), "evidence": ["E1"]}]},
                         ensure_ascii=False,
                     )
                     if kind == "answer"
