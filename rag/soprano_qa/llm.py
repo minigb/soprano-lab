@@ -10,10 +10,16 @@ import re
 import threading
 from typing import Any, Dict, List
 
-from soprano_qa.security import SecurityViolation, screen_generated_answer, semantic_guard
+from soprano_qa.security import (
+    SecurityViolation, screen_generated_answer, semantic_guard,
+    select_question_evidence, serialize_untrusted,
+    SECURITY_SYSTEM_POLICY,
+)
 from soprano_qa.structured_answer import (
     NO_GROUNDED_ANSWER_SENTINEL,
     STRUCTURED_ANSWER_POLICY,
+    GENERAL_MUSIC_SYSTEM_PROMPT,
+    GENERAL_MUSIC_FORMAT_POLICY,
     answer_schema,
     render_structured_answer,
 )
@@ -68,8 +74,8 @@ def validate_generation_requirements(
 ) -> None:
     """Eagerly validate the sole configured generation backend and model.
 
-    A generation request must not begin corpus work and then silently switch
-    to extraction or internal model knowledge. Loading here also catches a
+    A generation request requires this backend before corpus work. Authorized
+    general explanations use the same model, not a backend fallback. Loading catches a
     broken native llama.cpp installation and an unreadable/incompatible GGUF,
     not merely a missing Python module or path.
     """
@@ -129,6 +135,21 @@ def generate(
             model_path, llm_settings, security_context,
             stage="admission", generate_fn=generate,
         )
+        # Short questions inherit the selected work's context. A question-only
+        # intent classifier cannot establish that all reviewed answers are
+        # irrelevant: it misrouted score and performance questions as abstract
+        # theory. Judge relevance using the actual passages before discarding
+        # them, and permit background in either composition path.
+        selected_context = select_question_evidence(
+            model_path, llm_settings, security_context, generate_fn=generate,
+        )
+        if selected_context is not security_context:
+            security_context = selected_context
+            messages = [messages[0], {"role": "user", "content": serialize_untrusted(security_context)}]
+        general_only = not any(r.get("citation_label") for r in security_context.get("Retrieved evidence", []))
+        if general_only:
+            messages = [{"role": "system", "content": GENERAL_MUSIC_SYSTEM_PROMPT + "\n" + SECURITY_SYSTEM_POLICY},
+                        *messages[1:]]
         # Citation IDs are selected by the model in constrained data, then
         # rendered by application code and verified against the cited text.
         # This prevents a missing inline label from invalidating useful prose.
@@ -136,39 +157,61 @@ def generate(
         # evidence separates the output format from the grounding contract
         # and can encourage the model to summarize the entire payload.
         messages = [
-            {**messages[0], "content": STRUCTURED_ANSWER_POLICY + "\n" + messages[0]["content"]},
+            {**messages[0], "content": (GENERAL_MUSIC_FORMAT_POLICY if general_only else STRUCTURED_ANSWER_POLICY)
+             + "\n" + messages[0]["content"]},
             *messages[1:],
         ]
         completion_options["response_format"] = {
             "type": "json_object", "schema": answer_schema(security_context),
         }
-    # Consumers may serve requests concurrently, while llama.cpp completions
-    # are not reentrant. Keep lazy model loading and inference within one
-    # process-wide critical section.
-    with _INFERENCE_LOCK:
-        llm = load_llama(
-            model_path=model_path,
-            n_ctx=int(llm_settings.get("n_ctx", 8192)),
-            n_gpu_layers=int(llm_settings.get("n_gpu_layers", -1)),
-            chat_format=_configured_chat_format(llm_settings),
-        )
-        response = llm.create_chat_completion(
-            messages=messages,
-            temperature=float(llm_settings.get("temperature", 0.0)),
-            top_p=float(llm_settings.get("top_p", 0.8)),
-            max_tokens=int(llm_settings.get("max_tokens", 768)),
-            **completion_options,
-        )
-    answer = strip_thinking(response["choices"][0]["message"]["content"])
-    if security_context is not None:
+    # A denied output may receive one new composition under the same policy.
+    # Admission denials, malformed verdicts, unsafe text and backend failures
+    # never enter this path. A replacement still needs every normal check.
+    for attempt in range(2 if security_context is not None else 1):
+        # llama.cpp completions are not reentrant.
+        with _INFERENCE_LOCK:
+            llm = load_llama(
+                model_path=model_path,
+                n_ctx=int(llm_settings.get("n_ctx", 8192)),
+                n_gpu_layers=int(llm_settings.get("n_gpu_layers", -1)),
+                chat_format=_configured_chat_format(llm_settings),
+            )
+            response = llm.create_chat_completion(
+                messages=messages,
+                temperature=float(llm_settings.get("temperature", 0.0)),
+                top_p=float(llm_settings.get("top_p", 0.8)),
+                max_tokens=int(llm_settings.get("max_tokens", 768)),
+                **completion_options,
+            )
+        answer = strip_thinking(response["choices"][0]["message"]["content"])
+        if security_context is None:
+            return answer
         answer = render_structured_answer(answer, security_context)
         if answer == NO_GROUNDED_ANSWER_SENTINEL:
             # An explicit abstention has no prose to assess. The public answer
             # finalizer turns it into the normal fixed unavailable response.
             return answer
         screen_generated_answer(answer, security_context)
-        semantic_guard(
-            model_path, llm_settings, {**security_context, "draft": answer},
-            stage="output", generate_fn=generate,
-        )
-    return answer
+        try:
+            semantic_guard(
+                model_path, llm_settings, {**security_context, "draft": str(answer),
+                                          "composition": list(getattr(answer, "parts", ()))},
+                stage="output", generate_fn=generate,
+            )
+        except SecurityViolation as exc:
+            if exc.reason != "security_output_rejected" or attempt:
+                raise
+            messages = [
+                {**messages[0], "content": messages[0]["content"] + "\n"
+                 "The previous composition did not pass review. Compose a new answer "
+                 "under the same rules. Answer only the actual question. For general "
+                 "music concepts, use accurate background without unrelated source "
+                 "summaries. For source-based advice retain the original actor, "
+                 "location, conditions, alternatives and certainty. If a requested "
+                 "piece fact is unknown, state that limit; do not invent it. All "
+                 "security, language and structured-output requirements still apply."},
+                *messages[1:],
+            ]
+            continue
+        return answer
+    raise AssertionError("Composition loop ended without a verdict")

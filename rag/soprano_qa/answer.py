@@ -56,6 +56,7 @@ from soprano_qa.retrieval import (
     validate_question_measure_contract,
 )
 from soprano_qa.settings import load_settings
+from soprano_qa.structured_answer import RenderedAnswer
 from soprano_qa.security import (
     SECURITY_SYSTEM_POLICY,
     SecurityViolation,
@@ -67,8 +68,14 @@ from soprano_qa.security import (
 
 # Keep the grounding contract shared so language variants cannot drift.
 _GROUNDING_PROMPT = """You are a measure-aware soprano performance QA assistant.
-Use only the retrieved evidence below. Do not invent musical advice, measure numbers, lyrics,
-editions, background facts, explanations, or source attributions.
+Answer the actual question first. A general music definition or comparison should
+receive a direct general explanation, not a summary of the selected piece. Use
+background items when no supplied passage directly answers that concept question.
+Use the reviewed answers as the primary evidence about the selected piece.
+You may use general music knowledge to explain terms or offer an optional practice
+suggestion when it helps the question. Keep such background separate from source claims.
+Do not invent score facts, measure numbers, lyrics, editions, expert attributions,
+composer intentions, or reasons why particular sources disagree.
 The reviewed answer field is the authoritative claim text.
 Raw source annotations, legacy range hints, superseded wording, conflicts, and editorial notes are not evidence.
 Use all directly useful, compatible evidence to answer the exact question. Do not
@@ -92,7 +99,12 @@ general_context and unconfirmed_scope_context_only cannot establish what happens
 Web evidence without an edition-qualified measure system cannot establish local score facts.
 Without a selected range, Evidence_role=local_example may answer the described musical situation.
 Its canonical location is hidden routing metadata: do not print measure numbers or internal scope labels.
-A local example cannot by itself establish whole-piece, frequent, or universal behavior.
+Keep narrative scope already stated in source prose, such as "at the opening",
+"in an unaccompanied passage" or "when a breath is unavoidable". Hiding routing
+metadata never means deleting these conditions from the actual musical claim.
+A local example cannot by itself create a new whole-piece, frequent, or universal claim.
+If the reviewed answer itself explicitly states a broader pattern, preserve its
+exact scope and conditions; do not strengthen or expand that pattern.
 General evidence likewise has no authority to introduce measure locators in a no-range answer.
 
 Write coherent prose. Merge overlapping or parallel recommendations into a distinct practical action
@@ -126,14 +138,22 @@ Write one coherent, question-focused answer using the structured answer format.
 The text fields contain natural prose only; select supporting labels in each
 item's evidence array. The application renders those labels for validation and
 removes them for display. Do not write inline citations or a citation footer.
-Start with the direct answer. Usually one to four sentences are enough; add a
-distinct detail only when it answers a requested aspect or preserves an important
-condition. Stop when the question is answered. Do not summarize every retrieved
-record or add other passages' advice merely because it appears in the evidence.
-Before writing, select only the source clauses that directly answer the question.
-For a focused question, normally give one or two sentences. A broad request may need more.
-Do not attach unrelated background, another passage's advice, or a generic conclusion.
-Prefer a faithful short paraphrase or translation over new explanations.
+Start with the direct answer. Select the source passages that answer the question,
+then retain their relevant explanation, conditions and alternatives. Do not shorten
+away why or how the recommendation works, or the situation to which it applies.
+Keep the source's wording when it already answers the question; change only what
+is needed for the answer language and polite grammar. Do not paraphrase just for
+variety. A complete relevant paragraph is preferable to a compressed restatement
+that loses qualifications. Do not summarize every retrieved record or add another
+passage's advice merely because it appears in the evidence.
+For a general definition or comparison of musical concepts, explain those concepts
+directly. The selected piece is context, not an obligation to discuss it. If no
+reviewed answer directly explains the requested concept, use background items;
+do not cite a merely related passage or invent a connection to it. Add background
+only for an aspect the relevant source passages do not already explain.
+A passage's advice about one technique is not a definition of a different
+technique. Do not replace its subject with a term from the question. Definitions
+absent from the passage belong in accurate, separately marked background.
 Two examples of the reasoning rule, not additional musical evidence:
 - If one source says to enter gently and another discusses the final release,
   a question about the entrance needs only the entrance advice.
@@ -146,7 +166,9 @@ If sources disagree and no source explains that disagreement, the answer must st
 that its cause is not established, then attribute the differing statements. Do not offer
 a possible cause from general knowledge, even hedged as "may" or "can be seen as".
 If part of a music question cannot be established, say so briefly and provide
-its supported part. If nothing can be supported, return {"sentences":[]}.
+its supported part. A general music explanation may help even without a relevant
+source, but must not pretend to establish the requested local score fact.
+If neither a source-based nor useful general answer is possible, return {"sentences":[]}.
 """
 SOURCE_PRIORITY_POLICY = """For relevant, scope-applicable evidence, use this authority order:
 sumijo_feedback, then expert_annotation, then web_coaching/web_database.
@@ -223,7 +245,7 @@ EVIDENCE_FOOTER_LABEL_RE = re.compile(
 
 
 class GeneratedAnswerRejected(RuntimeError):
-    """Raised when the sole generated draft fails grounding/safety checks."""
+    """Raised when a generated draft fails grounding or presentation checks."""
 
 
 PIPELINE_TOKEN_SEPARATOR_PATTERN = r"[\s*_~`–—-]*"
@@ -633,16 +655,16 @@ HANGUL_JONGSEONG_BIEUP = 17
 PLAIN_DECLARATIVE_ENDING_RE = re.compile(
     r"(?P<word>[가-힣]+다)"
     r"(?=(?:"
-    r"[.!?;:。！？；：][\"'”’」』】)]*"
-    r"|[\"'”’」』】)]+[.!?;:。！？；：]"
+    r"[.!?;。！？；][\"'”’」』】)]*"
+    r"|[\"'”’」』】)]+[.!?;。！？；]"
     r"|[\"'”’」』】)]*[ \t]*(?:\n|$)"
     r"))"
 )
 KOREAN_SENTENCE_FINAL_WORD_RE = re.compile(
     r"(?P<word>[가-힣]+)"
     r"(?=(?:"
-    r"[.!?;:。！？；：][\"'”’」』】)]*"
-    r"|[\"'”’」』】)]+[.!?;:。！？；：]"
+    r"[.!?;。！？；][\"'”’」』】)]*"
+    r"|[\"'”’」』】)]+[.!?;。！？；]"
     r"|[\"'”’」』】)]*[ \t]*(?:\n|$)"
     r"))"
 )
@@ -734,6 +756,13 @@ def _formalize_korean_declarative_word(word: str) -> str:
 def formalize_korean_answer(answer: str) -> str:
     """Deterministically normalize sentence-final plain Korean to 합니다체."""
 
+    # These two common polite endings have unambiguous formal equivalents.
+    # Avoid general stemming of -아요/-어요, whose irregular verbs can change
+    # meaning or become ungrammatical under a mechanical replacement.
+    answer = re.sub(
+        r"(있|없)어요(?=[.!?。！？]|\s*$)", r"\1습니다", answer,
+        flags=re.MULTILINE,
+    )
     formalized = PLAIN_DECLARATIVE_ENDING_RE.sub(
         lambda match: _formalize_korean_declarative_word(match.group("word")),
         answer,
@@ -858,10 +887,10 @@ LOCAL_SCOPE_GENERALIZATION_RE = re.compile(
     r"(?:구간|마디|부분|대목|곡|노래|작품)(?:에서|에|이|가)?"
     r"|(?:여러|많은)\s*(?:마디|곳|부분|대목)(?:에서|에|이|가)?"
     r"|(?:경우|부분|대목|음|고음|저음|도약음|현상)"
-    r"(?:이|가|은|는)?\s*많이\s*(?:나오|등장|발생|나타나|있)"
+    r"(?:이|가|은|는)?\s*많이\s*(?:나오|나옵|등장|발생|나타나|나타납|있)"
     r"|(?:경우|부분|대목)(?:이|가|은|는)?\s*많"
-    r"|자주\s*(?:나오|등장|발생|나타나|보이|있)"
-    r"|많이\s*(?:나오|등장|발생|나타나|있)"
+    r"|자주\s*(?:나오|나옵|등장|발생|나타나|나타납|보이|보입|있)"
+    r"|많이\s*(?:나오|나옵|등장|발생|나타나|나타납|있)"
     r"|\b(?:throughout|always|frequently|often|everywhere)\b"
     r"|\b(?:across|all\s+through)\s+(?:the\s+)?"
     r"(?:piece|work|song)\b"
@@ -1267,6 +1296,14 @@ def _claim_has_unauthorized_measure_locator(
 def _claim_has_piece_wide_generalization(claim: str) -> bool:
     """Detect a positive whole-piece or frequency assertion in one claim."""
 
+    # "In phrases where X often appears" limits the recommendation to those
+    # phrases; it does not assert that X is frequent throughout this piece.
+    # Entailment of X and the advice remains the semantic guard's job. Remove
+    # only the relative clause's frequency token, retaining every explicit
+    # whole-piece/universal marker elsewhere in the same claim.
+    claim = _SCOPED_FREQUENCY_CLAUSE.sub(
+        lambda match: match.group().replace(match.group('frequency'), '', 1), claim,
+    )
     for match in LOCAL_SCOPE_GENERALIZATION_RE.finditer(claim):
         before = claim[max(0, match.start() - 12) : match.start()]
         after = claim[match.end() : match.end() + 56]
@@ -1335,6 +1372,7 @@ def answer_overgeneralizes_local_examples(
         if (
             _claim_has_piece_wide_generalization(claim)
             and not cited & general_indices
+            and not _copies_scoped_source_sentence(claim, results, cited_local)
         ):
             return True
 
@@ -1344,6 +1382,37 @@ def answer_overgeneralizes_local_examples(
     if local_indices and body_claims and not body_citations:
         return True
     return False
+
+
+def _copies_scoped_source_sentence(
+    claim: str, results: List[Any], cited_local: set[int],
+) -> bool:
+    """A verbatim scoped sentence does not create a new frequency assertion.
+
+    The coarse frequency screen also catches faithful source sentences such as
+    "ornaments often appear in this phrase". Allow only a complete matching
+    sentence, with deterministic Korean register normalization. A broader scope
+    explicitly present in that same reviewed sentence is not a new model
+    generalization. Paraphrases and dropped conditions receive no exception;
+    semantic output review and selected-measure authority still apply.
+    """
+    def normalize(text: str) -> str:
+        text = re.sub(r"\[E[0-9]+(?:\s*,\s*E[0-9]+)*\]", "", text)
+        return re.sub(r"\s+", " ", formalize_korean_answer(text)).strip()
+
+    expected = normalize(claim)
+    return any(
+        expected == normalize(sentence)
+        for index in cited_local
+        for sentence in _answer_claims(str(results[index].record.get("answer", "")))
+    )
+
+
+_SCOPED_FREQUENCY_CLAUSE = re.compile(
+    r"(?P<scope>[가-힣A-Za-z·]+[이가]\s+(?P<frequency>자주|흔히|빈번하게)\s+"
+    r"(?:나타나|등장하|반복되|사용되)는\s+(?:프레이즈|구간|부분|대목))"
+    r"(?:에서는|에서)(?=\s|[,.;!?])"
+)
 
 
 def suspicious_generation_tokens(
@@ -2198,6 +2267,7 @@ def build_messages(
         # of pseudo-fields or instructions inside that excerpt.
         score_data = score_context
     payload = {
+        "answer_language": language,
         "piece": piece or "(not specified)",
         "measure_range": measures or "(none selected)",
         "question": question,
@@ -3847,7 +3917,7 @@ def finalize_grounded_generated_answer(
     *,
     language: str = "ko",
 ) -> str:
-    """Validate the sole model draft without repair or substitution."""
+    """Validate the reviewed draft without repairing or substituting its claims."""
 
     screen_text(answer, source="answer")
     if not answer.strip() or is_grounded_insufficiency_answer(answer):
@@ -3860,6 +3930,22 @@ def finalize_grounded_generated_answer(
             "Generated answer contains unsupported tokens: %s"
             % ", ".join(suspicious)
         )
+    if isinstance(answer, RenderedAnswer) and answer.background_text:
+        # Provenance comes from validated structured output, not a guessed
+        # heading in model prose. Source claims retain all existing checks.
+        source = (
+            finalize_grounded_generated_answer(
+                answer.grounded_text, results, messages, measure_ranges,
+                language=language,
+            ) if answer.grounded_text else ""
+        )
+        background = finalize_user_visible_answer(
+            answer.background_text, results, language=language,
+        )
+        if background == no_corpus_evidence_message(language):
+            raise GeneratedAnswerRejected("Invalid general explanation")
+        prefix = "General explanation: " if language == "en" else "일반적인 음악 설명입니다.\n"
+        return "\n\n".join(part for part in (source, prefix + background) if part)
     if answer_references_secondary_evidence(answer, results):
         raise GeneratedAnswerRejected(
             "Generated answer cites context-only evidence"
@@ -4031,31 +4117,20 @@ def _run_cli(args: argparse.Namespace) -> None:
             topic=args.topic,
             top_k=args.top_k,
         )
-        if not results or (
-            args.measure_ranges and not has_primary_grounding(results)
-        ):
-            answer = NO_CORPUS_EVIDENCE_MESSAGE
-            generation_mode = "unavailable"
-            answer_basis = "no_corpus_evidence"
-            unavailable_reason = _retrieval_unavailable_reason(
-                index,
-                question=args.question,
-                piece=args.piece,
-                measure_ranges=args.measure_ranges,
-                results=results,
-            )
-        else:
-            raw_answer = generate(
-                settings["model_path"],
-                messages,
-                settings["llm"],
-                security_context=json.loads(messages[1]["content"]),
-            )
-            answer = finalize_grounded_generated_answer(
-                raw_answer, results, messages, args.measure_ranges,
-            )
-            generation_mode = "llm"
-            answer_basis = "retrieved_evidence"
+        grounded = bool(results) and (not args.measure_ranges or has_primary_grounding(results))
+        generation_results = results if grounded else []
+        if not grounded:
+            messages = build_messages(args.piece, args.measures, args.question, [])
+        raw_answer = generate(
+            settings["model_path"], messages, settings["llm"],
+            security_context=json.loads(messages[1]["content"]),
+        )
+        answer = finalize_grounded_generated_answer(
+            raw_answer, generation_results, messages, args.measure_ranges,
+        )
+        generation_mode = "llm"
+        answer_basis = getattr(raw_answer, "answer_basis",
+                               "retrieved_evidence" if grounded else "general_music_knowledge")
 
     answer = finalize_user_visible_answer(answer, results)
     if (

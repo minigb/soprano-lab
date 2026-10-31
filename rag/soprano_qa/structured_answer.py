@@ -11,6 +11,7 @@ import re
 from typing import Any
 
 from soprano_qa.security import SecurityViolation
+from soprano_qa.music_terms import MUSIC_TERMINOLOGY
 
 
 MAX_SENTENCES = 6
@@ -18,32 +19,100 @@ MAX_SENTENCE_CHARS = 2000
 # Keep this low-level module independent of answer.py, which imports llm.py.
 NO_GROUNDED_ANSWER_SENTINEL = "<NO_GROUNDED_ANSWER>"
 
-STRUCTURED_ANSWER_POLICY = """Mandatory structured answer format
-Return exactly one JSON object of this form, with no markdown or extra keys:
-{"sentences":[{"evidence":["E1"],"text":"One supported sentence."}]}
-Choose the supporting evidence before writing its claim. A label is not a
-reason to use a source: the source must directly support the requested point.
-Write each sentence's prose in text and select all evidence labels that actually
-support that sentence in evidence. Use only non-null citation_label values from
-Retrieved evidence. Every item requires at least one such label when citable
-evidence is supplied. Do not put inline citation labels or record IDs in text:
-the application will render the labels you select. Prefer one sentence per item.
-Usually use 1-4 items. Use up to 6 only when distinct useful details are needed
-to answer the question faithfully. Stop when the supported answer is complete;
-never pad the answer, repeat advice, or add a concluding claim to fill the array.
-Keep each text nonempty and at most 2000 characters, preserving source conditions
-and qualifications even when keeping the answer concise.
-If no supported answer can be given within the task and security boundaries,
-return exactly {"sentences":[]}. This empty array is the only structured no-answer
-form; do not invent a sentence or citation, or place a no-answer sentinel in text.
-If no citable evidence exists and score context is permitted, evidence must be
-an empty array for each item; only identify words sung in the selected bars.
-Preserve the required answer language, factual support, scope, and all security
-rules. This format changes only how you express supported prose and citations;
-it does not permit new facts or new musical advice. Never invent support to
-satisfy the format. Do not include a verdict, commentary, or additional fields.
+STRUCTURED_ANSWER_POLICY = """Return one JSON object, no markdown or extra keys:
+{"sentences":[{"kind":"evidence","evidence":["E1"],"text":"Source-based answer."}]}
+Choose each item's kind and evidence before writing its text:
+- evidence: a faithful claim from the supplied reviewed answers; select its non-null
+  citation_label values. At least one supporting label is required.
+- background: general music knowledge, an explanation, or an explicitly optional
+  practice suggestion. evidence must be []. It must not assert unverified facts
+  about this piece/bar, quote an expert, explain an unestablished cause, or contradict
+  the supplied advice. The application identifies it as general explanation.
+- score_lyrics: only words sung in the supplied score context; evidence must be [].
+Keep these kinds in separate items. Never attach a source citation to background.
+Use 1-4 items, up to 6 if needed. Each text must be nonempty and at most 2000
+characters. Do not pad, repeat, print labels/IDs, or write the kind name in prose.
+If the source answers the question, do not add unnecessary background. If evidence
+is missing, a useful general explanation is allowed, with an explicit limitation
+when the question asks for a specific score fact. If no useful authorized answer
+is possible, return {"sentences":[]}.
 /no_think
 """
+
+
+GENERAL_MUSIC_SYSTEM_PROMPT = """You answer music-theory and singing-practice questions.
+No directly answering reviewed source was selected for this request. Use your
+general musical knowledge to answer the actual question helpfully and directly.
+Definitions, comparisons, note values, rhythm, terminology and optional general
+practice suggestions do not require a source passage. Do not refuse these just
+because no retrieved source was selected. The selected piece name is context,
+not an instruction to discuss that piece in a general concept answer.
+
+Use kind=background and evidence=[] for general explanations. Do not claim that
+an expert said them. Do not invent facts about the selected piece, measure,
+edition, recording or composer's particular intention. If asked for an unknown
+score fact, briefly state what cannot be established; offer a general explanation
+only if it helps. Never infer a specific pitch, lyric, notation or source-conflict
+cause from general knowledge. Practice suggestions must be optional, not personal
+diagnoses or guaranteed outcomes. When score context is present, kind=score_lyrics
+may identify only the supplied sung words, without making performance claims.
+
+Give one concise, coherent paragraph that directly answers the question.
+Include only details needed to answer the question. Avoid assumed tempos,
+numerical demonstrations or extra illustrations unless the question requires
+them. Check units and proportions before stating a quantitative relationship.
+Use the requested answer_language. For Korean use formal-polite 합니다체;
+for English use natural English and preserve quoted lyric words as supplied.
+The application labels background; do not add a heading yourself. If a useful
+general answer is impossible, state the missing information briefly. A statement
+of that limitation is a valid background item; never invent a fact to fill one.
+/no_think
+"""
+
+GENERAL_MUSIC_FORMAT_POLICY = """Return one JSON object, no markdown or extra keys:
+{"sentences":[{"kind":"background","evidence":[],"text":"Your answer in the requested language."}]}
+Write one concise background item for general musical knowledge
+or an explicit statement of what cannot be established. evidence must be [].
+When actual score context is supplied, score_lyrics may identify only its words.
+Only that mixed lyric/explanation case may need two items; keep kinds separate.
+Do not print labels, IDs, headings or kind names in prose.
+Each text must be nonempty and at most 2000 characters. Do not pad or repeat.
+For an unanswerable local fact, state the limitation; do not guess it. A
+required text item is not a requirement to make a factual claim. Task, source
+and security boundaries still apply to every item.
+/no_think
+"""
+
+
+GENERAL_MUSIC_FORMAT_POLICY += "\n" + MUSIC_TERMINOLOGY
+
+
+class RenderedAnswer(str):
+    """Carry validated claim provenance until public answer finalization.
+
+    A prose prefix alone never grants an exemption from citation validation.
+    Only parts validated by render_structured_answer receive this metadata.
+    """
+
+    def __new__(cls, parts: list[dict[str, Any]], language: str = "ko"):
+        grounded = "\n".join(_cite_text(p["text"], p["evidence"])
+                             for p in parts if p["kind"] != "background")
+        background = "\n".join(p["text"] for p in parts if p["kind"] == "background")
+        prefix = "General explanation: " if language == "en" else "일반적인 음악 설명입니다.\n"
+        visible = "\n\n".join(x for x in (grounded, prefix + background if background else "") if x)
+        value = super().__new__(cls, visible)
+        value.parts = tuple(parts)
+        value.grounded_text = grounded
+        value.background_text = background
+        kinds = {p["kind"] for p in parts}
+        value.answer_basis = (
+            "retrieved_evidence_with_background" if kinds >= {"evidence", "background"}
+            else "retrieved_evidence" if "evidence" in kinds
+            else "score_context_with_background" if kinds >= {"score_lyrics", "background"}
+            else "general_music_knowledge" if "background" in kinds
+            else "score_context"
+        )
+        return value
 
 _LABEL_RE = re.compile(r"E[1-9][0-9]*\Z")
 _INLINE_CITATION_RE = re.compile(
@@ -55,7 +124,10 @@ _REDUNDANT_CITATION_RE = re.compile(r"\[(E[1-9][0-9]*(?:\s*,\s*E[1-9][0-9]*)*)\]
 # and abbreviation-internal dots have no following whitespace and stay intact.
 # An abbreviation ending before whitespace is conservatively cited as well;
 # its original characters are preserved and display-time stripping restores it.
-_SENTENCE_END_RE = re.compile(r"[.!?。！？]+[\"'”’」』】)]*(?=\s|$|[가-힣])")
+# The downstream validator applies NFKC, which turns … into ... and fullwidth
+# punctuation into ASCII. Cite these boundaries too, while preserving the
+# original lyric typography in displayed text.
+_SENTENCE_END_RE = re.compile(r"[.!?。！？…﹒．｡]+[\"'”’」』】)）]*(?=\s|$|[가-힣])")
 
 
 def _allowed_labels(payload: dict[str, Any]) -> list[str]:
@@ -82,7 +154,7 @@ def answer_schema(payload: dict[str, Any]) -> dict[str, Any]:
     evidence_schema: dict[str, Any] = {
         "type": "array",
         "items": {"type": "string", **({"enum": labels} if labels else {})},
-        "minItems": 1 if labels else 0,
+        "minItems": 0,
         "maxItems": len(labels),
         "uniqueItems": True,
     }
@@ -91,11 +163,17 @@ def answer_schema(payload: dict[str, Any]) -> dict[str, Any]:
         "properties": {
             "sentences": {
                 "type": "array",
-                "minItems": 0,
-                "maxItems": MAX_SENTENCES,
+                # Empty-bundle generations otherwise collapsed to [] even for
+                # elementary theory questions. Require an explanation OR an
+                # explicit limitation; the semantic guard still checks both.
+                "minItems": 0 if labels else 1,
+                "maxItems": MAX_SENTENCES if labels else (2 if payload.get('Score context') else 1),
                 "items": {
                     "type": "object",
                     "properties": {
+                        "kind": {"type": "string", "enum":
+                                 (["evidence"] if labels else []) + ["background"] +
+                                 (["score_lyrics"] if payload.get("Score context") else [])},
                         "evidence": evidence_schema,
                         "text": {
                             "type": "string",
@@ -106,7 +184,7 @@ def answer_schema(payload: dict[str, Any]) -> dict[str, Any]:
                             # generation remains bounded by max_tokens.
                         },
                     },
-                    "required": ["text", "evidence"],
+                    "required": ["kind", "evidence", "text"],
                     "additionalProperties": False,
                 },
             },
@@ -172,9 +250,14 @@ def render_structured_answer(raw: str, payload: dict[str, Any]) -> str:
         return NO_GROUNDED_ANSWER_SENTINEL
     rendered = []
     for item in sentences:
-        if not isinstance(item, dict) or set(item) != {"text", "evidence"}:
+        if not isinstance(item, dict) or set(item) not in ({"text", "evidence"}, {"kind", "text", "evidence"}):
             raise SecurityViolation()
         text, labels = item["text"], item["evidence"]
+        # Legacy source-only drafts remain readable; new model output always
+        # carries kind under the constrained schema.
+        kind = item.get("kind", "evidence" if allowed_labels else "score_lyrics")
+        if kind not in {"evidence", "background", "score_lyrics"}:
+            raise SecurityViolation()
         if (
             not isinstance(text, str)
             or not text.strip()
@@ -186,7 +269,9 @@ def render_structured_answer(raw: str, payload: dict[str, Any]) -> str:
         if (
             len(labels) != len(set(labels))
             or not set(labels) <= allowed_labels
-            or (allowed_labels and not labels)
+            or (kind == "evidence" and not labels)
+            or (kind != "evidence" and labels)
+            or (kind == "score_lyrics" and not payload.get("Score context"))
         ):
             raise SecurityViolation()
         # Some models repeat a selected label in prose despite the schema
@@ -200,5 +285,5 @@ def render_structured_answer(raw: str, payload: dict[str, Any]) -> str:
         text = _REDUNDANT_CITATION_RE.sub(remove_redundant, text)
         if not text.strip() or _INLINE_CITATION_RE.search(text):
             raise SecurityViolation()
-        rendered.append(_cite_text(text, labels))
-    return "\n".join(rendered)
+        rendered.append({"kind": kind, "text": text, "evidence": labels})
+    return RenderedAnswer(rendered, payload.get("answer_language", "ko"))

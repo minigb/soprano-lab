@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Persistent local development probes with private drafts and a usage stop.
+"""Persistent local development probes with private drafts and frozen inputs.
 
 Normal cases use the public service. Fixed-context cases supply ``fixed_evidence``
 or ``selected_pool`` (ordered {record, relevance, scope} entries), or a matched
@@ -7,10 +7,10 @@ experiment ``pool`` with explicit ``condition`` and ``budget``. Fixed runs bypas
 retrieval, so their latency is deliberately labelled separately. No answer is
 reused across cases. Every attempted failure is checkpointed.
 
-Pass the SAME --usage-state to successive probes to retain usage provenance.
-Only fresh rollout token_count events qualify. The user's October31 instruction
-removes reset-based stops; only the95% cap and unavailable usage observations
-stop the run. This script never starts an app-server or notifier.
+Normal evaluation omits --usage-rollout and has no usage/reset stop condition.
+The optional legacy monitor remains for reproducing older interrupted audits;
+only explicitly supplied monitoring arguments enable it. This script never
+starts an app-server or notifier.
 """
 from __future__ import annotations
 
@@ -200,6 +200,34 @@ def run_fixed_case(qa: Any, answer: Any, llm: Any, retrieval: Any, priority: dic
     response, error, results = None, None, []
     ranges = case.get("measure_ranges") or ([case["measure_range"]] if case.get("measure_range") else [])
     measures = ",".join(f"{a}-{b}" for a, b in ranges)
+    if not hasattr(qa, "SecurityViolation"):
+        # The pre-security baseline has no guarded generate() API and releases
+        # some rejected drafts with warnings. Exercise its own public service,
+        # replacing only retrieval with the frozen context; do not backport
+        # newer security/finalization behavior into that baseline.
+        if len(ranges) > 1 or case.get("score_context"):
+            raise ValueError("Legacy fixed-context adapter supports one range and no injected lyrics")
+        original_retrieve = qa.retrieve_generation_evidence
+        try:
+            results = fixed_results(case, retrieval, priority)
+            def frozen_retrieve(_index, **kwargs):
+                return results, answer.build_messages(
+                    kwargs["piece"], kwargs["measures"], kwargs["query"], results,
+                    score_context=kwargs.get("score_context", ""),
+                )
+            qa.retrieve_generation_evidence = frozen_retrieve
+            response = qa.ask(piece_id=case["piece_id"], question=case["question"],
+                              measure_range=tuple(ranges[0]) if ranges else None,
+                              generate=True, top_k=case.get("top_k", 6), language=case["language"])
+        except Exception as exc:
+            error = {"type": type(exc).__name__, "message": str(exc)}
+        finally:
+            qa.retrieve_generation_evidence = original_retrieve
+        return {"status": "exception" if error else "response", "response": response, "exception": error,
+                "elapsed_seconds": time.perf_counter() - started, "latency_scope": "fixed_evidence_generation",
+                "llm_call_count": len(counter.calls), "llm_calls": deepcopy(counter.calls),
+                "fixed_selected_ids": [r.record["id"] for r in results],
+                "fixed_adapter": "native_presecurity_service_with_frozen_retrieval"}
     try:
         results = fixed_results(case, retrieval, priority)
         qa.screen_question(case["question"])
@@ -252,8 +280,10 @@ def import_pipeline(root: Path, settings: Path) -> tuple[Any, ...]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    for option in ("system-root", "settings", "cases", "output", "usage-rollout"):
+    for option in ("system-root", "settings", "cases", "output"):
         parser.add_argument("--" + option, type=Path, required=True)
+    parser.add_argument("--usage-rollout", type=Path,
+                        help="Optional legacy usage monitor; omitted for uninterrupted local evaluation")
     parser.add_argument("--usage-state", type=Path, help="Share across all probes in the same original allowance")
     parser.add_argument("--variant", default="hardened", help="Use original/hardened for existing analyzer compatibility")
     parser.add_argument("--warmup-case", help="Optional case ID for one untimed warmup, stored only in private traces")
@@ -267,7 +297,8 @@ def main() -> int:
                 "source_sha256": common.source_sha256(args.system_root),
                 "settings_sha256": common.file_sha256(args.settings),
                 "cases_sha256": common.file_sha256(args.cases), "variant": args.variant,
-                "warmup_case": args.warmup_case, "usage_rollout": str(args.usage_rollout.resolve())}
+                "warmup_case": args.warmup_case,
+                "usage_rollout": str(args.usage_rollout.resolve()) if args.usage_rollout else None}
     contract_id = hashlib.sha256(json.dumps(contract, sort_keys=True).encode()).hexdigest()
     manifest_path = args.output.with_name(args.output.name + ".manifest.json")
     if manifest_path.exists():
@@ -285,7 +316,12 @@ def main() -> int:
     trace_path = args.output.with_name(args.output.name + ".private-traces.jsonl")
     usage_state = args.usage_state or args.output.with_name(args.output.name + ".usage-state.json")
     usage_state.parent.mkdir(parents=True, exist_ok=True)
-    guard = UsageGuard(args.usage_rollout, usage_state, args.output.with_name(args.output.name + ".usage-checks.jsonl"))
+    class Unmonitored:
+        def check(self):
+            return {}
+
+    guard = (UsageGuard(args.usage_rollout, usage_state, args.output.with_name(args.output.name + ".usage-checks.jsonl"))
+             if args.usage_rollout else Unmonitored())
     session = {"started_at": common.utc_now(), "private_trace_file": str(trace_path.resolve())}
     manifest["sessions"].append(session)
     common.write_json(manifest_path, manifest)

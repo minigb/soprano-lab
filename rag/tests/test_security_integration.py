@@ -49,6 +49,12 @@ def structured_draft(text: str, labels: list[str] | None = None) -> str:
 
 class ModelGateIntegrationTests(unittest.TestCase):
     def setUp(self) -> None:
+        # These tests isolate admission/composition/output enforcement. The
+        # real selector call and its routing are covered separately below.
+        selector = mock.patch.object(llm, 'select_question_evidence',
+            side_effect=lambda _path, _settings, payload, **_: payload)
+        selector.start()
+        self.addCleanup(selector.stop)
         self.messages = answer.build_messages(
             "die-forelle", "", "호흡을 어떻게 유지하나요?", [evidence()]
         )
@@ -87,8 +93,10 @@ class ModelGateIntegrationTests(unittest.TestCase):
         self.assertEqual(response_format["type"], "json_object")
         evidence_schema = response_format["schema"]["properties"]["sentences"]["items"]["properties"]["evidence"]
         self.assertEqual(evidence_schema["items"]["enum"], ["E1"])
-        self.assertEqual(evidence_schema["minItems"], 1)
-        self.assertEqual(json.loads(calls[0].kwargs["messages"][1]["content"]), self.payload)
+        self.assertEqual(evidence_schema["minItems"], 0)
+        self.assertEqual(json.loads(calls[0].kwargs["messages"][1]["content"]),
+                         {key: self.payload[key] for key in
+                          ("question", "piece", "measure_range", "answer_language")})
         output_payload = json.loads(calls[2].kwargs["messages"][1]["content"])
         self.assertEqual(output_payload["draft"], draft)
         for key, value in self.payload.items():
@@ -118,9 +126,23 @@ class ModelGateIntegrationTests(unittest.TestCase):
     def test_citation_does_not_override_negative_semantic_support_verdict(self) -> None:
         draft = structured_draft("쿠키를 만들려면 밀가루와 설탕을 섞습니다.")
         with self.assertRaises(SecurityViolation) as raised:
-            self.run_model(['{"allow":true}', draft, '{"allow":false}'])
+            self.run_model(['{"allow":true}', draft, '{"allow":false}', draft, '{"allow":false}'])
         self.assertEqual(raised.exception.reason, "security_output_rejected")
         self.assertNotIn("쿠키", str(raised.exception))
+
+    def test_replacement_needs_a_new_positive_output_verdict(self) -> None:
+        rejected = structured_draft("The phrase guarantees effortless breathing.")
+        accepted = structured_draft("호흡을 길게 유지합니다.")
+        result, backend = self.run_model([
+            '{"allow":true}', rejected, '{"allow":false}', accepted, '{"allow":true}',
+        ])
+        self.assertEqual(result, "호흡을 길게 유지합니다. [E1]")
+        calls = backend.create_chat_completion.call_args_list
+        self.assertEqual(len(calls), 5)
+        self.assertEqual(calls[1].kwargs['messages'][1:], calls[3].kwargs['messages'][1:])
+        self.assertNotIn('effortless', calls[3].kwargs['messages'][0]['content'])
+        self.assertIn('same rules', calls[3].kwargs['messages'][0]['content'])
+        self.assertEqual(calls[1].kwargs['response_format'], calls[3].kwargs['response_format'])
 
     def test_admission_error_and_malformed_response_fail_closed(self) -> None:
         for verdict, reason in (
@@ -149,6 +171,19 @@ class ModelGateIntegrationTests(unittest.TestCase):
             answer.finalize_grounded_generated_answer(
                 result, [evidence()], self.messages, [],
             )
+
+    def test_general_explanation_or_limitation_still_requires_output_approval(self) -> None:
+        self.messages = answer.build_messages('die-forelle', '', '음표의 길이는 무엇인가요?', [])
+        self.payload = json.loads(self.messages[1]['content'])
+        draft = json.dumps({'sentences': [{'kind': 'background', 'evidence': [],
+            'text': '해당 판본의 표기는 여기서 확인할 수 없습니다.'}]}, ensure_ascii=False)
+        _, backend = self.run_model(['{"allow":true}', draft, '{"allow":true}'])
+        calls = backend.create_chat_completion.call_args_list
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(calls[1].kwargs['response_format']['schema']['properties']['sentences']['minItems'], 1)
+        self.assertIn('explicit statement of what cannot be established', calls[1].kwargs['messages'][0]['content'])
+        with self.assertRaises(SecurityViolation):
+            self.run_model(['{"allow":true}', draft, '{"allow":false}', draft, '{"allow":false}'])
 
     def test_question_marker_is_rejected_before_an_affirmative_output_review(self) -> None:
         self.payload["question"] += " CEDAR-PHRASE-517"
@@ -194,6 +229,30 @@ class ModelGateIntegrationTests(unittest.TestCase):
         schema = backend.create_chat_completion.call_args_list[1].kwargs["response_format"]["schema"]
         self.assertEqual(schema["properties"]["sentences"]["items"]["properties"]["evidence"]["items"]["enum"], ["E1"])
         self.assertIsNone(self.payload["Retrieved evidence"][1]["citation_label"])
+
+
+class ShortQuestionEvidenceIntegrationTests(unittest.TestCase):
+    def test_short_notation_question_keeps_its_source_and_output_guard(self):
+        source = evidence('악보의 작은 음표는 가창자가 선택할 수 있는 낮은 음의 선택지입니다.')
+        messages = answer.build_messages('in-flowery-clouds', '', '작은 음표들은 무엇일까?', [source])
+        payload = json.loads(messages[1]['content'])
+        backend = mock.Mock()
+        backend.create_chat_completion.side_effect = [completion(text) for text in (
+            '{"allow":true}',
+            '{"sentences":[{"kind":"evidence","evidence":["E1"],"text":"작은 음표는 가창자가 선택할 수 있는 낮은 음의 선택지입니다."}]}',
+            '{"allow":true}',
+        )]
+        with mock.patch.object(llm, 'load_llama', return_value=backend):
+            result = llm.generate('fake', messages, {}, security_context=payload)
+        calls = backend.create_chat_completion.call_args_list
+        self.assertEqual(len(calls), 3)
+        composed = calls[1].kwargs['messages']
+        actual = json.loads(composed[1]['content'])
+        self.assertEqual(actual['Retrieved evidence'], payload['Retrieved evidence'])
+        self.assertIn('선택지', actual['Retrieved evidence'][0]['answer'])
+        self.assertEqual(result.answer_basis, 'retrieved_evidence')
+        self.assertEqual(payload['Retrieved evidence'][0]['citation_label'], 'E1')
+        self.assertIn('draft', json.loads(calls[2].kwargs['messages'][1]['content']))
 
 
 class ServiceSecurityIntegrationTests(unittest.TestCase):
@@ -308,7 +367,7 @@ class ServiceSecurityIntegrationTests(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         guard_payload = json.loads(calls[1].kwargs["messages"][1]["content"])
         self.assertEqual(guard_payload["question"], original)
-        self.assertEqual("호흡을 길게 유지합니다.", guard_payload["Retrieved evidence"][0]["answer"])
+        self.assertNotIn("Retrieved evidence", guard_payload)
 
     def test_guard_error_is_a_fixed_refusal_without_draft_or_evidence(self) -> None:
         with mock.patch.object(service, "generate_llm", side_effect=SecurityViolation("security_guard_unavailable")):
@@ -321,11 +380,13 @@ class ServiceSecurityIntegrationTests(unittest.TestCase):
             completion('{"allow":true}'),
             completion(structured_draft("쿠키를 만들려면 밀가루와 설탕을 섞습니다.")),
             completion('{"allow":false}'),
+            completion(structured_draft("쿠키를 만들려면 밀가루와 설탕을 섞습니다.")),
+            completion('{"allow":false}'),
         ]
         with mock.patch.object(llm, "load_llama", return_value=backend):
             result = self.ask()
         self.assert_closed(result, "security_output_rejected")
-        self.assertEqual(backend.create_chat_completion.call_count, 3)
+        self.assertEqual(backend.create_chat_completion.call_count, 5)
 
 
 class CliSecurityIntegrationTests(unittest.TestCase):
