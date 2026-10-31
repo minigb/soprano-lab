@@ -10,6 +10,8 @@ import re
 import threading
 from typing import Any, Dict, List
 
+from soprano_qa.question_intent import is_explicit_general_question
+
 from soprano_qa.security import (
     SecurityViolation, screen_generated_answer, semantic_guard,
     select_question_evidence, serialize_untrusted,
@@ -18,6 +20,7 @@ from soprano_qa.security import (
 from soprano_qa.structured_answer import (
     NO_GROUNDED_ANSWER_SENTINEL,
     STRUCTURED_ANSWER_POLICY,
+    SOURCE_PRESERVATION_POLICY,
     GENERAL_MUSIC_SYSTEM_PROMPT,
     GENERAL_MUSIC_FORMAT_POLICY,
     answer_schema,
@@ -140,11 +143,21 @@ def generate(
         # irrelevant: it misrouted score and performance questions as abstract
         # theory. Judge relevance using the actual passages before discarding
         # them, and permit background in either composition path.
-        selected_context = select_question_evidence(
-            model_path, llm_settings, security_context, generate_fn=generate,
-        )
+        preserve_sources = llm_settings.get("source_preservation") == "verbatim_or_translation"
+        if preserve_sources and is_explicit_general_question(security_context):
+            # Only explicit definitions/comparisons/universal-rule questions
+            # without a local referent take this path. Admission has already
+            # run, and generation and output review remain unchanged.
+            selected_context = {**security_context, "Retrieved evidence": []}
+        else:
+            selected_context = select_question_evidence(
+                model_path, llm_settings, security_context, generate_fn=generate,
+            )
         if selected_context is not security_context:
             security_context = selected_context
+            messages = [messages[0], {"role": "user", "content": serialize_untrusted(security_context)}]
+        if preserve_sources:
+            security_context = {**security_context, "source_preservation": True}
             messages = [messages[0], {"role": "user", "content": serialize_untrusted(security_context)}]
         general_only = not any(r.get("citation_label") for r in security_context.get("Retrieved evidence", []))
         if general_only:
@@ -157,7 +170,8 @@ def generate(
         # evidence separates the output format from the grounding contract
         # and can encourage the model to summarize the entire payload.
         messages = [
-            {**messages[0], "content": (GENERAL_MUSIC_FORMAT_POLICY if general_only else STRUCTURED_ANSWER_POLICY)
+            {**messages[0], "content": (GENERAL_MUSIC_FORMAT_POLICY if general_only else
+                                       SOURCE_PRESERVATION_POLICY if preserve_sources else STRUCTURED_ANSWER_POLICY)
              + "\n" + messages[0]["content"]},
             *messages[1:],
         ]
