@@ -8,7 +8,7 @@ calls assess admission before composition and the draft's
 support before release. Admission assesses task safety, leaving evidence
 coverage to retrieval, composition, and output review. Retrieval confidence
 never selects a different answer renderer. This description reflects the
-2026-11-02 E22 candidate on `codex/ku-background-knowledge`.
+2026-11-02 E25 candidate on `codex/ku-background-knowledge`.
 It has not been promoted to main or the live demo. Its security checks supersede the earlier
 single-call behavior and release of rejected drafts with warnings.
 
@@ -29,6 +29,7 @@ flowchart LR
     V["Task-safety admission<br/>assessment"]
     R["Conservative intent routing<br/>then relevant source selection"]
     F["Qwen3-14B source selection<br/>and general explanation"]
+    M["Conventional basic meter<br/>arithmetic"]
     T["Complete Korean source quotation<br/>or reviewed/guarded English translation"]
     O["Draft support assessment"]
     G["Citation validation<br/>and presentation sanitization"]
@@ -39,13 +40,14 @@ flowchart LR
     C --> S --> P --> D
     B --> D
     D --> E --> V --> R --> F --> T --> O --> G --> H
+    R --> M --> O
     S -. rejected .-> U
     E -. rejected .-> U
     V -. rejected or failed .-> U
     R -. failed .-> U
     F -. empty answer .-> U
     O -. rejected or failed .-> U
-    O -. one fresh draft after valid negative verdict .-> F
+    O -. one retry for composed drafts after valid negative verdict .-> F
     G -. rejected .-> U
 ```
 
@@ -313,6 +315,21 @@ composition path. Unspecified practice questions use the service's singing
 context rather than assuming a keyboard instrument. Background does not restate
 or synthesize the selected source advice. An unsupported reason for source
 disagreement should be stated as unknown without proposing a cause.
+After a valid negative output verdict, an explicit general definition may use
+the existing single retry with an empty evidence bundle and the general policy.
+It still needs output approval. This recovery cannot handle local questions,
+unsafe source text, malformed verdicts or guard/backend errors.
+
+For a narrow basic time-signature question, `soprano_qa/meter.py` calculates
+ordinary simple/compound beat counts and note values rather than asking the
+model to invent them. Unsupported/alternate meters, local score questions and
+performance interpretations use the usual path. The calculator needs both
+admission and output approval; response metadata records
+`generation_mode=llm_guarded_calculation` and
+`answer_basis=calculated_music_knowledge`. These paragraphs are general musical
+explanations, not expert citations or LLM-composed prose. The supported arithmetic
+is checked over every supported numerator/denominator combination.
+
 Relevance and factual review are prompted heuristics, not guarantees.
 
 A completed Korean request normally uses three model calls, plus passage
@@ -411,7 +428,7 @@ under the visible heading `참고 자료의 원문입니다.`. General prose is 
 generated and labelled separately. This improves literal fidelity but cannot
 establish source truth or relevance, and it raises reference-overlap metrics.
 
-The evaluated E19 configuration also enables
+The evaluated E25 configuration also enables
 `llm.evidence_translation="reviewed_catalog"`: English source items select
 labels before translation. All 129 curated answers have machine-authored,
 separately Claude-reviewed English versions keyed by exact Korean text SHA256.
