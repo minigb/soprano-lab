@@ -10,6 +10,10 @@ https://ksha1990.or.kr/dict/6409?etype=F&keyword=&ktype=&page=5
 Register labels vary across pedagogical traditions; this is not a claim of a
 universal physiological register taxonomy. See NATS Music Theater Resources:
 https://www.nats.org/Music_Theater_-_Resources.html
+Meter/beat distinctions were checked against Mark Gotham and Chelsey Hamm,
+Open Music Theory, "Compound Meter and Time Signatures":
+https://viva.pressbooks.pub/openmusictheory/chapter/compound-meters-and-time-signatures/
+The general rules below are not answers indexed by evaluation question.
 """
 
 MUSIC_TERMINOLOGY = """General musical terminology (not a source about this piece)
@@ -29,6 +33,23 @@ Distinguish pitch (음높이), loudness (셈여림), and duration (음의 길이
 - In translation, 가성 is falsetto, not mixed voice. Preserve a source's actual
   list of vocal techniques instead of substituting other familiar register
   names. These pedagogical labels are not a universal physiological taxonomy.
+- Distinguish beats (박) from their divisions (박의 분할). In ordinary simple
+  meter the beat divides in two; the time signature's numerator counts beats
+  and its denominator identifies the beat's note value. In ordinary compound
+  meter with numerator 6, 9 or 12, divide that numerator by three to count beats;
+  the denominator identifies a division, and three divisions form one dotted
+  beat. Equal total written duration does not imply equal beat grouping.
+  Duple, triple and quadruple mean two, three and four beats respectively.
+  A metrical grouping is not a requirement to force accents on every note.
+  Do not invent strong/weak sequences or tempo differences from the fraction.
+  Name note values as 음표 (e.g. quarter note = 4분음표), not as pitch intervals.
+  한국어: 홑박자는 한 박이 둘로 나뉘고, 겹박자는 한 박이 셋으로 나뉩니다.
+  홑박자에서 위 숫자 2·3·4는 한 마디의 박 수이며, 아래 숫자는 한 박의
+  음표 단위입니다. 겹박자에서 위 숫자 6·9·12를 3으로 나누면 큰 박이
+  각각 2·3·4개이고, 아래 숫자의 음표 세 개가 모여 큰 박 하나가 됩니다.
+  아래 숫자 8이면 분할 단위는 8분음표, 큰 박은 점4분음표입니다.
+  아래 숫자 4이면 분할 단위는 4분음표, 큰 박은 점2분음표입니다.
+  겹박자의 분할 음표 개수를 큰 박의 개수와 혼동하지 않습니다.
 Use these distinctions only when relevant, as general explanation without an
 expert citation. They do not establish what is written in a particular score.
 An expert may ask for a particular feeling while explicitly avoiding literal

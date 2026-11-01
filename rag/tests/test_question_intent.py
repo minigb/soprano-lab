@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from soprano_qa import llm
-from soprano_qa.question_intent import is_explicit_general_question
+from soprano_qa.question_intent import explicit_general_intent, is_explicit_general_question
 from soprano_qa.security import SecurityViolation
 from tests.test_security_integration import completion
 
@@ -24,6 +24,8 @@ class GeneralIntentTests(unittest.TestCase):
             "페르마타는 언제나 정확히 세 배 길이인가요?",
             "이조의 정의를 알려 주세요.",
             "What is syncopation?", "Define counterpoint.",
+            "Does rubato mean abandoning the pulse?",
+            "Is transposition the same as octave displacement?",
             "Must a fermata always last three times the written duration?",
         ):
             with self.subTest(question=question):
@@ -54,15 +56,82 @@ class GeneralIntentTests(unittest.TestCase):
         backend.create_chat_completion.side_effect = [completion(x) for x in
             ('{"allow":true}', draft, '{"allow":false}', draft, '{"allow":false}')]
         with patch.object(llm, "load_llama", return_value=backend), \
-             patch.object(llm, "select_question_evidence") as selector, \
+             patch.object(llm, "select_question_evidence", return_value={**payload, "Retrieved evidence": []}) as selector, \
              self.assertRaises(SecurityViolation):
             llm.generate("fake", messages, {"source_preservation": "verbatim_or_translation"},
                          security_context=payload)
-        selector.assert_not_called()
+        selector.assert_called_once()
+        self.assertTrue(selector.call_args.kwargs["assess_single"])
         self.assertEqual(backend.create_chat_completion.call_count, 5)
         composed = backend.create_chat_completion.call_args_list[1].kwargs["messages"]
         self.assertEqual(json.loads(composed[1]["content"])["Retrieved evidence"], [])
         self.assertEqual(len(payload["Retrieved evidence"]), 1)
+
+    def test_definition_selects_actual_single_source_before_composition(self):
+        for labels in (["E1"], []):
+            with self.subTest(labels=labels):
+                source = {"citation_label": "E1", "answer": "당김음은 예상되는 박의 강세를 옮기는 리듬입니다."}
+                payload = {"question": "당김음의 정의를 알려 주세요.", "answer_language": "ko",
+                           "Retrieved evidence": [source]}
+                messages = [{"role": "system", "content": "Music."},
+                            {"role": "user", "content": json.dumps(payload)}]
+                draft = {"kind": "evidence", "evidence": labels, "text": ""} if labels else {
+                    "kind": "background", "evidence": [], "text": "당김음은 예상되는 강세를 옮깁니다."}
+                backend = Mock()
+                backend.create_chat_completion.side_effect = [completion(x) for x in (
+                    '{"allow":true}', json.dumps({"labels": labels}),
+                    json.dumps({"sentences": [draft]}), '{"allow":true}')]
+                with patch.object(llm, "load_llama", return_value=backend):
+                    result = llm.generate("fake", messages, {"source_preservation": "verbatim_or_translation"},
+                                          security_context=payload)
+                calls = backend.create_chat_completion.call_args_list
+                selection_input = json.loads(calls[1].kwargs["messages"][1]["content"])
+                self.assertEqual(selection_input["passages"][0]["answer"], source["answer"])
+                composed = json.loads(calls[2].kwargs["messages"][1]["content"])
+                self.assertEqual(composed["Retrieved evidence"], [source] if labels else [])
+                self.assertIn(source["answer"] if labels else draft["text"], result)
+                self.assertEqual(payload["Retrieved evidence"], [source])
+
+    def test_named_comparison_precedes_definition_and_universal_branches(self):
+        for question in ("새로운 노래에서는 두 연주 방식의 차이가 무엇인가요?",
+                         "When singing My New Song, should I always sing the same way? Compare the settings."):
+            with self.subTest(question=question):
+                self.assertIsNone(explicit_general_intent({
+                    "question": question, "piece": "my-new-song",
+                    "Retrieved evidence": [{"piece_title": "새로운 노래"}]}))
+        self.assertEqual(explicit_general_intent({"question": "Must I always use the same approach?"}), "universal")
+        self.assertEqual(explicit_general_intent({"question": "Define syncopation."}), "definition")
+
+    def test_rejected_definition_source_uses_one_guarded_general_retry(self):
+        payload = {"question": "Define syncopation.", "answer_language": "en",
+                   "Retrieved evidence": [{"citation_label": "E1", "answer": "An unrelated practice suggestion."}]}
+        messages = [{"role": "system", "content": "Music."},
+                    {"role": "user", "content": json.dumps(payload)}]
+        source = json.dumps({"sentences": [{"kind": "evidence", "evidence": ["E1"],
+                                          "text": "An unrelated practice suggestion."}]})
+        background = json.dumps({"sentences": [{"kind": "background", "evidence": [],
+                                               "text": "Syncopation displaces expected rhythmic accents."}]})
+        for final_allow in (True, False):
+            with self.subTest(final_allow=final_allow):
+                backend = Mock()
+                backend.create_chat_completion.side_effect = [completion(x) for x in (
+                    '{"allow":true}', '{"labels":["E1"]}', source, '{"allow":false}',
+                    background, json.dumps({"allow": final_allow}))]
+                with patch.object(llm, "load_llama", return_value=backend):
+                    if final_allow:
+                        result = llm.generate("fake", messages, {"source_preservation": "verbatim_or_translation"},
+                                              security_context=payload)
+                        self.assertIn("Syncopation displaces", result)
+                        self.assertNotIn("unrelated", result)
+                    else:
+                        with self.assertRaises(SecurityViolation):
+                            llm.generate("fake", messages, {"source_preservation": "verbatim_or_translation"},
+                                         security_context=payload)
+                calls = backend.create_chat_completion.call_args_list
+                self.assertEqual(len(calls), 6)
+                self.assertEqual(json.loads(calls[4].kwargs['messages'][1]['content'])['Retrieved evidence'], [])
+                self.assertIn('draft', json.loads(calls[5].kwargs['messages'][1]['content']))
+                self.assertEqual(len(payload['Retrieved evidence']), 1)
 
     def test_explicit_practice_scenarios_without_local_referents(self):
         for question in (
