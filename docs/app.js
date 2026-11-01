@@ -732,7 +732,7 @@ function renderQAItem(question, result) {
   } else if (noCorpusEvidence) {
     modeLabel = answerWithheld ? "Answer unavailable" : "No corpus match";
     modeClass = "mode-unavailable";
-  } else if (result.answer_basis === "general_music_knowledge") {
+  } else if (["general_music_knowledge", "calculated_music_knowledge"].includes(result.answer_basis)) {
     modeLabel = "General music explanation";
     modeClass = "mode-llm";
   } else if (result.answer_basis === "retrieved_evidence_with_background") {

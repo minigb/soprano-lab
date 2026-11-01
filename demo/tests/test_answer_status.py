@@ -46,11 +46,12 @@ render('Question?', {piece_id: 'die-forelle', answer: 'Grounded answer.', eviden
 assert.equal(rendered.children[1].children[0].textContent, 'LLM · corpus-grounded');
 for (const [basis, label] of [
   ['general_music_knowledge', 'General music explanation'],
+  ['calculated_music_knowledge', 'General music explanation'],
   ['retrieved_evidence_with_background', 'Sources + general explanation'],
   ['score_context_with_background', 'Lyrics + general explanation']
 ]) {
   render('Question?', {piece_id: 'die-forelle', answer: 'An explanation.', evidence: [],
-    answer_basis: basis, generation_mode: 'llm'});
+    answer_basis: basis, generation_mode: basis === 'calculated_music_knowledge' ? 'llm_guarded_calculation' : 'llm'});
   assert.equal(rendered.children[1].children[0].textContent, label);
 }
 
