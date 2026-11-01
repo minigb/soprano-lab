@@ -187,3 +187,115 @@ referent drift remained, and one normal question was still withheld. Redundant
 source selection also produced repeated genre advice. E14 is **experimental,
 not selected**. The full matrix and independent Claude assessment remain
 pending. See `e14-focused-review.json` and the root `RESUME.md`.
+
+## November 1 resume and E15 quality repair
+
+The shutdown checkpoint hashes all matched, and main/dataset revisions and
+working-tree status were unchanged. The GPU had no live model after restart;
+no service was restarted. E14’s saved nine English answers were assessed by
+Claude Opus 5.5: five faithful, three minor drifts, one refusal, no material
+drift under that judge. One invalid batch used a nonliteral source excerpt and
+was rejected; the first valid retry was retained. Manual review additionally
+identifies the measure/phrase drift missed by Claude. The judge’s 81.82 percent
+effective rubric score is not factual accuracy.
+
+E15 uses translation-only lexical/syntax guidance instead of appending a
+general-answer glossary to the translator; it distinguishes measure/phrase,
+classical vocal production, pronunciation liaison, breathing, and the lyric
+phrase/syllable relationship. Source selection is asked to omit purely redundant
+passages while preserving complementary and conflicting advice. Output review
+now explicitly permits a reviewed source’s own conditional/general advice
+without treating that advice as proof of an unprovided local score fact.
+No guard or citation check is bypassed. The 598-test suite passes.
+
+The independent judge runner now permits at most three attempts only for CLI,
+format, coverage or exact-quotation failures, retaining diagnostic records. It
+accepts the first valid batch, even a low-scoring one; unfavorable judgments
+never trigger retries. Prior judge artifacts retain their original contracts.
+
+The fresh comparison campaign in `comparison-2026-11-01/` starts with the
+immutable pre-security baseline while candidate quality work proceeds. It will
+use the same frozen 290 cases and unchanged B-selected BERTScore configuration.
+Measured baseline rows will be retained exactly; old historical timings are
+not pooled into this campaign. Candidate selection remains subject to overall
+quality, not maximizing BERTScore beyond 0.90.
+
+## E15 rejection and E16 source preparation
+
+E15 completed all 70 fixed diagnostic requests without execution errors;
+69 were delivered, with the no-range accent question still withheld.
+Development BERTScore remained 0.972074 (43/43). Despite that passing score,
+Claude identified three material errors among the nine known English meaning
+examples: pronunciation advice reversed, a musical rest became a comma, and
+each measure became each phrase. E15 was rejected. Its complete outputs,
+judgments and `e15-rejection.json` remain available.
+
+E16 (`2ec416d`) uses maintained English translations for every curated expert
+or performer source in the corpus: 129 answers across all five works. Codex
+authored and checked these translations, and Claude Opus 5.5 independently
+assessed their fidelity to the Korean original. The first review found 124
+faithful and five minor drifts, with no material drift; five actual text edits
+were then assessed again and all were judged faithful. Unchanged translations
+retain their first reviews. This is not a selection among scores for the same
+translation, and it is not human-expert annotation.
+
+Runtime lookup uses exact source-text SHA256, never evaluation questions or
+case IDs. The source selector, admission, screening, citation and output review
+remain active; new/changed sources fall back to guarded segmented translation.
+General explanations are generated separately. Offline source preparation and
+review are added resources, excluded from per-request latency and disclosed in
+the comparison. Korean references, all cases and the B-selected scorer are
+unchanged. The catalog review also identifies three original-source factual
+issues; a faithful translation does not make those original claims correct.
+
+The 605-test suite passes, including exact-hash reuse, changed-source fallback,
+mixed-source ordering, screening and rejection of catalog output by the normal
+guard. The full RAG candidate is still subject to the 70-case diagnostic probe,
+then the four-system comparison. Catalog fidelity alone is not acceptance.
+
+## E17 teaching-context relevance repair before the next probe
+
+Before running E16's prepared probe, manual inspection of E15's general-practice
+answers identified a separate inherited defect: the slow-practice questions
+received repetitive source collections rather than the requested practice
+checks. Claude had also assigned partial relevance/completeness to those
+answers. E16's Korean generation was unchanged, so E17 incorporates the repair
+before the next 70-case diagnostic run; no E16 runtime responses are claimed.
+
+E17 (`ba65680`) supplies each source's original teaching question alongside its
+answer to the existing relevance selector, within the same untrusted JSON data
+boundary. The selector must match the requested task, not just the musical
+subject. Korean composition also receives the existing instruction to omit
+purely redundant passages while preserving distinct qualifications/conflicts.
+General quantitative examples must state the BPM beat unit. The general-intent
+route, source texts, reviewed English catalog, evaluation questions/references
+and frozen metric remain unchanged. Regression tests: 606 passed.
+
+
+## E17 result and E18 bounded practice routing
+
+E17 completed 70 requests: 69 delivered, one no-range accent refusal, no
+execution errors. Development F1 remains 0.972074. Independent Claude judged
+59 source answers faithful and 11 not applicable, with zero material drift or
+substantial factual error. Manual comparison also found all nine known English
+examples faithful. The aggregate rubric score was 95.45/100; this is not factual
+accuracy. Remaining redundancy and the two slow-practice questions were scored
+as partial relevance/completeness. First-person source wording in English also
+needed visible attribution. See `e17-quality-review.json`.
+
+E18 (`7cbf004`) adds a narrow explicit practice-scenario branch after admission.
+A generic mention of lyrics alone need not make this scenario local. Selected
+ranges, local/causal references, complete original-question matches and names
+of the actual selected work retain evidence. Work names are read from the
+bundle, not a hardcoded list. On the fixed290 question-only audit, only the two
+known slow-practice questions change routing. Eight additional general/local
+paraphrases are therefore included in the diagnostic probe to check behavior
+beyond those two phrasings; these are not expert metric targets or an independent
+human-annotated test. The original70 and full290 remain unchanged.
+
+English source translations are now visibly labelled `Translated reference
+text:` so a source's first-person statement does not become the assistant's
+own opinion. This application-created metadata cannot be supplied through model
+JSON and grants no security, citation, scope or output-review exemption. The
+609-test suite passes. E18 is still awaiting its 78-case probe and final full
+comparison; no passing final validation result is claimed yet.

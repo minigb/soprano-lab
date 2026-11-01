@@ -1,8 +1,8 @@
 # RAG prompt-injection defenses and research
 
 Research initially reviewed on **2026-10-25**, with refinement references checked
-on **2026-10-31**; implementation and evaluation updated for the **2026-10-31**
-refinement. This document records the security
+on **2026-10-31**. The BERTScore, FaithfulRAG and two 2026 preprint pages were
+rechecked on **2026-11-01** while evaluation resumed. This document records the security
 design and its limits for the local soprano-performance QA pipeline. The cited
 papers motivate the design; their reported attack-success rates are **not**
 measurements of this implementation.
@@ -86,6 +86,35 @@ Literal overlap with expert-KU references also increases BERTScore, so the
 evaluation must disclose the extractive architecture and retain independent
 meaning and factuality checks. The stored diagnostic examples show that a
 high BERTScore alone can coexist with material meaning errors.
+
+E14/E15 additionally experiment with source-only English translation after label
+selection. Korean quoted strings are protected and restored in code, and all
+source sentence slots must be returned. Translation-specific lexical and syntax
+guidance replaces the general-answer glossary in that call. These checks protect
+literal spelling and structural coverage, not all semantic relationships. Known
+residual translation and redundancy errors are retained in the experiment
+artifacts. No cited paper establishes that this engineering change is sufficient.
+
+E15 passed the development similarity threshold but still introduced material
+English translation errors, so it was rejected. E16 prepares English versions
+of all 129 curated source answers, separately reviewed against the Korean
+originals, and binds runtime reuse to the exact source-text hash. This is an
+engineering choice for a small curated corpus, not a question-answer cache or
+an implementation of one of the cited research methods. Unmatched sources use
+guarded model translation. Source screening and final output review still run.
+Offline source preparation is an added resource in the candidate comparison;
+the translations are machine authored and model reviewed, not human-expert
+English references. The review found source-level factual issues as well as
+translation issues, reinforcing the distinction between source fidelity and
+truth. Full service results remain necessary before adoption.
+
+The user’s acceptance target is BERTScore F1 at least 0.90 **with overall answer
+quality preserved**, not maximum reference similarity. Evaluations must retain
+normal-question availability, general-knowledge usefulness, source meaning,
+naturalness and latency. Since observed internal-validation failures informed
+later refinements, the final reused evaluation cannot be described as a fresh
+independent test. Frozen references and honest denominators do not remove that
+selection bias.
 
 | Work | Finding relevant to this service | Design implication and qualification |
 | --- | --- | --- |

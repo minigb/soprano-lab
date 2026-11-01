@@ -46,6 +46,9 @@ complementary advice. An evidence item must select exactly ONE citation label;
 never select the same label twice. Select complete reviewed answers, not isolated
 clauses whose conditions could be lost. Do not merge conflicting passages into
 one new claim or invent a reason for their disagreement.
+Omit a second source if it only repeats advice already fully covered; retain
+distinct qualifications, alternatives and genuine disagreements. A shared
+musical subject does not make a source an answer to the requested task.
 
 For Korean answers, every evidence item's text MUST be the empty string "".
 Example: {"sentences":[{"kind":"evidence","evidence":["E1"],"text":""}]}
@@ -83,6 +86,8 @@ text to the EMPTY STRING. Never select a label twice. Do not translate or
 paraphrase a source here: the application translates selected sources separately.
 Example: {"sentences":[{"kind":"evidence","evidence":["E1"],"text":""}]}
 Preserve useful complementary sources without selecting unrelated passages.
+Omit a second source if it only repeats the same advice already fully covered;
+keep distinct qualifications, alternatives and genuine source disagreements.
 Background items may provide accurate general music knowledge or explicitly
 optional practice suggestions in English, only when they answer a useful aspect
 left open by the sources. Their evidence must be [], and text must be nonempty.
@@ -123,6 +128,8 @@ Give one concise, coherent paragraph that directly answers the question.
 Include only details needed to answer the question. Avoid assumed tempos,
 numerical demonstrations or extra illustrations unless the question requires
 them. Check units and proportions before stating a quantitative relationship.
+Do not assume a BPM beat is a quarter note: a seconds-based example must state
+which note value is the beat unit, or omit the unsupported numerical example.
 Use the requested answer_language. For Korean use formal-polite 합니다체;
 for English use natural English and preserve quoted lyric words as supplied.
 The application labels background; do not add a heading yourself. If a useful
@@ -164,6 +171,8 @@ class RenderedAnswer(str):
         visible = "\n\n".join(x for x in (grounded, prefix + background if background else "") if x)
         if any(p.get("source_quotation") for p in parts):
             visible = "참고 자료의 원문입니다.\n" + visible
+        elif any(p.get("source_translation") for p in parts):
+            visible = "Translated reference text:\n" + visible
         value = super().__new__(cls, visible)
         value.parts = tuple(parts)
         value.grounded_text = grounded
