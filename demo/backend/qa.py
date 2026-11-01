@@ -43,9 +43,9 @@ ask = SERVICE.ask
 corpus_stats = SERVICE.corpus_stats
 model_status = SERVICE.model_status
 
-# The service fails closed instead of degrading to extraction or internal
-# model knowledge: a missing retrieval or generation backend raises before
-# corpus work, and an unusable grounded draft raises after its one call.
+# Missing retrieval/generation backends raise before corpus work. The normal
+# pipeline may include labelled general music explanations; rejected drafts
+# are withheld after the configured bounded review/retry path.
 BACKEND_UNAVAILABLE_ERRORS = (
     DenseRetrievalUnavailable,
     GenerationBackendUnavailable,
