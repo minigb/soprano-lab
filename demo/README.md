@@ -85,6 +85,22 @@ conda run --no-capture-output -n soprano-qa \
 
 Open <http://127.0.0.1:8765/> and keep the server terminal running.
 
+The header's **460개 답변 비교** link opens the saved evaluation browser at
+<http://127.0.0.1:8765/static/answer-review/index.html>. It compares all 460
+questions and 920 full answers from the original system and E37, with piece,
+source and quality filters, Claude judgments, full KU evidence, and local notes.
+It uses saved answers and does not call the model. Bookmarks and notes stay in
+that browser's localStorage and can be exported as JSON.
+
+The comparison can also run independently, without the dataset or local model:
+
+```bash
+python -m http.server 8766 --bind 127.0.0.1 --directory static/answer-review
+```
+
+Open <http://localhost:8766/>. Notes are scoped to the browser and origin, so use
+the same hostname and port to return to existing notes.
+
 Restart the server after changing demo or RAG Python code, settings, or model
 configuration. Dataset evidence changes are detected and reloaded
 automatically.

@@ -39,6 +39,15 @@ html, body {
   white-space: nowrap;
 }
 
+.answer-review-link {
+  margin-left: auto;
+  color: var(--accent);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+
 .piece-tabs {
   display: flex;
   flex-wrap: wrap;
