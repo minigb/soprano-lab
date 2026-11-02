@@ -413,7 +413,7 @@ class DemoPipelineTests(unittest.TestCase):
                     peak = max(peak, active)
                 time.sleep(0.03)
                 # Only the answer composition is constrained by a JSON schema;
-                # the guards return a bare verdict.
+                # admission returns a task category and output a bare verdict.
                 kind = "answer" if "response_format" in kwargs else "guard"
                 with counter_lock:
                     active -= 1
@@ -427,7 +427,8 @@ class DemoPipelineTests(unittest.TestCase):
                         ensure_ascii=False,
                     )
                     if kind == "answer"
-                    else '{"allow": true}'
+                    else ('{"allow": true}' if "draft" in json.loads(kwargs["messages"][1]["content"])
+                          else '{"task":"music_question"}')
                 )
                 return {"choices": [{"message": {"content": content}}]}
 

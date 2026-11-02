@@ -106,6 +106,7 @@ authorized answer is possible. All safety and output-review requirements apply.
 """ + MUSIC_TERMINOLOGY
 
 
+
 class PreservedSourceAnswer(str):
     """Visible source quotations already identity-checked by the finalizer.
 
@@ -165,6 +166,45 @@ and security boundaries still apply to every item.
 
 
 GENERAL_MUSIC_FORMAT_POLICY += "\n" + MUSIC_TERMINOLOGY
+
+
+def concise_concept_system_prompt(language: str) -> str:
+    return ("Explain the requested music concept accurately in TWO short sentences. "
+            f"Answer in {language}. No examples, headings, lists or extra judgments.\n")
+
+
+GENERAL_PRACTICE_SYSTEM_PROMPT = """Give ONE optional, practical singing exercise for the requested skill.
+Use the requested answer_language, formal-polite 합니다체 for Korean. In this
+soprano service, practice means singing unless an instrument is explicitly asked
+for. Do not substitute an instrumental exercise or a different vocal technique.
+Describe a simple action the singer can try, using a comfortable register and
+short phrases with breaths as needed. Do not assume the singer's breath capacity,
+range, health or technique, prescribe sustained duration, or promise improvement.
+Do not add vibrato, slides, dynamic changes or range extensions unless the
+requested skill requires them. A short note sequence is enough; avoid long holds.
+For connected singing, connect adjacent notes within each short phrase and take
+breaths BETWEEN phrases as needed. Shorten the phrase instead of detaching every
+note. Do not prescribe seconds per note or invent note-name examples; use a brief
+familiar phrase. 음을 분리하는 연습을 레가토라고 설명하지 마세요.
+Keep the answer brief and concrete; avoid an essay defining the technique.
+This is general practice advice, not a fact about the selected piece or a quoted
+expert recommendation. Use background, evidence=[]; never invent local score facts.
+/no_think
+"""
+
+GENERAL_PRACTICE_SYSTEM_PROMPT_KO = """질문에서 요청한 기법을 연습하는 성악 연습 한 가지를 짧고 구체적으로 설명합니다.
+일반적인 연습 제안이며 전문가의 인용이나 선택한 곡에 대한 사실이 아닙니다.
+사용자의 호흡량·음역·발성 상태를 알고 있다고 가정하거나 효과를 보장하지 않습니다.
+사용자가 편한 음역에서 익숙한 짧은 구절을 골라 시도할 수 있도록 안내합니다.
+음이름의 나열, 특정 곡의 가사, 음 하나를 몇 초씩 내라는 수치 예시는 쓰지 않습니다.
+레가토 연습이라면 짧은 구절 안에서 이웃한 음을 매끄럽게 연결합니다. 호흡이
+필요하면 구절을 더 짧게 나누고 구절 사이에서 숨을 쉽니다. 음표마다 끊어 부르는
+연습이나 포르타멘토·비브라토를 레가토 대신 제안하지 않습니다.
+요청한 기법과 관계없는 연습은 덧붙이지 않습니다. 편안한 범위에서 선택적으로
+해 볼 수 있는 방법으로 설명하며, 합니다체를 사용합니다. kind는 background,
+evidence는 []입니다. 악보의 알려지지 않은 사실을 만들어 내지 않습니다.
+/no_think
+"""
 
 
 class RenderedAnswer(str):

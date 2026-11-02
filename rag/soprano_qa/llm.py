@@ -11,7 +11,7 @@ import re
 import threading
 from typing import Any, Dict, List
 
-from soprano_qa.question_intent import explicit_general_intent
+from soprano_qa.question_intent import explicit_general_intent, concise_pitch_question
 from soprano_qa.meter import basic_meter_explanation
 
 from soprano_qa.security import (
@@ -25,11 +25,15 @@ from soprano_qa.structured_answer import (
     SOURCE_PRESERVATION_POLICY,
     SOURCE_SELECTION_POLICY,
     GENERAL_MUSIC_SYSTEM_PROMPT,
+    GENERAL_PRACTICE_SYSTEM_PROMPT,
+    GENERAL_PRACTICE_SYSTEM_PROMPT_KO,
+    concise_concept_system_prompt,
     GENERAL_MUSIC_FORMAT_POLICY,
     answer_schema,
     render_structured_answer,
 )
 from soprano_qa.source_translation import translate_source_parts
+from soprano_qa.source_comparison import opening_dynamics_comparison
 
 
 _INFERENCE_LOCK = threading.Lock()
@@ -141,6 +145,7 @@ def generate(
             raise ValueError("A guarded answer must use its own application schema")
         completion_options["response_format"] = {"type": "json_object", "schema": response_schema}
     separate_translation = False
+    reason_general = False
     if security_context is not None:
         if not messages or messages[0].get("role") != "system":
             raise SecurityViolation()
@@ -183,16 +188,36 @@ def generate(
         if selected_context is not security_context:
             security_context = selected_context
             messages = [messages[0], {"role": "user", "content": serialize_untrusted(security_context)}]
+        compared = opening_dynamics_comparison(security_context) if preserve_sources else None
+        if compared is not None:
+            context = {k: v for k, v in security_context.items()
+                       if k not in ("source_preservation", "separate_source_translation")}
+            context["source_synthesis"] = True
+            screen_generated_answer(compared, context)
+            semantic_guard(model_path, llm_settings,
+                           {**context, "draft": str(compared), "composition": list(compared.parts)},
+                           stage="output", generate_fn=generate)
+            compared.generation_mode = "llm_guarded_source_comparison"
+            return compared
         if preserve_sources:
             security_context = {**security_context, "source_preservation": True}
             separate_translation = (security_context.get("answer_language") == "en"
                                     and llm_settings.get("evidence_translation") in {"segmented", "reviewed_catalog"})
             if separate_translation:
                 security_context["separate_source_translation"] = True
-            messages = [messages[0], {"role": "user", "content": serialize_untrusted(security_context)}]
+        messages = [messages[0], {"role": "user", "content": serialize_untrusted(security_context)}]
         general_only = not any(r.get("citation_label") for r in security_context.get("Retrieved evidence", []))
         if general_only:
-            messages = [{"role": "system", "content": GENERAL_MUSIC_SYSTEM_PROMPT + "\n" + SECURITY_SYSTEM_POLICY},
+            general_policy = GENERAL_PRACTICE_SYSTEM_PROMPT if general_intent == "practice" else GENERAL_MUSIC_SYSTEM_PROMPT
+            if general_intent == "practice" and security_context.get("answer_language", "ko") == "ko":
+                general_policy = GENERAL_PRACTICE_SYSTEM_PROMPT_KO
+            reason_general = general_intent != "practice" and concise_pitch_question(security_context)
+            if reason_general:
+                general_policy = concise_concept_system_prompt(security_context.get("answer_language", "ko"))
+                view = {"question": security_context["question"],
+                        "answer_language": security_context.get("answer_language", "ko")}
+                messages[1] = {"role": "user", "content": serialize_untrusted(view)}
+            messages = [{"role": "system", "content": general_policy + "\n" + SECURITY_SYSTEM_POLICY},
                         *messages[1:]]
         # Citation IDs are selected by the model in constrained data, then
         # rendered by application code and verified against the cited text.
@@ -207,9 +232,16 @@ def generate(
              + "\n" + messages[0]["content"]},
             *messages[1:],
         ]
-        completion_options["response_format"] = {
-            "type": "json_object", "schema": answer_schema(security_context),
-        }
+        if reason_general:
+            # A JSON grammar forces the first token and suppresses Qwen's
+            # reasoning. General pitch operations need that reasoning to keep
+            # pitch, register, key and enharmonic spelling distinct. The final
+            # JSON still passes the same strict parser and all output checks.
+            messages[0]["content"] += "\n/think"
+        else:
+            completion_options["response_format"] = {
+                "type": "json_object", "schema": answer_schema(security_context),
+            }
     # A denied output may receive one new composition under the same policy.
     # Admission denials, malformed verdicts, unsafe text and backend failures
     # never enter this path. A replacement still needs every normal check.
@@ -226,7 +258,7 @@ def generate(
                 messages=messages,
                 temperature=float(llm_settings.get("temperature", 0.0)),
                 top_p=float(llm_settings.get("top_p", 0.8)),
-                max_tokens=int(llm_settings.get("max_tokens", 768)),
+                max_tokens=1536 if reason_general else int(llm_settings.get("max_tokens", 768)),
                 **completion_options,
             )
         answer = strip_thinking(response["choices"][0]["message"]["content"])
@@ -259,14 +291,24 @@ def generate(
                 security_context.pop("separate_source_translation", None)
                 separate_translation = False
                 general_only = True
+                reason_general = concise_pitch_question(security_context)
+                general_policy = (concise_concept_system_prompt(security_context.get("answer_language", "ko"))
+                                  if reason_general else GENERAL_MUSIC_SYSTEM_PROMPT)
+                view = ({"question": security_context["question"],
+                         "answer_language": security_context.get("answer_language", "ko")}
+                        if reason_general else security_context)
                 messages = [
                     {"role": "system", "content": GENERAL_MUSIC_FORMAT_POLICY + "\n"
-                     + GENERAL_MUSIC_SYSTEM_PROMPT + "\n" + SECURITY_SYSTEM_POLICY},
-                    {"role": "user", "content": serialize_untrusted(security_context)},
+                     + general_policy + "\n" + SECURITY_SYSTEM_POLICY
+                     + ("\n/think" if reason_general else "")},
+                    {"role": "user", "content": serialize_untrusted(view)},
                 ]
-                completion_options["response_format"] = {
-                    "type": "json_object", "schema": answer_schema(security_context),
-                }
+                if reason_general:
+                    completion_options.pop("response_format", None)
+                else:
+                    completion_options["response_format"] = {
+                        "type": "json_object", "schema": answer_schema(security_context),
+                    }
             messages = [
                 {**messages[0], "content": messages[0]["content"] + "\n"
                  "The previous composition did not pass review. Compose a new answer "

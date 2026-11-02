@@ -23,7 +23,9 @@ _PRACTICE_LOCAL = re.compile(
 )
 _PRACTICE = re.compile(
     r"(?:연습|훈련|학습|익히|배우)[가-힣]*\s*때.*(?:어떤|무엇|어떻게)|"
-    r"\b(?:when|while)\s+(?:practi[cs]ing|learning|studying|rehearsing)\b",
+    r"\b(?:when|while)\s+(?:practi[cs]ing|learning|studying|rehearsing)\b|"
+    r"(?:일반적(?:인|으로)|기본적인).{0,60}(?:연습|훈련|워밍업)|"
+    r"\bgeneral\b[^?.!]{0,100}\b(?:exercises?|practice|warm[- ]?ups?|routines?|drills?)\b",
     re.IGNORECASE,
 )
 _UNIVERSAL = re.compile(r"항상|언제나|\balways\b", re.IGNORECASE)
@@ -33,6 +35,18 @@ _GENERAL = re.compile(
     r"\bin general\b|\bwhat (?:is|are)\b|\bdoes\b.*\bmean\b|\bthe same as\b",
     re.IGNORECASE,
 )
+
+
+def concise_pitch_question(payload: dict[str, Any]) -> bool:
+    """Choose concise explanation style only after source selection is empty.
+
+    This is not an admission, relevance, score-fact or answerability decision.
+    Context needed for local facts must not be discarded by this style route.
+    """
+    return (payload.get("measure_range") in (None, "", "(none selected)")
+            and not payload.get("Score context")
+            and bool(re.search(r"조옮김|이조|옥타브|이명동음|\b(?:transpos\w*|octaves?|enharmonic\w*)\b",
+                               payload.get("question", ""), re.I)))
 
 
 def explicit_general_intent(payload: dict[str, Any]) -> str | None:
@@ -61,6 +75,8 @@ def explicit_general_intent(payload: dict[str, Any]) -> str | None:
     if any(isinstance(name, str) and len(compact(name)) >= 3 and compact(name) in compact(question)
            for name in names):
         return None
+    if _PRACTICE.search(question) and not _PRACTICE_LOCAL.search(question):
+        return "practice"
     if not _LOCAL.search(question):
         if _UNIVERSAL.search(question):
             return "universal"
@@ -72,9 +88,7 @@ def explicit_general_intent(payload: dict[str, Any]) -> str | None:
     # referring to the selected score's words. Keep local/causal questions and
     # directly matching source questions on the evidence path. Work titles are
     # read from this bundle, not a maintained list of benchmark pieces.
-    if not _PRACTICE.search(question) or _PRACTICE_LOCAL.search(question):
-        return None
-    return "practice"
+    return None
 
 
 def is_explicit_general_question(payload: dict[str, Any]) -> bool:

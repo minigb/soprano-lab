@@ -722,6 +722,9 @@ function renderQAItem(question, result) {
   } else if (result.answer_basis === "score_context_with_background") {
     modeLabel = "Lyrics + general explanation";
     modeClass = "mode-llm";
+  } else if (result.generation_mode === "llm_guarded_source_comparison") {
+    modeLabel = "Source comparison";
+    modeClass = "mode-llm";
   } else if (result.generation_mode === "llm") {
     modeLabel = "LLM · corpus-grounded";
     modeClass = "mode-llm";
