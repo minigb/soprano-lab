@@ -1,16 +1,22 @@
-# Soprano Lab (static snapshot)
+# Soprano Lab (web demo)
 
-A static copy of the Soprano Lab demo, meant to be served at
-`minhee.io/soprano-lab` (copied into the personal website's
-`public/soprano-lab/`). It shows five soprano works with a scrollable score,
-synchronized audio, and measure-range selection, and it answers the 25 sample
-questions with answers precomputed by the full system.
+The Soprano Lab demo as static files, published by GitHub Pages and also
+meant to be served at `minhee.io/soprano-lab` (copied into the personal
+website's `public/soprano-lab/`). It shows five soprano works with a
+scrollable score, synchronized audio, and measure-range selection.
 
-The full demo (`../demo/`) sends questions to a measure-aware RAG
-pipeline and a local Qwen3-14B model. This snapshot runs no model: asking a
-sample question with its listed range (or the whole piece) loads the saved
-response and renders it exactly as the live app does. Any other question or
-range shows a notice instead.
+Questions are answered live by the API named in `index.html`
+(`<meta name="soprano-lab-api" content="…">`): `../demo/server.py` with the
+measure-aware RAG pipeline, deployed to Cloud Run with Gemini on Vertex AI
+writing single-pass answers instead of the local Qwen3-14B
+([`../deploy/cloudrun/`](../deploy/cloudrun/)). Each answer is labeled with
+the model that wrote it.
+
+The page also keeps the 25 sample questions' answers precomputed by the full
+local system (Qwen3-14B). They are shown when the meta tag is empty, or when
+the API is unreachable, rate-limited or out of quota; asking a sample
+question with its listed range (or the whole piece) then loads the saved
+response and renders it exactly as the live app does.
 
 Lyrics shown beside answers are LLM-assisted transcriptions of the scores. Expert
 evidence is shown in English translation, with the Korean original available;
@@ -31,7 +37,7 @@ All URLs are relative, so the site works under `/soprano-lab/` or any other
 path prefix.
 
 ```text
-index.html, app.js, styles.css     frontend (copied from demo/static)
+index.html, app.js, styles.css     frontend (adapted from demo/static)
 api/pieces.json                    GET /api/pieces
 api/pieces/<id>/score.json         GET /api/pieces/<id>/score
 api/pieces/<id>/alignment.json     GET /api/pieces/<id>/alignment
@@ -44,9 +50,10 @@ tools/export.py                    regenerates api/, media/ and answers/
 ```
 
 Changes from the live frontend are limited to `app.js` (a relative data base
-path, `.json` suffixes for API GETs, answering from `answers/`, and reserving
-each score image's size before it loads),
-relative asset links and a short note in `index.html`, and the note's style in
+path, `.json` suffixes for API GETs, asking the configured API with a
+fallback to `answers/`, a tag naming the answer's model, and reserving each
+score image's size before it loads), relative asset links, the API meta tag
+and a short note in `index.html`, and the note's and tags' styles in
 `styles.css`.
 
 ## Regenerating

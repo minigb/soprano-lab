@@ -432,6 +432,8 @@ html, body {
 .tag.pipeline { color: #1c4586; border-color: #b9c8e1; background: #e8eef7; }
 .tag.answer-piece { color: #335d47; border-color: #bdd7c8; background: #edf7f1; }
 .tag.mode-score { color: #0f5e66; border-color: #a9dbe0; background: #e9f8fa; }
+.tag.model-live { color: #5b3a8c; border-color: #d3c4ea; background: #f4effb; }
+.tag.model-saved { color: #6b7280; }
 .tag.language { color: #6b7280; }
 
 .qa-answer {

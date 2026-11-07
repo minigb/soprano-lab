@@ -52,6 +52,18 @@ const ONLINE_ONLY_SAMPLES_NOTICE =
   "This online version answers the sample questions only. Free-form questions " +
   "need the full system, which runs a local LLM.";
 
+// Live answers come from the Soprano Lab API (demo/server.py with the Gemini
+// backend) named in index.html's <meta name="soprano-lab-api">. Without it,
+// or while the API is unavailable, the sample questions fall back to the
+// answers precomputed with the paper's local Qwen3-14B pipeline.
+const API_BASE = (
+  (document.querySelector('meta[name="soprano-lab-api"]') || {}).content || ""
+)
+  .trim()
+  .replace(/\/+$/, "");
+const SLOW_ANSWER_NOTICE_MS = 10000;
+const LIVE_UNAVAILABLE_NOTICE = "The live model is unavailable right now.";
+
 function dataUrl(path) {
   return DATA_BASE + path.replace(/^\//, "");
 }
@@ -692,6 +704,29 @@ function renderScoreContext(scoreContext) {
   return box;
 }
 
+function answerWasWithheld(result) {
+  const reason = result.unavailable_reason || "";
+  return result.answer_basis === "no_corpus_evidence" && (
+    reason.startsWith("security_") ||
+    reason.startsWith("unsafe_") ||
+    ["answer_validation_failed", "forbidden_internal_metadata",
+      "prompt_injection_detected", "invalid_question", "question_too_long"].includes(reason)
+  );
+}
+
+// Which model wrote the answer: the live API reports its model, and saved
+// answers were made with the paper's local Qwen3-14B.
+function answerModelTag(result) {
+  const model = result.model || {};
+  if (model.backend === "vertex_gemini" && model.model) {
+    return makeTag(`Live · ${model.model}`, "model-live");
+  }
+  if (result.precomputed) {
+    return makeTag("Precomputed · Qwen3-14B", "model-saved");
+  }
+  return null;
+}
+
 function renderQAItem(question, result) {
   const item = document.createElement("div");
   item.className = "qa-item";
@@ -706,6 +741,7 @@ function renderQAItem(question, result) {
   const usesInternalKnowledge = result.answer_basis === "internal_knowledge";
   const generationUnavailable = result.answer_basis === "generation_unavailable";
   const noCorpusEvidence = result.answer_basis === "no_corpus_evidence";
+  const answerWithheld = answerWasWithheld(result);
   const scoreContextOnly = result.answer_basis === "score_context";
   let modeLabel = "Retrieval (extractive)";
   let modeClass = "mode-extractive";
@@ -719,8 +755,33 @@ function renderQAItem(question, result) {
     modeLabel = "Score lyrics only";
     modeClass = "mode-score";
   } else if (noCorpusEvidence) {
-    modeLabel = "No corpus match";
+    modeLabel = answerWithheld ? "Answer unavailable" : "No corpus match";
     modeClass = "mode-unavailable";
+  } else if (["general_music_knowledge", "calculated_music_knowledge"].includes(result.answer_basis)) {
+    modeLabel = "General music explanation";
+    modeClass = "mode-llm";
+  } else if (result.answer_basis === "retrieved_evidence_with_background") {
+    modeLabel = "Sources + general explanation";
+    modeClass = "mode-llm";
+  } else if (result.answer_basis === "score_context_with_background") {
+    modeLabel = "Lyrics + general explanation";
+    modeClass = "mode-llm";
+  } else if (result.answer_basis === "service_scope") {
+    // Single-pass writer: the question was outside singing and music.
+    modeLabel = "Outside music scope";
+    modeClass = "mode-unavailable";
+  } else if (result.answer_basis === "service_status") {
+    // Single-pass writer: the model returned no usable text.
+    modeLabel = "Answer unavailable";
+    modeClass = "mode-unavailable";
+  } else if (result.generation_mode === "llm_single_pass") {
+    // One answer call over the retrieved sources, without the reviewed
+    // pipeline's separate answer checks.
+    modeLabel = "LLM · with sources";
+    modeClass = "mode-llm";
+  } else if (result.generation_mode === "llm_guarded_source_comparison") {
+    modeLabel = "Source comparison";
+    modeClass = "mode-llm";
   } else if (result.generation_mode === "llm") {
     modeLabel = "LLM · corpus-grounded";
     modeClass = "mode-llm";
@@ -729,11 +790,17 @@ function renderQAItem(question, result) {
     modeLabel,
     modeClass
   );
-  if (result.generation_fallback_reason) {
+  if (answerWithheld) {
+    modeTag.title = "Could not produce a verified answer.";
+  } else if (result.generation_fallback_reason) {
     modeTag.title = result.generation_fallback_reason;
   }
   meta.appendChild(modeTag);
   meta.appendChild(makeTag("Soprano QA pipeline", "pipeline"));
+  const modelTag = answerModelTag(result);
+  if (modelTag) {
+    meta.appendChild(modelTag);
+  }
   const answerPiece = state.pieces.find((piece) => piece.id === result.piece_id);
   meta.appendChild(
     makeTag(answerPiece ? answerPiece.title : result.piece_id, "answer-piece")
@@ -793,7 +860,9 @@ function renderQAItem(question, result) {
     const isWebCoaching = ev.evidence_type === "web_coaching";
     if (isWebCoaching) evEl.classList.add("web-coaching");
     const kindLabel =
-      ev.kind === "expert"
+      ev.kind === "sumijo"
+        ? "Professional Soprano"
+        : ev.kind === "expert"
         ? "Expert annotation"
         : isWebCoaching
         ? WEB_COACHING_LABEL
@@ -951,23 +1020,41 @@ async function askQuestion() {
     measureRange = state.range;
   }
 
-  // Static snapshot: only the sample questions have (precomputed) answers.
-  let saved;
-  try {
-    saved = await findSavedAnswer(state.currentPieceId, question, measureRange);
-  } catch (err) {
-    el.askStatus.textContent = "Something went wrong: " + err.message;
-    return;
-  }
-  if (!saved) {
-    el.askStatus.textContent = ONLINE_ONLY_SAMPLES_NOTICE;
-    return;
-  }
   el.askBtn.disabled = true;
-  el.askStatus.textContent = "Loading the saved answer…";
+  let liveError = null;
   try {
+    if (API_BASE) {
+      try {
+        const result = await askLive(question, measureRange);
+        el.askStatus.textContent = "";
+        renderQAItem(question, result);
+        el.question.value = "";
+        return;
+      } catch (err) {
+        if (!err.liveUnavailable) {
+          throw err;
+        }
+        liveError = err;
+      }
+    }
+    // Only the sample questions have precomputed answers.
+    const saved = await findSavedAnswer(
+      state.currentPieceId,
+      question,
+      measureRange
+    );
+    if (!saved) {
+      el.askStatus.textContent = liveError
+        ? liveError.message
+        : ONLINE_ONLY_SAMPLES_NOTICE;
+      return;
+    }
+    el.askStatus.textContent = "Loading the saved answer…";
     const result = await fetchJSON(dataUrl(saved.file));
-    el.askStatus.textContent = "";
+    result.precomputed = true;
+    el.askStatus.textContent = liveError
+      ? `${liveError.message} Showing the answer precomputed with Qwen3-14B instead.`
+      : "";
     renderQAItem(question, result);
     el.question.value = "";
   } catch (err) {
@@ -975,6 +1062,58 @@ async function askQuestion() {
   } finally {
     el.askBtn.disabled = false;
   }
+}
+
+// POST the question to the live API. Errors that mean "the live model cannot
+// answer now" (unreachable, rate or quota limits, server errors) are marked
+// liveUnavailable so the caller can fall back to a saved answer; request
+// errors (4xx) are shown as they are.
+async function askLive(question, measureRange) {
+  el.askStatus.textContent = "Thinking…";
+  const slowNotice = setTimeout(() => {
+    el.askStatus.textContent =
+      "Still thinking… After a quiet spell the first question also starts " +
+      "the server, which can take up to a minute.";
+  }, SLOW_ANSWER_NOTICE_MS);
+  let res;
+  try {
+    res = await fetch(API_BASE + "/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // "language" is omitted: the server infers it from the question
+      // (Hangul -> Korean, otherwise English).
+      body: JSON.stringify({
+        piece_id: state.currentPieceId,
+        question,
+        measure_range: measureRange,
+        generate: true,
+      }),
+    });
+  } catch (_) {
+    throw Object.assign(new Error(LIVE_UNAVAILABLE_NOTICE), {
+      liveUnavailable: true,
+    });
+  } finally {
+    clearTimeout(slowNotice);
+  }
+  if (res.ok) {
+    return res.json();
+  }
+  let message = "";
+  try {
+    message = (await res.json()).error || "";
+  } catch (_) {
+    /* ignore */
+  }
+  const unavailable = res.status === 429 || res.status >= 500;
+  // 429 and 503 carry messages written for visitors; other server errors
+  // do not.
+  if (unavailable && res.status !== 429 && res.status !== 503) {
+    message = LIVE_UNAVAILABLE_NOTICE;
+  }
+  throw Object.assign(new Error(message || res.statusText || LIVE_UNAVAILABLE_NOTICE), {
+    liveUnavailable: unavailable,
+  });
 }
 
 let savedAnswerIndex = null;
@@ -1000,6 +1139,13 @@ async function findSavedAnswer(pieceId, question, measureRange) {
 }
 
 el.askBtn.addEventListener("click", askQuestion);
+
+if (API_BASE) {
+  // Wake a scaled-to-zero API host while the visitor reads the score.
+  fetch(API_BASE + "/api/health").catch(() => {});
+} else {
+  el.question.placeholder = "Pick a sample question below, then press Ask.";
+}
 
 // Example questions (English; Korean questions work the same way). Range
 // examples switch the scope to the selected measures when a range exists.
