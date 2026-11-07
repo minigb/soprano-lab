@@ -7,15 +7,34 @@ and the merged measure-aware RAG plus local-LLM question pipeline.
 
 Usage:
     python3 server.py --host 127.0.0.1 --port 8765
+
+Hosting the API for the static page (docs/) on another origin is configured
+through environment variables, all off by default:
+
+SOPRANO_LAB_ALLOWED_ORIGINS  comma-separated origins allowed by CORS,
+                             e.g. https://minigb.github.io
+SOPRANO_LAB_ASK_LIMIT        per-client question limit as COUNT/SECONDS,
+                             e.g. 6/600
+SOPRANO_LAB_DAILY_ASK_LIMIT  questions answered per rolling 24 hours
+SOPRANO_LAB_TRUST_PROXY      1 to take the client address from the last
+                             X-Forwarded-For entry (Cloud Run, other proxies)
+SOPRANO_LAB_WARMUP           1 to build the retrieval index before listening,
+                             so a host that throttles CPU between requests
+                             (Cloud Run) warms up during startup instead of
+                             during the first question
 """
 from __future__ import annotations
 
 import argparse
+import collections
 import inspect
 import json
 import mimetypes
+import os
 import re
 import sys
+import threading
+import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -53,6 +72,87 @@ def pipeline_accepts_language(ask_callable) -> bool:
     return False
 
 
+MAX_ASK_BODY_BYTES = 64 * 1024
+
+
+def _allowed_origins() -> frozenset:
+    raw = os.environ.get("SOPRANO_LAB_ALLOWED_ORIGINS", "")
+    return frozenset(
+        origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()
+    )
+
+
+def _parse_rate(value: str):
+    """Parse "COUNT/SECONDS" into (count, seconds); None when unset."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    count, _, seconds = value.partition("/")
+    return int(count), float(seconds or 60)
+
+
+class AskLimiter:
+    """Sliding-window limits on answered questions, per client and overall.
+
+    State is per process; deploy a single instance for exact limits.
+    """
+
+    def __init__(self, per_client=None, daily=None, clock=time.monotonic):
+        self.per_client = per_client
+        self.daily = daily
+        self.clock = clock
+        self._lock = threading.Lock()
+        self._clients: dict = {}
+        self._all: collections.deque = collections.deque()
+
+    @classmethod
+    def from_env(cls):
+        daily = os.environ.get("SOPRANO_LAB_DAILY_ASK_LIMIT", "").strip()
+        return cls(
+            per_client=_parse_rate(os.environ.get("SOPRANO_LAB_ASK_LIMIT", "")),
+            daily=int(daily) if daily else None,
+        )
+
+    @staticmethod
+    def _expire(times, horizon):
+        while times and times[0] <= horizon:
+            times.popleft()
+
+    def acquire(self, client: str):
+        """Record one question, or return (scope, seconds to wait) when a
+        limit is reached; scope is "client" or "daily"."""
+        if not self.per_client and not self.daily:
+            return None
+        now = self.clock()
+        with self._lock:
+            if self.daily:
+                self._expire(self._all, now - 86400)
+                if len(self._all) >= self.daily:
+                    return ("daily", self._all[0] + 86400 - now)
+            if self.per_client:
+                count, window = self.per_client
+                times = self._clients.setdefault(client, collections.deque())
+                self._expire(times, now - window)
+                if len(times) >= count:
+                    return ("client", times[0] + window - now)
+                times.append(now)
+                # Drop idle clients so the table stays small.
+                if len(self._clients) > 10000:
+                    for key in [k for k, v in self._clients.items() if not v]:
+                        del self._clients[key]
+            if self.daily:
+                self._all.append(now)
+        return None
+
+
+ASK_LIMITER = AskLimiter.from_env()
+
+
+REMOTE_MODEL_UNAVAILABLE = (
+    "The live model could not answer right now. Please try again in a moment."
+)
+
+
 def _json_bytes(payload) -> bytes:
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
@@ -64,11 +164,33 @@ class Handler(BaseHTTPRequestHandler):
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
     # -- helpers ---------------------------------------------------------
-    def _send_json(self, payload, status=200):
+    def end_headers(self):
+        self._send_cors_headers()
+        super().end_headers()
+
+    def _send_cors_headers(self):
+        # send_error() can run before the request headers were parsed.
+        headers = getattr(self, "headers", None)
+        origin = ((headers and headers.get("Origin")) or "").rstrip("/")
+        if origin and origin in _allowed_origins():
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+
+    def _client_address(self) -> str:
+        if os.environ.get("SOPRANO_LAB_TRUST_PROXY") == "1":
+            forwarded = self.headers.get("X-Forwarded-For", "")
+            entries = [e.strip() for e in forwarded.split(",") if e.strip()]
+            if entries:
+                return entries[-1]
+        return self.client_address[0]
+
+    def _send_json(self, payload, status=200, headers=None):
         body = _json_bytes(payload)
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
@@ -147,6 +269,11 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith("/static/"):
                 self._serve_static(path[len("/static/") :])
                 return
+            if path == "/api/health":
+                # Cheap liveness check; the static page calls it to wake a
+                # scaled-to-zero host before the first question.
+                self._send_json({"ok": True, "model": qa.model_status()})
+                return
             if path == "/api/pieces":
                 self._send_json({"pieces": dataset.list_pieces()})
                 return
@@ -201,6 +328,16 @@ class Handler(BaseHTTPRequestHandler):
         content_type = mimetypes.guess_type(str(candidate))[0] or "application/octet-stream"
         self._send_file(candidate, content_type)
 
+    def do_OPTIONS(self):
+        # CORS preflight for POST /api/ask with a JSON body.
+        self.send_response(204)
+        if (self.headers.get("Origin") or "").rstrip("/") in _allowed_origins():
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self.send_header("Access-Control-Max-Age", "86400")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_POST(self):
         try:
             path = urlsplit(self.path).path
@@ -210,12 +347,22 @@ class Handler(BaseHTTPRequestHandler):
             self._send_error_json(404, "not found")
         except qa.BACKEND_UNAVAILABLE_ERRORS as exc:
             self._send_error_json(503, str(exc))
+        except qa.REMOTE_MODEL_ERRORS:
+            traceback.print_exc()
+            self._send_error_json(503, REMOTE_MODEL_UNAVAILABLE)
         except Exception:
             traceback.print_exc()
             self._send_error_json(500, "internal error")
 
     def _handle_ask(self):
-        length = int(self.headers.get("Content-Length", "0"))
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            self._send_error_json(400, "invalid Content-Length")
+            return
+        if length < 0 or length > MAX_ASK_BODY_BYTES:
+            self._send_error_json(413, "request body too large")
+            return
         raw = self.rfile.read(length) if length else b"{}"
         try:
             body = json.loads(raw.decode("utf-8"))
@@ -289,6 +436,23 @@ class Handler(BaseHTTPRequestHandler):
             self._send_error_json(400, str(exc))
             return
 
+        limited = ASK_LIMITER.acquire(self._client_address())
+        if limited:
+            scope, wait = limited
+            message = (
+                "The live demo has reached its daily question limit. "
+                "Please try again later."
+                if scope == "daily"
+                else "Too many questions in a short time. "
+                "Please wait a few minutes and try again."
+            )
+            self._send_json(
+                {"error": message, "retry_after": int(wait) + 1},
+                status=429,
+                headers={"Retry-After": str(int(wait) + 1)},
+            )
+            return
+
         ask_kwargs = {
             "piece_id": piece_id,
             "question": question,
@@ -302,7 +466,7 @@ class Handler(BaseHTTPRequestHandler):
             result = qa.ask(**ask_kwargs)
         except qa.GeneratedAnswerRejected as exc:
             self._send_error_json(
-                502, f"the local model returned no usable grounded answer: {exc}"
+                502, f"the model returned no usable grounded answer: {exc}"
             )
             return
         if isinstance(result, dict):
@@ -320,12 +484,25 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json(result)
 
 
+def _warm_up():
+    """Validate the corpus and load the retrieval index before a question."""
+    started = time.monotonic()
+    try:
+        qa.corpus_stats()
+    except Exception:
+        traceback.print_exc()
+        return
+    print(f"Retrieval index ready in {time.monotonic() - started:.1f} s", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
 
+    if os.environ.get("SOPRANO_LAB_WARMUP") == "1":
+        _warm_up()
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Soprano Lab listening on http://{args.host}:{args.port}")
     try:

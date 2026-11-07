@@ -1,0 +1,198 @@
+"""Settings for serving the API to the static page on another origin."""
+from __future__ import annotations
+
+import json
+import os
+import threading
+import unittest
+from unittest import mock
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+import server
+from server import AskLimiter, Handler, ThreadingHTTPServer
+
+PAGES_ORIGIN = "https://minigb.github.io"
+ANSWER = {"answer": "ok", "evidence": [], "language": "ko"}
+
+
+class QuietHandler(Handler):
+    def log_message(self, fmt, *args) -> None:
+        pass
+
+
+class AskLimiterTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.now = 1000.0
+        self.clock = lambda: self.now
+
+    def test_unset_limits_allow_everything(self) -> None:
+        limiter = AskLimiter(clock=self.clock)
+        for _ in range(100):
+            self.assertIsNone(limiter.acquire("a"))
+
+    def test_per_client_window(self) -> None:
+        limiter = AskLimiter(per_client=(2, 60), clock=self.clock)
+        self.assertIsNone(limiter.acquire("a"))
+        self.assertIsNone(limiter.acquire("a"))
+        scope, wait = limiter.acquire("a")
+        self.assertEqual(scope, "client")
+        self.assertAlmostEqual(wait, 60)
+        self.assertIsNone(limiter.acquire("b"))
+        self.now += 61
+        self.assertIsNone(limiter.acquire("a"))
+
+    def test_daily_limit_is_shared(self) -> None:
+        limiter = AskLimiter(daily=2, clock=self.clock)
+        self.assertIsNone(limiter.acquire("a"))
+        self.assertIsNone(limiter.acquire("b"))
+        self.assertEqual(limiter.acquire("c")[0], "daily")
+        self.now += 86401
+        self.assertIsNone(limiter.acquire("c"))
+
+    def test_rate_parsing(self) -> None:
+        self.assertEqual(server._parse_rate("6/600"), (6, 600.0))
+        self.assertIsNone(server._parse_rate(""))
+
+
+class HostingHttpTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), QuietHandler)
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        host, port = cls.server.server_address
+        cls.base_url = f"http://{host}:{port}"
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.server.shutdown()
+        cls.server.server_close()
+        cls.thread.join(timeout=5)
+
+    def setUp(self) -> None:
+        env = mock.patch.dict(
+            os.environ, {"SOPRANO_LAB_ALLOWED_ORIGINS": PAGES_ORIGIN + "/"}
+        )
+        env.start()
+        self.addCleanup(env.stop)
+
+    def request(self, method, path, body=None, headers=None):
+        request = Request(
+            self.base_url + path,
+            data=body,
+            headers={"Content-Type": "application/json", **(headers or {})},
+            method=method,
+        )
+        try:
+            with urlopen(request, timeout=10) as response:
+                raw = response.read()
+                return response.status, response.headers, raw
+        except HTTPError as exc:
+            return exc.code, exc.headers, exc.read()
+
+    def ask(self, origin=PAGES_ORIGIN, **overrides):
+        body = {"piece_id": "die-forelle", "question": "어떻게 부르나요?", **overrides}
+        return self.request(
+            "POST", "/api/ask", json.dumps(body).encode("utf-8"), {"Origin": origin}
+        )
+
+    def test_allowed_origin_gets_cors_headers(self) -> None:
+        with mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)):
+            status, headers, _ = self.ask()
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Access-Control-Allow-Origin"], PAGES_ORIGIN)
+
+    def test_other_origins_get_no_cors_headers(self) -> None:
+        with mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)):
+            _, headers, _ = self.ask(origin="https://example.com")
+        self.assertIsNone(headers["Access-Control-Allow-Origin"])
+
+    def test_preflight(self) -> None:
+        status, headers, _ = self.request(
+            "OPTIONS", "/api/ask", headers={
+                "Origin": PAGES_ORIGIN,
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+        self.assertEqual(status, 204)
+        self.assertEqual(headers["Access-Control-Allow-Origin"], PAGES_ORIGIN)
+        self.assertIn("POST", headers["Access-Control-Allow-Methods"])
+        self.assertIn("Content-Type", headers["Access-Control-Allow-Headers"])
+
+    def test_rate_limited_questions_get_429(self) -> None:
+        limiter = AskLimiter(per_client=(1, 600))
+        with (
+            mock.patch.object(server, "ASK_LIMITER", limiter),
+            mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)) as ask,
+        ):
+            self.assertEqual(self.ask()[0], 200)
+            status, headers, raw = self.ask()
+        self.assertEqual(status, 429)
+        self.assertEqual(headers["Access-Control-Allow-Origin"], PAGES_ORIGIN)
+        self.assertTrue(int(headers["Retry-After"]) > 0)
+        self.assertIn("Too many questions", json.loads(raw)["error"])
+        self.assertEqual(ask.call_count, 1)
+
+    def test_invalid_requests_do_not_use_the_limit(self) -> None:
+        limiter = AskLimiter(per_client=(1, 600))
+        with mock.patch.object(server, "ASK_LIMITER", limiter):
+            self.assertEqual(self.ask(piece_id="nope")[0], 400)
+            with mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)):
+                self.assertEqual(self.ask()[0], 200)
+
+    def test_oversized_body_is_rejected(self) -> None:
+        body = b"{" + b" " * (server.MAX_ASK_BODY_BYTES + 1) + b"}"
+        with mock.patch.object(server.qa, "ask") as ask:
+            status, _, _ = self.request("POST", "/api/ask", body)
+        self.assertEqual(status, 413)
+        ask.assert_not_called()
+
+    def test_remote_model_failures_are_service_unavailable(self) -> None:
+        class RemoteFailure(RuntimeError):
+            pass
+
+        with (
+            mock.patch.object(server.qa, "REMOTE_MODEL_ERRORS", (RemoteFailure,)),
+            mock.patch.object(server.qa, "ask", side_effect=RemoteFailure("504")),
+            mock.patch.object(server.traceback, "print_exc"),
+        ):
+            status, headers, raw = self.ask()
+        self.assertEqual(status, 503)
+        self.assertEqual(json.loads(raw)["error"], server.REMOTE_MODEL_UNAVAILABLE)
+        self.assertEqual(headers["Access-Control-Allow-Origin"], PAGES_ORIGIN)
+
+    def test_health_reports_the_model(self) -> None:
+        status, headers, raw = self.request(
+            "GET", "/api/health", headers={"Origin": PAGES_ORIGIN}
+        )
+        self.assertEqual(status, 200)
+        payload = json.loads(raw)
+        self.assertTrue(payload["ok"])
+        self.assertIn("backend", payload["model"])
+        self.assertEqual(headers["Access-Control-Allow-Origin"], PAGES_ORIGIN)
+
+    def test_forwarded_client_address_needs_opt_in(self) -> None:
+        limiter = AskLimiter(per_client=(1, 600))
+        seen = []
+        original = limiter.acquire
+
+        def record(client):
+            seen.append(client)
+            return original(client)
+
+        limiter.acquire = record
+        forwarded = {"X-Forwarded-For": "1.2.3.4, 5.6.7.8"}
+        body = json.dumps({"piece_id": "die-forelle", "question": "어떻게 부르나요?"})
+        with (
+            mock.patch.object(server, "ASK_LIMITER", limiter),
+            mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)),
+        ):
+            self.request("POST", "/api/ask", body.encode(), forwarded)
+            with mock.patch.dict(os.environ, {"SOPRANO_LAB_TRUST_PROXY": "1"}):
+                self.request("POST", "/api/ask", body.encode(), forwarded)
+        self.assertEqual(seen, ["127.0.0.1", "5.6.7.8"])
+
+
+if __name__ == "__main__":
+    unittest.main()

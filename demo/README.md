@@ -89,6 +89,17 @@ Restart the server after changing demo or RAG Python code, settings, or model
 configuration. Dataset evidence changes are detected and reloaded
 automatically.
 
+## Serving the web page's live API
+
+The static page in `../docs/` asks this server for answers from another
+origin. Its CORS origins, per-visitor and daily question limits, proxy
+handling and startup warm-up are set with `SOPRANO_LAB_*` environment
+variables (listed at the top of `server.py`), and `GET /api/health` wakes a
+scaled-to-zero host. Failures of a remote answer model (Vertex Gemini) are
+reported as 503 with a short retry message.
+[`../deploy/cloudrun/`](../deploy/cloudrun/) deploys it with the RAG
+pipeline's web settings (`config/settings.web.json`).
+
 ## Test
 
 From `demo/`:

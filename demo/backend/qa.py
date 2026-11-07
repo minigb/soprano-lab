@@ -1,6 +1,7 @@
 """Thin adapter to the sibling Soprano QA pipeline repository."""
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 from pathlib import Path
@@ -51,7 +52,29 @@ BACKEND_UNAVAILABLE_ERRORS = (
     GenerationBackendUnavailable,
 )
 
+
+def _optional_error(module: str, name: str):
+    try:
+        return getattr(importlib.import_module(module), name)
+    except (ImportError, AttributeError):
+        return None
+
+
+# Failures of a remote answer model (Vertex Gemini: provider errors, timeouts,
+# incomplete answers). Pipelines without a remote writer define none, and an
+# empty tuple matches nothing.
+REMOTE_MODEL_ERRORS = tuple(
+    error
+    for error in (
+        _optional_error("soprano_qa.vertex_gemini", "VertexGenerationError"),
+        _optional_error("google.genai.errors", "APIError"),
+        _optional_error("httpx", "TimeoutException"),
+    )
+    if error is not None
+)
+
 __all__ = [
+    "REMOTE_MODEL_ERRORS",
     "BACKEND_UNAVAILABLE_ERRORS",
     "GeneratedAnswerRejected",
     "PIPELINE_ROOT",
