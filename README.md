@@ -7,7 +7,8 @@ commentary, with web and lesson-video coaching evidence labeled separately.
 
 Paper: “Soprano Lab: Measure-Aware Question Answering over Expert
 Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).
-Static demo: <https://minigb.github.io/soprano-lab/>.
+Web demo: <https://minigb.github.io/soprano-lab/> (live answers written by
+Gemini on Vertex AI; see [`deploy/cloudrun/`](deploy/cloudrun/)).
 
 ## Layout
 
@@ -15,7 +16,8 @@ Static demo: <https://minigb.github.io/soprano-lab/>.
 | --- | --- |
 | [`rag/`](rag/) | Measure-aware retrieval and answer generation: hybrid BM25 + Qwen3-Embedding retrieval and a local Qwen3-14B answer model |
 | [`demo/`](demo/) | Live web demo: score, synchronized audio, measure selection, answers with cited evidence |
-| [`docs/`](docs/) | Static snapshot of the demo with precomputed answers, published by GitHub Pages |
+| [`docs/`](docs/) | The demo as static files, published by GitHub Pages; asks the live API, with precomputed answers as a fallback |
+| [`deploy/cloudrun/`](deploy/cloudrun/) | Builds and deploys `demo/` with the RAG pipeline to Cloud Run as that live API, writing answers with Gemini on Vertex AI |
 
 `rag/` and `demo/` are also their own repositories,
 [soprano-qa-rag-system](https://github.com/minigb/soprano-qa-rag-system) and
