@@ -18,10 +18,11 @@ SOPRANO_LAB_ASK_LIMIT        per-client question limit as COUNT/SECONDS,
 SOPRANO_LAB_DAILY_ASK_LIMIT  questions answered per rolling 24 hours
 SOPRANO_LAB_TRUST_PROXY      1 to take the client address from the last
                              X-Forwarded-For entry (Cloud Run, other proxies)
-SOPRANO_LAB_WARMUP           1 to build the retrieval index before listening,
-                             so a host that throttles CPU between requests
-                             (Cloud Run) warms up during startup instead of
-                             during the first question
+SOPRANO_LAB_WARMUP           1 to load the retrieval index in the background at
+                             startup; GET /api/health then waits (up to 2 min)
+                             until it is ready, so on a host that throttles CPU
+                             between requests (Cloud Run) the page's wake-up
+                             call keeps the CPU on while the index loads
 """
 from __future__ import annotations
 
@@ -73,6 +74,8 @@ def pipeline_accepts_language(ask_callable) -> bool:
 
 
 MAX_ASK_BODY_BYTES = 64 * 1024
+HEALTH_WARMUP_WAIT_SECONDS = 120
+WARMED_UP = threading.Event()
 
 
 def _allowed_origins() -> frozenset:
@@ -270,9 +273,16 @@ class Handler(BaseHTTPRequestHandler):
                 self._serve_static(path[len("/static/") :])
                 return
             if path == "/api/health":
-                # Cheap liveness check; the static page calls it to wake a
-                # scaled-to-zero host before the first question.
-                self._send_json({"ok": True, "model": qa.model_status()})
+                # The static page calls this on load to wake a scaled-to-zero
+                # host. With the startup warm-up on, it stays open until the
+                # index is loaded: a host that throttles CPU between requests
+                # then loads it now, not during the visitor's first question.
+                ready = True
+                if os.environ.get("SOPRANO_LAB_WARMUP") == "1":
+                    ready = WARMED_UP.wait(HEALTH_WARMUP_WAIT_SECONDS)
+                self._send_json(
+                    {"ok": True, "ready": ready, "model": qa.model_status()}
+                )
                 return
             if path == "/api/pieces":
                 self._send_json({"pieces": dataset.list_pieces()})
@@ -492,6 +502,7 @@ def _warm_up():
     except Exception:
         traceback.print_exc()
         return
+    WARMED_UP.set()
     print(f"Retrieval index ready in {time.monotonic() - started:.1f} s", flush=True)
 
 
@@ -501,10 +512,13 @@ def main():
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
 
-    if os.environ.get("SOPRANO_LAB_WARMUP") == "1":
-        _warm_up()
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"Soprano Lab listening on http://{args.host}:{args.port}")
+    print(f"Soprano Lab listening on http://{args.host}:{args.port}", flush=True)
+    # Listen first: a host such as Cloud Run drops requests that wait too
+    # long for a starting instance, while a question that reaches a running
+    # server just waits for the index.
+    if os.environ.get("SOPRANO_LAB_WARMUP") == "1":
+        threading.Thread(target=_warm_up, daemon=True).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

@@ -172,6 +172,22 @@ class HostingHttpTests(unittest.TestCase):
         self.assertIn("backend", payload["model"])
         self.assertEqual(headers["Access-Control-Allow-Origin"], PAGES_ORIGIN)
 
+    def test_health_waits_for_the_warm_up_when_enabled(self) -> None:
+        server.WARMED_UP.clear()
+        self.addCleanup(server.WARMED_UP.clear)
+        timer = threading.Timer(0.3, server.WARMED_UP.set)
+        with mock.patch.dict(os.environ, {"SOPRANO_LAB_WARMUP": "1"}):
+            timer.start()
+            status, _, raw = self.request("GET", "/api/health")
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(raw)["ready"])
+        with (
+            mock.patch.dict(os.environ, {"SOPRANO_LAB_WARMUP": "1"}),
+            mock.patch.object(server, "HEALTH_WARMUP_WAIT_SECONDS", 0.05),
+        ):
+            server.WARMED_UP.clear()
+            self.assertFalse(json.loads(self.request("GET", "/api/health")[2])["ready"])
+
     def test_forwarded_client_address_needs_opt_in(self) -> None:
         limiter = AskLimiter(per_client=(1, 600))
         seen = []

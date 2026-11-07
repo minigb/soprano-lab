@@ -75,10 +75,13 @@ Settings (environment variables of `deploy.sh`):
 inspection.
 
 The service runs with at most one instance (2 vCPU, 4 GiB), scales to zero
-when idle, and is woken by the page's `/api/health` call. A new instance loads
-the embedding model and index before it listens (`SOPRANO_LAB_WARMUP=1`;
-about 26 s on 2 CPUs locally, less with Cloud Run's startup CPU boost), so the
-wake-up call absorbs that wait rather than the first question. Each question
+when idle, and is woken by the page's `/api/health` call. A new instance
+listens at once and loads the embedding model and index in the background
+(`SOPRANO_LAB_WARMUP=1`; about a minute on Cloud Run). The wake-up call waits
+for that load, which keeps the instance's CPU on, so it usually finishes
+before the visitor's first question; a question that arrives earlier waits
+for it. (Loading before listening made Cloud Run drop the early requests.)
+Each question
 makes one Gemini call, plus one translation call for English questions.
 
 ## Cost

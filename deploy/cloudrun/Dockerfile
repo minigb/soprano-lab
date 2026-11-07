@@ -32,7 +32,6 @@ RUN pip install --no-cache-dir \
 
 COPY soprano-qa-dataset /app/soprano-qa-dataset
 COPY soprano-qa-rag-system /app/soprano-qa-rag-system
-COPY soprano-lab /app/soprano-lab
 COPY prepare_image.py /app/prepare_image.py
 
 WORKDIR /app/soprano-qa-rag-system
@@ -42,6 +41,8 @@ RUN python scripts/download_embedding_model.py
 # No Vertex call is made; the project name is only needed to load settings.
 RUN GOOGLE_CLOUD_PROJECT=image-build python /app/prepare_image.py
 
+# The demo server comes last, so changing it leaves the layers above intact.
+COPY soprano-lab /app/soprano-lab
 WORKDIR /app/soprano-lab/demo
 ENV PORT=8080 \
     SOPRANO_LAB_TRUST_PROXY=1 \
