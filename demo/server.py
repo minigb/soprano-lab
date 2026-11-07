@@ -162,6 +162,12 @@ def _json_bytes(payload) -> bytes:
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "SopranoStudio/1.0"
+    # Keep connections open between requests. With HTTP/1.0 the server closes
+    # each connection after its response, and a proxy that reuses connections
+    # (Cloud Run) can send the next request into one just closed; it retries
+    # GETs but fails POSTs with an immediate 500. Every response sets
+    # Content-Length, and paths that leave a request body unread close.
+    protocol_version = "HTTP/1.1"
 
     def log_message(self, fmt, *args):  # quieter default logging
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
@@ -354,6 +360,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/ask":
                 self._handle_ask()
                 return
+            self.close_connection = True  # the request body was not read
             self._send_error_json(404, "not found")
         except qa.BACKEND_UNAVAILABLE_ERRORS as exc:
             self._send_error_json(503, str(exc))
@@ -368,9 +375,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
+            self.close_connection = True
             self._send_error_json(400, "invalid Content-Length")
             return
         if length < 0 or length > MAX_ASK_BODY_BYTES:
+            self.close_connection = True
             self._send_error_json(413, "request body too large")
             return
         raw = self.rfile.read(length) if length else b"{}"

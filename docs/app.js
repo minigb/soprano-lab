@@ -1064,6 +1064,25 @@ async function askQuestion() {
   }
 }
 
+// A request that got no usable response (a dropped connection, or a host
+// error without CORS headers) is retried once before giving up.
+async function postQuestion(body) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await fetch(API_BASE + "/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+    } catch (err) {
+      if (attempt >= 2) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+  }
+}
+
 // POST the question to the live API. Errors that mean "the live model cannot
 // answer now" (unreachable, rate or quota limits, server errors) are marked
 // liveUnavailable so the caller can fall back to a saved answer; request
@@ -1077,18 +1096,16 @@ async function askLive(question, measureRange) {
   }, SLOW_ANSWER_NOTICE_MS);
   let res;
   try {
-    res = await fetch(API_BASE + "/api/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    res = await postQuestion(
       // "language" is omitted: the server infers it from the question
       // (Hangul -> Korean, otherwise English).
-      body: JSON.stringify({
+      JSON.stringify({
         piece_id: state.currentPieceId,
         question,
         measure_range: measureRange,
         generate: true,
-      }),
-    });
+      })
+    );
   } catch (_) {
     throw Object.assign(new Error(LIVE_UNAVAILABLE_NOTICE), {
       liveUnavailable: true,

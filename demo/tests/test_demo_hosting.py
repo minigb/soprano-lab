@@ -141,6 +141,24 @@ class HostingHttpTests(unittest.TestCase):
             with mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)):
                 self.assertEqual(self.ask()[0], 200)
 
+    def test_keep_alive_connection_serves_consecutive_questions(self) -> None:
+        import http.client
+
+        host, port = self.server.server_address
+        connection = http.client.HTTPConnection(host, port, timeout=10)
+        self.addCleanup(connection.close)
+        body = json.dumps({"piece_id": "die-forelle", "question": "어떻게 부르나요?"})
+        with mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)):
+            for _ in range(3):
+                connection.request(
+                    "POST", "/api/ask", body=body.encode(),
+                    headers={"Content-Type": "application/json", "Origin": PAGES_ORIGIN},
+                )
+                response = connection.getresponse()
+                self.assertEqual(response.status, 200)
+                self.assertEqual(json.loads(response.read())["answer"], "ok")
+                self.assertNotEqual(response.getheader("Connection"), "close")
+
     def test_oversized_body_is_rejected(self) -> None:
         body = b"{" + b" " * (server.MAX_ASK_BODY_BYTES + 1) + b"}"
         with mock.patch.object(server.qa, "ask") as ask:
