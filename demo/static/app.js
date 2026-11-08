@@ -1051,6 +1051,12 @@ function applyExampleQuestion(example) {
     updateRangeHighlight();
     const firstBox = state.measureBoxes.get(example.range[0]);
     if (firstBox) firstBox.scrollIntoView({ behavior: "smooth", block: "center" });
+  } else if (!example.range) {
+    // A whole-piece question replaces the range an earlier example selected.
+    state.range = null;
+    state.rangeAnchor = null;
+    updateRangeInputsFromState();
+    updateRangeHighlight();
   }
   const scope = example.range && state.range ? "range" : "whole";
   const radio = document.querySelector(`input[name="scope"][value="${scope}"]`);
