@@ -1104,6 +1104,25 @@ function renderHistory() {
   }
 }
 
+// Answers are plain text, but the models mark titles and stress Markdown-style:
+// *italic* and **bold**, and sometimes "* " bullets. Those are shown as
+// emphasis and "• "; everything else stays text (no HTML is parsed). Line
+// breaks are kept by .qa-answer's white-space.
+const EMPHASIS_RE = /\*\*(\S(?:[^*\n]*\S)?)\*\*|\*(\S(?:[^*\n]*\S)?)\*/g;
+
+function appendAnswerText(container, text) {
+  const value = String(text || "").replace(/^([ \t]*)\* /gm, "$1• ");
+  let last = 0;
+  for (const match of value.matchAll(EMPHASIS_RE)) {
+    container.append(value.slice(last, match.index));
+    const node = document.createElement(match[1] !== undefined ? "strong" : "em");
+    node.textContent = match[1] !== undefined ? match[1] : match[2];
+    container.append(node);
+    last = match.index + match[0].length;
+  }
+  container.append(value.slice(last));
+}
+
 function renderQAItem(entry) {
   const { question, result } = entry;
   const item = document.createElement("div");
@@ -1219,7 +1238,7 @@ function renderQAItem(entry) {
 
   const ans = document.createElement("div");
   ans.className = "qa-answer";
-  ans.textContent = result.answer;
+  appendAnswerText(ans, result.answer);
   item.appendChild(ans);
 
   if (usesInternalKnowledge) {
