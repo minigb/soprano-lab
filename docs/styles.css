@@ -217,41 +217,28 @@ button:focus-visible {
   flex-wrap: wrap;
 }
 
-.mode-toggle {
+.score-hint {
   display: flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--sunken);
-  border-radius: 10px;
-}
-
-.mode-btn {
-  border: 0;
-  background: transparent;
-  color: var(--ink-2);
-  padding: 0.4rem 0.8rem;
-  border-radius: 7px;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0 0.25rem;
   font-size: 0.82rem;
-  font-weight: 500;
-  cursor: pointer;
+  color: var(--ink-2);
 }
 
-.mode-btn:hover:not(:disabled) {
-  color: var(--ink);
-}
-
-.mode-btn.active {
-  background: var(--surface);
-  color: var(--accent);
-  box-shadow: var(--raised);
-}
-
-.mode-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+/* A cursor before the hint. */
+.score-hint::before {
+  content: "";
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  background: var(--accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3l7 18 2.5-7.5L21 11z' fill='black'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3l7 18 2.5-7.5L21 11z' fill='black'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 .follow-toggle {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -266,7 +253,6 @@ button:focus-visible {
 }
 
 .reset-btn {
-  margin-left: auto;
   border: 0;
   background: transparent;
   color: var(--muted);
@@ -322,10 +308,6 @@ button:focus-visible {
   border-color: rgba(28, 69, 134, 0.35);
 }
 
-.measure-box.no-sync {
-  cursor: default;
-}
-
 .measure-box.current {
   background: rgba(255, 216, 107, 0.45);
   border-color: var(--highlight-border);
@@ -354,24 +336,69 @@ button:focus-visible {
   opacity: 0.75;
 }
 
-.occurrence-menu {
+/* Menus beside a clicked measure: the selection menu and a repeated
+   measure's performances. */
+.score-menu {
   position: absolute;
   z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(27, 30, 38, 0.16);
-  padding: 0.35rem;
-  min-width: 12rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(27, 30, 38, 0.18);
+  padding: 0.6rem;
+  min-width: 13rem;
+  max-width: calc(100vw - 16px);
 }
 
-.occurrence-menu-title {
-  font-size: 0.75rem;
+.score-menu-title {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ink);
+  padding: 0 0.15rem 0.1rem;
+}
+
+.score-menu-primary {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.score-menu-primary:hover {
+  background: var(--accent-hover);
+}
+
+.score-menu-secondary {
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.score-menu-secondary:hover {
+  background: #dde7f6;
+}
+
+.score-menu-hint {
+  font-size: 0.72rem;
   color: var(--muted);
-  padding: 0.25rem 0.5rem 0.4rem;
+  padding: 0.1rem 0.15rem 0;
 }
 
-.occurrence-menu button {
+.score-menu-item {
   display: block;
   width: 100%;
   text-align: left;
@@ -384,7 +411,7 @@ button:focus-visible {
   color: var(--ink);
 }
 
-.occurrence-menu button:hover {
+.score-menu-item:hover {
   background: var(--accent-soft);
 }
 
@@ -1153,10 +1180,8 @@ button:focus-visible {
     flex: none;
     padding: 0.75rem 1rem;
   }
-  .mode-toggle {
+  .score-hint {
     flex: 1 1 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
   }
   .follow-toggle {
     margin-left: 0.25rem;

@@ -16,7 +16,6 @@ const state = {
   measureOccurrences: new Map(),
   sortedMeasures: [],
   currentMeasureNumber: null,
-  mode: "play",
   rangeAnchor: null,
   range: null,
   followPlayback: true,
@@ -31,8 +30,6 @@ const state = {
 const el = {
   tabs: document.getElementById("piece-tabs"),
   scorePages: document.getElementById("score-pages"),
-  modePlay: document.getElementById("mode-play"),
-  modeSelect: document.getElementById("mode-select"),
   follow: document.getElementById("follow-playback"),
   resetBtn: document.getElementById("reset-btn"),
   audio: document.getElementById("audio"),
@@ -66,11 +63,13 @@ const PIECE_TITLES = { ko: { "in-flowery-clouds": "꽃구름 속에" } };
 const STRINGS = {
   en: {
     languageGroup: "Language",
-    scoreClickMode: "Score click mode",
-    modePlay: "▶ Click measure to play",
-    modeSelect: "Click measures to select range",
+    scoreHint: "Click a measure to select it, then another to select a range.",
+    menuAsk: (p) =>
+      p.from === p.to ? `Ask about measure ${p.from}` : `Ask about measures ${p.from}–${p.to}`,
+    menuPlayFrom: (p) => `▶ Play from measure ${p.n}`,
+    menuExtendHint: "Click another measure to extend the selection.",
     followPlayback: "Follow playback",
-    resetTitle: "Clear the measure selection and question, and reset mode",
+    resetTitle: "Clear the measure selection and the question",
     reset: "↺ Reset selection",
     measureRange: "Measure range",
     from: "From",
@@ -113,9 +112,11 @@ const STRINGS = {
     occurrenceTitle: (p) => `Measure ${p.n} is performed ${p.count}× — play from:`,
     pass: (p) => `Pass ${p.n}`,
     occurrence: (p) => `Occurrence ${p.n}`,
-    rangeSelected: (p) => `Selected measures ${p.from}–${p.to}.`,
-    rangeAnchor: (p) => `Anchor at measure ${p.n} — click another measure, or fill in "To".`,
-    rangeHelp: 'Click two measures on the score in "select range" mode, or type measure numbers here.',
+    rangeSelected: (p) =>
+      p.from === p.to ? `Selected measure ${p.from}.` : `Selected measures ${p.from}–${p.to}.`,
+    rangeAnchor: (p) =>
+      `Selected measure ${p.n}. Click another measure to select a range, or fill in "To".`,
+    rangeHelp: "Click measures on the score, or type measure numbers here.",
     measuresUnknown: "Measure numbers are not known yet for this piece.",
     typeQuestionFirst: "Type a question first.",
     selectRangeFirst:
@@ -197,11 +198,13 @@ const STRINGS = {
   },
   ko: {
     languageGroup: "언어",
-    scoreClickMode: "악보 클릭 방식",
-    modePlay: "▶ 마디를 눌러 재생",
-    modeSelect: "마디를 눌러 범위 선택",
+    scoreHint: "마디를 누르면 선택되고, 다른 마디를 누르면 범위로 선택됩니다.",
+    menuAsk: (p) =>
+      p.from === p.to ? `${p.from}마디에 대해 질문하기` : `${p.from}–${p.to}마디에 대해 질문하기`,
+    menuPlayFrom: (p) => `▶ ${p.n}마디부터 재생`,
+    menuExtendHint: "다른 마디를 누르면 범위로 늘어납니다.",
     followPlayback: "재생 위치 따라가기",
-    resetTitle: "마디 선택과 질문을 지우고 클릭 방식을 처음으로 되돌립니다",
+    resetTitle: "마디 선택과 질문을 지웁니다",
     reset: "↺ 선택 초기화",
     measureRange: "마디 범위",
     from: "시작",
@@ -242,9 +245,11 @@ const STRINGS = {
     occurrenceTitle: (p) => `${p.n}마디는 ${p.count}번 연주됩니다. 재생할 위치:`,
     pass: (p) => `${p.n}회차`,
     occurrence: (p) => `${p.n}번째`,
-    rangeSelected: (p) => `${p.from}–${p.to}마디를 선택했습니다.`,
-    rangeAnchor: (p) => `${p.n}마디부터 선택합니다. 다른 마디를 누르거나 “끝”을 입력하세요.`,
-    rangeHelp: "“마디를 눌러 범위 선택” 상태에서 악보의 마디 두 개를 누르거나, 여기에 마디 번호를 입력하세요.",
+    rangeSelected: (p) =>
+      p.from === p.to ? `${p.from}마디를 선택했습니다.` : `${p.from}–${p.to}마디를 선택했습니다.`,
+    rangeAnchor: (p) =>
+      `${p.n}마디를 선택했습니다. 다른 마디를 누르거나 “끝”을 입력하면 범위가 됩니다.`,
+    rangeHelp: "악보에서 마디를 누르거나, 여기에 마디 번호를 입력하세요.",
     measuresUnknown: "이 곡은 아직 마디 번호가 없습니다.",
     typeQuestionFirst: "먼저 질문을 입력하세요.",
     selectRangeFirst:
@@ -385,7 +390,7 @@ function setLanguage(lang) {
     el.question.value = exampleQuestionsFor(lang)[waiting].text;
   }
   applyStaticStrings();
-  closeOccurrenceMenu();
+  closeScoreMenu();
   if (state.currentPiece) {
     renderPieceTabs();
     el.nowPlayingTitle.textContent = pieceTitle(state.currentPiece);
@@ -495,7 +500,7 @@ async function selectPiece(pieceId) {
   state.rangeAnchor = null;
   state.currentMeasureNumber = null;
   state.selectionEndTime = null;
-  closeOccurrenceMenu();
+  closeScoreMenu();
 
   renderPieceTabs();
 
@@ -504,9 +509,6 @@ async function selectPiece(pieceId) {
   el.audio.pause();
   el.audio.src = dataUrl(`/media/audio/${pieceId}.mp3`);
 
-  el.modePlay.disabled = !state.currentPiece.sync_available;
-  el.modeSelect.disabled = !state.currentPiece.measures_known;
-  setMode(state.currentPiece.sync_available ? "play" : "select");
 
   const [score, alignment] = await Promise.all([
     fetchJSON(apiUrl(`/api/pieces/${pieceId}/score`)).catch(() => null),
@@ -607,50 +609,140 @@ function updateMeasureTitles() {
   }
 }
 
+// Clicking the score selects measures; it never starts playback by itself.
+// The first click selects one measure (already a range a question can use),
+// a click on another measure extends it to a range, and the next click starts
+// a new selection. Shift-click extends the current range. A menu beside the
+// clicked measure then offers to ask about the selection or to play from it.
 el.scorePages.addEventListener("click", (e) => {
   const box = e.target.closest(".measure-box");
-  if (!box) return;
-  const measureNumber = parseInt(box.dataset.measureNumber, 10);
-  if (state.mode === "play") {
-    if (!state.currentPiece.sync_available) return;
-    const occurrences = state.measureOccurrences.get(measureNumber) || [];
-    if (occurrences.length > 1) {
-      openOccurrenceMenu(box, measureNumber, occurrences);
-    } else {
-      closeOccurrenceMenu();
-      seekToMeasure(measureNumber);
-    }
-  } else {
-    closeOccurrenceMenu();
-    handleRangeClick(measureNumber);
-  }
+  if (!box || !state.currentPiece || !state.currentPiece.measures_known) return;
+  handleMeasureClick(parseInt(box.dataset.measureNumber, 10), e.shiftKey);
+  openSelectionMenu(box);
 });
 
-el.scorePages.addEventListener("scroll", closeOccurrenceMenu);
-window.addEventListener("resize", closeOccurrenceMenu);
+el.scorePages.addEventListener("scroll", closeScoreMenu);
+window.addEventListener("resize", closeScoreMenu);
 
-// -- repeated-measure picker -----------------------------------------------
+// -- menus on the score ------------------------------------------------------
 //
-// A measure number can be performed more than once (a written repeat, e.g.
-// Die Forelle replays several measures for its second verse). Clicking such
-// a measure in "play" mode opens a small menu to pick which pass/occurrence
-// to start playback from, instead of silently always jumping to the first.
+// One small menu at a time, below the measure it belongs to (above it near
+// the bottom of the window): the selection menu, or the list of a repeated
+// measure's performances to play from. Escape or a click elsewhere closes it.
 
-let occurrenceMenuEl = null;
-let occurrenceMenuOutsideHandler = null;
+let scoreMenuEl = null;
+let scoreMenuOutsideHandler = null;
 
-function closeOccurrenceMenu() {
-  if (occurrenceMenuEl) {
-    occurrenceMenuEl.remove();
-    occurrenceMenuEl = null;
+function closeScoreMenu() {
+  if (scoreMenuEl) {
+    scoreMenuEl.remove();
+    scoreMenuEl = null;
   }
-  if (occurrenceMenuOutsideHandler) {
-    document.removeEventListener("click", occurrenceMenuOutsideHandler);
-    document.removeEventListener("keydown", occurrenceMenuOutsideHandler);
-    occurrenceMenuOutsideHandler = null;
+  if (scoreMenuOutsideHandler) {
+    document.removeEventListener("click", scoreMenuOutsideHandler);
+    document.removeEventListener("keydown", scoreMenuOutsideHandler);
+    scoreMenuOutsideHandler = null;
   }
 }
 
+function openScoreMenu(box, menu) {
+  closeScoreMenu();
+  document.body.appendChild(menu);
+  const rect = box.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const viewWidth = document.documentElement.clientWidth;
+  const viewHeight = document.documentElement.clientHeight;
+  let left = rect.left;
+  if (left + menuRect.width > viewWidth - 8) left = Math.max(8, viewWidth - menuRect.width - 8);
+  let top = rect.bottom + 6;
+  if (top + menuRect.height > viewHeight - 8 && rect.top - menuRect.height - 6 > 8) {
+    top = rect.top - menuRect.height - 6;
+  }
+  menu.style.left = `${left + window.scrollX}px`;
+  menu.style.top = `${top + window.scrollY}px`;
+  scoreMenuEl = menu;
+
+  scoreMenuOutsideHandler = (e) => {
+    if (e.type === "keydown") {
+      if (e.key === "Escape") closeScoreMenu();
+      return;
+    }
+    // A click on another measure opens that measure's menu instead.
+    if (scoreMenuEl && !scoreMenuEl.contains(e.target) && !e.target.closest(".measure-box")) {
+      closeScoreMenu();
+    }
+  };
+  // Deferred so the click that opened the menu doesn't immediately close it
+  // once it bubbles up to document.
+  setTimeout(() => {
+    document.addEventListener("click", scoreMenuOutsideHandler);
+    document.addEventListener("keydown", scoreMenuOutsideHandler);
+  }, 0);
+}
+
+function menuButton(text, className, onClick) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = className;
+  btn.textContent = text;
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return btn;
+}
+
+function openSelectionMenu(box) {
+  if (!state.range) {
+    closeScoreMenu();
+    return;
+  }
+  const [from, to] = state.range;
+  const menu = document.createElement("div");
+  menu.className = "score-menu selection-menu";
+  menu.setAttribute("role", "dialog");
+  menu.setAttribute("aria-label", t("tagMeasures", { from, to }));
+
+  const head = document.createElement("div");
+  head.className = "score-menu-title";
+  head.textContent = t("tagMeasures", { from, to });
+  menu.appendChild(head);
+
+  menu.appendChild(
+    menuButton(t("menuAsk", { from, to }), "score-menu-primary", () => {
+      closeScoreMenu();
+      el.question.focus();
+    })
+  );
+  // Playback runs on from the selection's first measure; the side card's
+  // "Play selected measures" plays only the selection.
+  if (state.currentPiece.sync_available) {
+    menu.appendChild(
+      menuButton(t("menuPlayFrom", { n: from }), "score-menu-secondary", () => {
+        const startBox = state.measureBoxes.get(from) || box;
+        const occurrences = state.measureOccurrences.get(from) || [];
+        if (occurrences.length > 1) {
+          openOccurrenceMenu(startBox, from, occurrences);
+        } else {
+          closeScoreMenu();
+          seekToMeasure(from);
+        }
+      })
+    );
+  }
+  if (state.rangeAnchor != null) {
+    const hint = document.createElement("div");
+    hint.className = "score-menu-hint";
+    hint.textContent = t("menuExtendHint");
+    menu.appendChild(hint);
+  }
+  openScoreMenu(box, menu);
+}
+
+// A measure number can be performed more than once (a written repeat, e.g.
+// Die Forelle replays several measures for its second verse). Playing from
+// such a measure asks which performance to start from, instead of silently
+// always jumping to the first.
 function formatClockTime(seconds) {
   const total = Math.max(0, Math.round(seconds));
   const m = Math.floor(total / 60);
@@ -659,57 +751,27 @@ function formatClockTime(seconds) {
 }
 
 function openOccurrenceMenu(box, measureNumber, occurrences) {
-  closeOccurrenceMenu();
-
   const menu = document.createElement("div");
-  menu.className = "occurrence-menu";
+  menu.className = "score-menu occurrence-menu";
 
   const title = document.createElement("div");
-  title.className = "occurrence-menu-title";
+  title.className = "score-menu-title";
   title.textContent = t("occurrenceTitle", { n: measureNumber, count: occurrences.length });
   menu.appendChild(title);
 
   occurrences.forEach((occ, i) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
     const label =
       occ.repeat_pass != null ? t("pass", { n: occ.repeat_pass }) : t("occurrence", { n: i + 1 });
-    btn.textContent = `${label} — ${formatClockTime(occ.start_seconds)}`;
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      state.selectionEndTime = null;
-      el.audio.currentTime = occ.start_seconds;
-      playAudio();
-      closeOccurrenceMenu();
-    });
-    menu.appendChild(btn);
+    menu.appendChild(
+      menuButton(`${label} — ${formatClockTime(occ.start_seconds)}`, "score-menu-item", () => {
+        state.selectionEndTime = null;
+        el.audio.currentTime = occ.start_seconds;
+        playAudio();
+        closeScoreMenu();
+      })
+    );
   });
-
-  document.body.appendChild(menu);
-  const rect = box.getBoundingClientRect();
-  const menuRect = menu.getBoundingClientRect();
-  let left = rect.left + window.scrollX;
-  const maxLeft = window.scrollX + document.documentElement.clientWidth - menuRect.width - 8;
-  if (left > maxLeft) left = Math.max(8, maxLeft);
-  menu.style.left = `${left}px`;
-  menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-  occurrenceMenuEl = menu;
-
-  occurrenceMenuOutsideHandler = (e) => {
-    if (e.type === "keydown") {
-      if (e.key === "Escape") closeOccurrenceMenu();
-      return;
-    }
-    if (occurrenceMenuEl && !occurrenceMenuEl.contains(e.target)) {
-      closeOccurrenceMenu();
-    }
-  };
-  // Deferred so the click that opened the menu doesn't immediately close it
-  // once it bubbles up to document.
-  setTimeout(() => {
-    document.addEventListener("click", occurrenceMenuOutsideHandler);
-    document.addEventListener("keydown", occurrenceMenuOutsideHandler);
-  }, 0);
+  openScoreMenu(box, menu);
 }
 
 // -- playback sync ---------------------------------------------------------
@@ -816,18 +878,22 @@ function updateCurrentHighlight() {
 
 // -- range selection ---------------------------------------------------
 
-function handleRangeClick(measureNumber) {
-  if (state.rangeAnchor === null) {
-    state.rangeAnchor = measureNumber;
-    state.range = null;
+function handleMeasureClick(measureNumber, extend) {
+  if (extend && state.range) {
+    state.range = [Math.min(state.range[0], measureNumber), Math.max(state.range[1], measureNumber)];
+    state.rangeAnchor = null;
+  } else if (state.rangeAnchor === null || state.rangeAnchor === measureNumber) {
+    // A new selection; a second click on its first measure keeps it single.
+    const fresh = state.rangeAnchor === null;
+    state.range = [measureNumber, measureNumber];
+    state.rangeAnchor = fresh ? measureNumber : null;
   } else {
     const a = state.rangeAnchor;
-    const b = measureNumber;
-    state.range = [Math.min(a, b), Math.max(a, b)];
+    state.range = [Math.min(a, measureNumber), Math.max(a, measureNumber)];
     state.rangeAnchor = null;
-    const scopeRange = document.querySelector('input[name="scope"][value="range"]');
-    if (scopeRange) scopeRange.checked = true;
   }
+  const scopeRange = document.querySelector('input[name="scope"][value="range"]');
+  if (scopeRange) scopeRange.checked = true;
   updateRangeInputsFromState();
   updateRangeHighlight();
 }
@@ -847,11 +913,10 @@ function updateRangeInputsFromState() {
   if (state.range) {
     el.rangeFrom.value = state.range[0];
     el.rangeTo.value = state.range[1];
-    el.rangeHint.textContent = t("rangeSelected", { from: state.range[0], to: state.range[1] });
-  } else if (state.rangeAnchor != null) {
-    el.rangeFrom.value = state.rangeAnchor;
-    el.rangeTo.value = "";
-    el.rangeHint.textContent = t("rangeAnchor", { n: state.rangeAnchor });
+    el.rangeHint.textContent =
+      state.rangeAnchor != null
+        ? t("rangeAnchor", { n: state.rangeAnchor })
+        : t("rangeSelected", { from: state.range[0], to: state.range[1] });
   } else {
     el.rangeFrom.value = "";
     el.rangeTo.value = "";
@@ -884,21 +949,8 @@ el.rangeClear.addEventListener("click", () => {
   updateRangeHighlight();
 });
 
-// -- mode + follow toggles -----------------------------------------------
+// -- follow toggle and reset ---------------------------------------------
 
-function setMode(mode) {
-  state.mode = mode;
-  el.modePlay.classList.toggle("active", mode === "play");
-  el.modeSelect.classList.toggle("active", mode === "select");
-  closeOccurrenceMenu();
-}
-
-el.modePlay.addEventListener("click", () => {
-  if (!el.modePlay.disabled) setMode("play");
-});
-el.modeSelect.addEventListener("click", () => {
-  if (!el.modeSelect.disabled) setMode("select");
-});
 el.follow.addEventListener("change", () => {
   state.followPlayback = el.follow.checked;
 });
@@ -909,7 +961,7 @@ function resetSelection() {
   state.selectionEndTime = null;
   updateRangeInputsFromState();
   updateRangeHighlight();
-  setMode(state.currentPiece && state.currentPiece.sync_available ? "play" : "select");
+  closeScoreMenu();
 
   const scopeWhole = document.querySelector('input[name="scope"][value="whole"]');
   if (scopeWhole) scopeWhole.checked = true;

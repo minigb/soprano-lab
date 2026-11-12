@@ -39,15 +39,13 @@
 <main class="layout">
   <section class="score-pane">
     <div class="score-toolbar">
-      <div class="mode-toggle" role="group" aria-label="Score click mode" data-i18n-aria-label="scoreClickMode">
-        <button id="mode-play" class="mode-btn active" type="button" data-i18n="modePlay">▶ Click measure to play</button>
-        <button id="mode-select" class="mode-btn" type="button" data-i18n="modeSelect">Click measures to select range</button>
-      </div>
+      <p class="score-hint" data-i18n="scoreHint">Click a measure to select it, then
+        another to select a range.</p>
       <label class="follow-toggle">
         <input type="checkbox" id="follow-playback" checked />
         <span data-i18n="followPlayback">Follow playback</span>
       </label>
-      <button id="reset-btn" class="reset-btn" type="button" title="Clear the measure selection and question, and reset mode"
+      <button id="reset-btn" class="reset-btn" type="button" title="Clear the measure selection and the question"
               data-i18n-title="resetTitle" data-i18n="reset">↺ Reset selection</button>
     </div>
     <div id="score-pages" class="score-pages"></div>
