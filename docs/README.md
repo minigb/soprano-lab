@@ -21,11 +21,15 @@ Korean) and the language the API answers in, whatever the question's
 language. `?lang=en` or `?lang=ko` picks one in a link; otherwise the
 visitor's last choice, or on a first visit the browser's language, decides.
 
-Each piece has up to three sample questions about the whole piece and up to
-three about a measure range, shown as two groups. They are the paper's
-sample questions (`../rag/sample_questions.md`) and, to fill the groups, the
-dataset's evaluation questions, each in its own wording and scope; pieces
-with fewer such questions show fewer.
+Each piece's sample questions are shown as two groups, about a measure range
+and about the whole piece, three at first and the rest behind "Show more".
+The first three are the paper's sample questions (`../rag/sample_questions.md`),
+filled up with the dataset's evaluation questions, each in its own wording
+and scope. The rest are the other evaluation questions that the live demo
+answered from their expert source, in Korean and in English (49 of 53 in a
+check on 2026-11-12). La Capinera's evaluation set has a single whole-piece
+question, so five whole-piece questions were written for it from its
+whole-piece sources and kept after the same check; 81 questions in all.
 
 The page also keeps the sample questions' answers precomputed by the full
 local system (Qwen3-14B), in English and in Korean. They are shown when the

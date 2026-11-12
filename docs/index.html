@@ -82,8 +82,8 @@
     <div class="ask-card">
       <h2 data-i18n="askHeading">Ask a question</h2>
       <div class="scope-toggle" role="group" aria-label="Question scope" data-i18n-aria-label="questionScope">
-        <label><input type="radio" name="scope" value="whole" checked /> <span data-i18n="scopeWhole">Whole piece</span></label>
         <label><input type="radio" name="scope" value="range" /> <span data-i18n="scopeRange">Selected measure range</span></label>
+        <label><input type="radio" name="scope" value="whole" checked /> <span data-i18n="scopeWhole">Whole piece</span></label>
       </div>
       <textarea id="question" rows="3" placeholder="Write your question here" data-i18n-placeholder="questionPlaceholder"></textarea>
       <button id="ask-btn" type="button" data-i18n="ask">Ask</button>
@@ -99,12 +99,12 @@
       <div class="examples">
         <span class="examples-label" data-i18n="sampleQuestions">Sample questions</span>
         <div class="example-group">
-          <span class="example-group-label" data-i18n="sampleWhole">About the whole piece</span>
-          <div id="example-questions-whole" class="example-chips"></div>
-        </div>
-        <div class="example-group">
           <span class="example-group-label" data-i18n="sampleRange">About a measure range</span>
           <div id="example-questions-range" class="example-chips"></div>
+        </div>
+        <div class="example-group">
+          <span class="example-group-label" data-i18n="sampleWhole">About the whole piece</span>
+          <div id="example-questions-whole" class="example-chips"></div>
         </div>
       </div>
     </div>

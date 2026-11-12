@@ -821,6 +821,21 @@ button:focus-visible {
   background: var(--surface);
 }
 
+.examples-more {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0.2rem 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.examples-more:hover {
+  text-decoration: underline;
+}
+
 /* -- answers ------------------------------------------------------------ */
 
 .qa-history {

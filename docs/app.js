@@ -25,6 +25,8 @@ const state = {
   history: [],
   // Whether the live API saves questions and takes feedback (/api/health).
   recordsEnabled: false,
+  // Sample-question groups ("whole", "range") showing all their questions.
+  examplesExpanded: new Set(),
 };
 
 const el = {
@@ -83,6 +85,8 @@ const STRINGS = {
       p.from === p.to ? `Ask about measure ${p.from}` : `Ask about measures ${p.from}–${p.to}`,
     menuPlayFrom: (p) => `▶ Play from measure ${p.n}`,
     menuExtendHint: "Click another measure to extend the selection.",
+    showMore: (p) => `Show ${p.n} more`,
+    showFewer: "Show fewer",
     followPlayback: "Follow playback",
     resetTitle: "Clear the measure selection and the question",
     reset: "↺ Reset selection",
@@ -220,6 +224,8 @@ const STRINGS = {
       p.from === p.to ? `${p.from}마디에 대해 질문하기` : `${p.from}–${p.to}마디에 대해 질문하기`,
     menuPlayFrom: (p) => `▶ ${p.n}마디부터 재생`,
     menuExtendHint: "다른 마디를 누르면 범위로 늘어납니다.",
+    showMore: (p) => `${p.n}개 더 보기`,
+    showFewer: "접기",
     followPlayback: "재생 위치 따라가기",
     resetTitle: "마디 선택과 질문을 지웁니다",
     reset: "↺ 선택 초기화",
@@ -551,6 +557,7 @@ async function selectPiece(pieceId) {
   }
 
   renderScorePages();
+  state.examplesExpanded.clear();
   renderExampleQuestions();
   el.rangeFrom.max = state.currentPiece.max_measure_number || "";
   el.rangeTo.max = state.currentPiece.max_measure_number || "";
@@ -1809,43 +1816,100 @@ if (API_BASE) {
   el.question.dataset.i18nPlaceholder = "questionPlaceholderSamplesOnly";
 }
 
-// Example questions, in the page language: per piece, up to three about the
-// whole piece (range null), then up to three about a measure range, which
-// select that range. They are the paper's sample questions
-// (rag/sample_questions.md), with their wording and scope, and otherwise the
-// dataset's evaluation questions (expert_curation/evaluation_questions), in
-// their paraphrased wording and scope; no question is written for the page.
-// English wording is the parallel English dataset's (two paper questions
-// without a counterpart there are translated directly).
+// Example questions, in the page language: per piece, those about the whole
+// piece (range null), then those about a measure range, which select that
+// range. The first three of each group, shown before "Show more", are the
+// paper's sample questions (rag/sample_questions.md) in their wording and
+// scope, filled up with the dataset's evaluation questions
+// (expert_curation/evaluation_questions). The rest are the other evaluation
+// questions whose live answer (Gemini, web settings) cited the expert source
+// the dataset ties them to, in Korean and in two English runs (2026-11-12); a
+// range question with several ranges uses its first. Their wording is the
+// dataset's paraphrase; English wording is the parallel English dataset's
+// (two paper questions without a counterpart there are translated directly).
+// La Capinera's evaluation set has one whole-piece question, so five more
+// were written for the page from its whole-piece sources (Yeon's notes on
+// the birdsong passages, high notes, OPP and the flute part; the web sources
+// on its publication) and kept because the same check found those sources.
 const EXAMPLE_QUESTIONS = {
   "die-forelle": [
     { text: "Why is this piece difficult to sing even though its notes are not high?", range: null },
     { text: "What should a singer do when German pronunciation is difficult?", range: null },
     { text: "What should a singer do to sing this piece well?", range: null },
+    { text: "What should one do when scores differ in whether they include an introduction?", range: null },
+    { text: "What should a singer do when the song keeps sounding broken up?", range: null },
+    { text: "Can this piece be regarded as strophic?", range: null },
     { text: "What does the accent on the second beat in the piano part express?", range: [2, 27] },
     { text: "How should a change in the piece's mood be expressed?", range: [28, 40] },
+    { text: "Why does the music change in the middle of the piece?", range: [28, 40] },
   ],
   "una-voce-poco-fa": [
     { text: "The interludes in this piece are so long that I don't know what to do during them.", range: null },
     { text: "How should one practice coloratura technique effectively?", range: null },
     { text: "Why does this aria contain so many ornaments?", range: null },
+    { text: "Why do scores of the same work differ from one another?", range: null },
+    { text: "At what dynamic should the opening of the song be sung?", range: null },
+    { text: "What information does the text at the beginning of the score provide?", range: null },
+    { text: "Why do grace notes have different lengths, and what does the slash mean?", range: null },
+    { text: "How should the sounds in io l’ingegno aguzzerò be linked?", range: null },
+    { text: "Should col canto and a piacere be slowed down, and by how much?", range: null },
+    { text: "Why do the pitches differ among YouTube performances?", range: null },
+    { text: "How should the tempo be handled?", range: null },
+    { text: "How should the ornaments be handled?", range: null },
+    { text: "How should the text be fitted when technique or ornamentation is added?", range: null },
+    { text: "Is this a mezzo-soprano aria or a soprano aria?", range: null },
+    { text: "When videos, score notation, and singers' interpretations differ, what should guide a performance?", range: null },
     { text: "Why did Rossini use a double-dotted rhythm instead of a standard dotted rhythm?", range: [21, 22] },
     { text: "How can rapid diction be practiced in passages with many short notes?", range: [31, 34] },
     { text: "Why do some performances approach ma with portamento after guidar?", range: [67, 67] },
+    { text: "What is the appropriate way to perform dotted rhythms across the score?", range: [14, 15] },
+    { text: "Why does the slur on lo not extend to the final note?", range: [16, 16] },
+    { text: "How should the text of Lindoro mio sara be fitted to the notes?", range: [22, 24] },
+    { text: "Where should the vowel be placed in triplets?", range: [23, 23] },
+    { text: "What should the singer do and portray during an interlude?", range: [44, 55] },
+    { text: "When and how should the vowel change while linking dolce amorosa?", range: [62, 62] },
+    { text: "Why is the accent marked somewhere other than the first beat?", range: [68, 69] },
   ],
   "la-capinera": [
     { text: "How should lyrics be fitted when technique or ornamentation is involved?", range: null },
+    { text: "How should the passages that evoke birdsong be expressed?", range: null },
+    { text: "This piece has many leaps and high notes; how can the high notes be kept from sounding sharp?", range: null },
+    { text: "What does OPP marked in the score mean?", range: null },
+    { text: "Can this piece be performed with only voice and piano, without the flute?", range: null },
+    { text: "What is the background of this piece's composition?", range: null },
     { text: "How should a slashed ornament be fitted into the rhythm?", range: [22, 22] },
     { text: "How should the lyrics l’erbe ed i fior be placed on the pitches?", range: [80, 80] },
     { text: "What musical effect does the contrast between ff and pp express?", range: [117, 124] },
+    { text: "How should the opening be approached?", range: [11, 14] },
+    { text: "How can Col ritorna and Tu torni be pronounced more accurately?", range: [12, 14] },
+    { text: "Why is the dim. present?", range: [17, 19] },
+    { text: "How should the pronunciation of vieni a be placed on the pitches?", range: [20, 20] },
+    { text: "How should the crescendo over dir be sung?", range: [20, 24] },
+    { text: "How should leggiero be expressed?", range: [28, 35] },
+    { text: "How should a passage whose sound keeps breaking be sung?", range: [29, 30] },
+    { text: "How should l’amor la gioventu be sung?", range: [41, 43] },
+    { text: "How can a la la passage that does not sound natural be improved?", range: [51, 66] },
+    { text: "How long should a fermata be held?", range: [67, 69] },
+    { text: "How should cantiam after a fermata be sung?", range: [68, 69] },
+    { text: "How can the double consonant in linguaggio be pronounced more effectively?", range: [83, 85] },
+    { text: "How should cel in venticel be pronounced more naturally?", range: [86, 88] },
+    { text: "What does vuò(vuo’) mean?", range: [103, 103] },
+    { text: "How should the beat and rhythm be maintained in a passage without accompaniment?", range: [135, 137] },
+    { text: "How should a trill be sung?", range: [137, 137] },
   ],
   "nella-fantasia": [
     { text: "Can this piece be regarded as classical, and can it be sung with classical vocal production?", range: null },
     { text: "Are there restrictions on the singer's gender or voice type for this piece?", range: null },
     { text: "What does D.S. al Coda indicate?", range: null },
+    { text: "How should the lyrics be fitted to the melody?", range: null },
+    { text: "What kind of vocal production should be used for this piece?", range: null },
+    { text: "What should a singer do when scores divide the words differently?", range: null },
+    { text: "How can this piece be performed as a duet or trio?", range: null },
+    { text: "Why did this piece come to be sung so often?", range: null },
     { text: "With what dynamic should the opening note begin?", range: [7, 8] },
     { text: "How should a sudden upward leap be sung?", range: [11, 17] },
     { text: "What should a singer do when singing is difficult or breath runs short?", range: [44, 52] },
+    { text: "How long should the final note be held?", range: [22, 23] },
   ],
   "in-flowery-clouds": [
     { text: "If this song is too high, may I adjust or arrange it?", range: null },
@@ -1854,6 +1918,10 @@ const EXAMPLE_QUESTIONS = {
     { text: "If kkotbaram (\"flower breeze\") is often sung staccato in recordings but has no such marking in the score, what should guide the performance?", range: [11, 12] },
     { text: "What should I do if the first note does not come out well when a phrase begins on a high note?", range: [19, 21] },
     { text: "Why does the meter change, and how does the mood of the piece change?", range: [39, 49] },
+    { text: "What should I do when a score's fermata notation differs from the note duration heard in a recording?", range: [1, 2] },
+    { text: "What is the marking in the accompaniment?", range: [56, 59] },
+    { text: "What should I do if I have trouble with a crescendo passage?", range: [67, 69] },
+    { text: "How slowly should Larghetto be taken?", range: [74, 79] },
   ],
 };
 
@@ -1863,30 +1931,80 @@ const EXAMPLE_QUESTIONS_KO = {
     { text: "음이 높지 않은데도 이 곡을 부르기 어려운 이유는 무엇일까?", range: null },
     { text: "독일어 발음이 어려울 때 어떻게 해야 할까?", range: null },
     { text: "이 곡을 잘 부르려면 어떻게 해야 할까?", range: null },
+    { text: "악보마다 전주 유무가 다를 때 어떻게 해야 할까?", range: null },
+    { text: "노래가 자꾸 끊겨 들릴 때 어떻게 해야 할까?", range: null },
+    { text: "이 곡을 유절가곡으로 볼 수 있을까?", range: null },
     { text: "피아노 파트에서 두 번째 박의 악센트는 무엇을 표현할까?", range: [2, 27] },
     { text: "곡의 분위기가 바뀔 때 어떻게 표현하는 것이 좋을까?", range: [28, 40] },
+    { text: "곡 중간에 음악이 바뀌는 이유는 무엇일까?", range: [28, 40] },
   ],
   "una-voce-poco-fa": [
     { text: "이 곡에 간주가 너무 길어서 그동안 뭘 해야할지 모르겠다", range: null },
     { text: "콜로라투라 테크닉을 잘 익히려면 어떻게 연습할까?", range: null },
     { text: "꾸밈음이 많이 나오는 이유는 무엇일까?", range: null },
+    { text: "같은 곡의 악보가 서로 다른 이유는 무엇일까?", range: null },
+    { text: "노래를 시작하는 부분의 다이나믹은 무엇일까?", range: null },
+    { text: "악보 앞에 적힌 글은 어떤 내용일까?", range: null },
+    { text: "꾸밈음(grace note)의 길이가 다른 이유와 사선 표시의 의미는 무엇일까?", range: null },
+    { text: "io l’ingegno aguzzerò는 발음을 어떻게 이어 붙일까?", range: null },
+    { text: "col canto와 a piacere는 느리게 해야 할까? 어느 정도가 적절할까?", range: null },
+    { text: "유튜브 영상마다 음정이 다른 이유는 무엇일까?", range: null },
+    { text: "박자는 어떻게 처리할까?", range: null },
+    { text: "장식음은 어떻게 처리할까?", range: null },
+    { text: "테크닉이나 기교가 들어갈 때 가사는 어떻게 붙일까?", range: null },
+    { text: "메조소프라노 곡인가, 소프라노 곡인가?", range: null },
+    { text: "영상에서 들리는 방식과 악보의 표기, 가창자의 해석이 서로 다르면 무엇을 기준으로 할까?", range: null },
     { text: "로시니가 일반적인 부점 리듬 대신 겹부점 리듬을 사용한 이유는 무엇일까?", range: [21, 22] },
     { text: "짧은 음표가 많은 부분에서 빠른 발음은 어떻게 연습할까?", range: [31, 34] },
     { text: "유튜브 영상에서 guidar 뒤에 portamento로 ma를 내는 이유는 무엇일까?", range: [67, 67] },
+    { text: "악보 전반의 부점은 어떻게 처리할까?", range: [14, 15] },
+    { text: "lo의 이음줄이 마지막 음표까지 이어지지 않은 이유는 무엇일까?", range: [16, 16] },
+    { text: "Lindoro mio sara의 가사는 어떻게 붙일까?", range: [22, 24] },
+    { text: "셋잇단음표에서 모음은 어디에 붙일까?", range: [23, 23] },
+    { text: "간주에서는 무엇을 하며 어떻게 표현할까?", range: [44, 55] },
+    { text: "dolce amorosa를 이어 발음할 때 모음은 언제 어떻게 바꿀까?", range: [62, 62] },
+    { text: "악센트가 첫 박이 아닌 곳에 표시된 이유는 무엇일까?", range: [68, 69] },
   ],
   "la-capinera": [
     { text: "테크닉이나 기교가 들어갈 때 가사는 어떻게 붙여야 할까?", range: null },
+    { text: "새소리를 연상시키는 부분은 어떻게 표현할까?", range: null },
+    { text: "도약과 고음이 많은 이 곡에서 고음이 날카롭게 들리지 않으려면 어떻게 해야 할까?", range: null },
+    { text: "악보에 표시된 OPP는 무슨 뜻일까?", range: null },
+    { text: "플루트 없이 피아노와 노래만으로 연주해도 될까?", range: null },
+    { text: "이 곡은 어떤 배경에서 작곡되었을까?", range: null },
     { text: "사선이 그어진 꾸밈음은 리듬에 맞춰 어떻게 불러야 할까?", range: [22, 22] },
     { text: "‘l’erbe ed i fior’의 가사를 음정에 어떻게 붙여야 할까?", range: [80, 80] },
     { text: "ff와 pp의 대비는 어떤 음악적 효과를 표현할까?", range: [117, 124] },
+    { text: "시작은 어떻게 하면 좋을까?", range: [11, 14] },
+    { text: "‘Col ritorna’와 ‘Tu torni’를 더 정확하게 발음하려면 어떻게 해야 할까?", range: [12, 14] },
+    { text: "dim.은 왜 있을까?", range: [17, 19] },
+    { text: "‘vieni a’의 발음을 음정에 어떻게 붙여야 할까?", range: [20, 20] },
+    { text: "‘dir’ 위의 크레센도는 어떻게 노래해야 할까?", range: [20, 24] },
+    { text: "leggiero는 어떻게 표현할까?", range: [28, 35] },
+    { text: "소리가 자꾸 끊기는 부분은 어떻게 불러야 할까?", range: [29, 30] },
+    { text: "‘l’amor la gioventu’를 어떻게 불러야 할까?", range: [41, 43] },
+    { text: "‘La la’ 부분이 자연스럽게 들리지 않으면 어떻게 해결할까?", range: [51, 66] },
+    { text: "페르마타는 어느 정도 끌어야 할까?", range: [67, 69] },
+    { text: "페르마타 뒤의 ‘cantiam’은 어떻게 불러야 할까?", range: [68, 69] },
+    { text: "‘linguaggio’의 겹자음을 더 잘 발음하려면 어떻게 해야 할까?", range: [83, 85] },
+    { text: "‘venticel’의 ‘cel’은 어떻게 발음해야 더 자연스러울까?", range: [86, 88] },
+    { text: "‘vuò(vuo’)’는 무슨 뜻일까?", range: [103, 103] },
+    { text: "반주가 없는 곳에서는 박자와 리듬을 어떻게 잡아야 할까?", range: [135, 137] },
+    { text: "트릴은 어떻게 노래해야 할까?", range: [137, 137] },
   ],
   "nella-fantasia": [
     { text: "이 곡을 클래식 장르로 볼 수 있을까? 클래식 발성으로 불러도 될까?", range: null },
     { text: "이 곡을 부르는 데 성별이나 성부의 제한이 있을까?", range: null },
     { text: "D.S. al Coda는 어떤 뜻일까?", range: null },
+    { text: "가사를 선율에 어떻게 붙여 부를까?", range: null },
+    { text: "이 곡은 어떤 발성으로 불러야 할까?", range: null },
+    { text: "악보마다 단어를 나누는 방식이 다를 때 어떻게 해야 할까?", range: null },
+    { text: "이 곡을 이중창이나 삼중창으로 부르려면 어떻게 해야 할까?", range: null },
+    { text: "이 곡이 많이 불리게 된 이유는 무엇일까?", range: null },
     { text: "첫 소리는 어떤 다이나믹으로 시작할까?", range: [7, 8] },
     { text: "음이 갑자기 올라갈 때 어떻게 부르는 것이 좋을까?", range: [11, 17] },
     { text: "노래하기 힘들거나 숨이 부족할 때 어떻게 해야 할까?", range: [44, 52] },
+    { text: "마지막 음은 얼마나 길게 끌어야 할까?", range: [22, 23] },
   ],
   "in-flowery-clouds": [
     { text: "이 노래가 너무 높으면 조정하거나 편곡해도 될까?", range: null },
@@ -1895,6 +2013,10 @@ const EXAMPLE_QUESTIONS_KO = {
     { text: "‘꽃바람’을 음원에서는 스타카토로 부르는 경우가 많지만 악보에 표시가 없다면 무엇을 따라야 할까?", range: [11, 12] },
     { text: "프레이즈의 시작에 높은 음이 나오는 경우 첫 소리가 잘 나지 않으면 어떻게 해야 할까?", range: [19, 21] },
     { text: "박자가 바뀌는 이유는 무엇이며, 곡의 분위기는 어떻게 달라질까?", range: [39, 49] },
+    { text: "악보의 페르마타 표기와 음원에서 들리는 음의 길이가 다르면 어떻게 해야 할까?", range: [1, 2] },
+    { text: "반주부에 보이는 표시는 무엇일까?", range: [56, 59] },
+    { text: "크레센도 부분이 잘되지 않으면 어떻게 해야 할까?", range: [67, 69] },
+    { text: "Larghetto는 어느 정도로 느리게 해야 할까?", range: [74, 79] },
   ],
 };
 
@@ -1925,17 +2047,22 @@ function applyExampleQuestion(example) {
   el.question.focus();
 }
 
-// Whole-piece and measure-range examples are shown as two groups; a group
-// without examples for the piece is hidden.
+// Measure-range and whole-piece examples are shown as two groups, in that
+// order (index.html); a group without examples for the piece is hidden. Each
+// group shows its first EXAMPLES_SHOWN questions and a button for the rest.
+const EXAMPLES_SHOWN = 3;
+
 function renderExampleQuestions() {
   const examples = exampleQuestionsFor(state.lang);
-  for (const [box, wantsRange] of [
-    [el.exampleQuestionsWhole, false],
-    [el.exampleQuestionsRange, true],
+  for (const [box, group] of [
+    [el.exampleQuestionsWhole, "whole"],
+    [el.exampleQuestionsRange, "range"],
   ]) {
     if (!box) continue;
     box.innerHTML = "";
-    for (const example of examples.filter((e) => Boolean(e.range) === wantsRange)) {
+    const items = examples.filter((e) => (e.range ? "range" : "whole") === group);
+    const expanded = state.examplesExpanded.has(group);
+    for (const example of expanded ? items : items.slice(0, EXAMPLES_SHOWN)) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "example-chip";
@@ -1951,7 +2078,23 @@ function renderExampleQuestions() {
       btn.addEventListener("click", () => applyExampleQuestion(example));
       box.appendChild(btn);
     }
-    box.closest(".example-group").hidden = !box.childElementCount;
+    if (items.length > EXAMPLES_SHOWN) {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "examples-more";
+      more.setAttribute("aria-expanded", String(expanded));
+      more.textContent = expanded
+        ? t("showFewer")
+        : t("showMore", { n: items.length - EXAMPLES_SHOWN });
+      more.addEventListener("click", () => {
+        if (expanded) state.examplesExpanded.delete(group);
+        else state.examplesExpanded.add(group);
+        renderExampleQuestions();
+        box.querySelector(".examples-more").focus();
+      });
+      box.appendChild(more);
+    }
+    box.closest(".example-group").hidden = !items.length;
   }
 }
 renderExampleQuestions();
