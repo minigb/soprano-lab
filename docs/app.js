@@ -21,6 +21,9 @@ const state = {
   range: null,
   followPlayback: true,
   selectionEndTime: null,
+  lang: "en",
+  // Answers shown so far, oldest first, so a language switch can relabel them.
+  history: [],
 };
 
 const el = {
@@ -45,12 +48,353 @@ const el = {
   qaHistory: document.getElementById("qa-history"),
 };
 
+// -- language -------------------------------------------------------------
+//
+// The page is shown in English or Korean, chosen with the toggle in the top
+// bar (or ?lang=en|ko; on a first visit, the browser's language). The choice
+// is also the language the live API answers in. Answers already shown keep
+// the language they were written in; their labels follow the page.
+
+const LANG_STORAGE_KEY = "soprano-lab-lang";
+const PIECE_TITLES = { ko: { "in-flowery-clouds": "꽃구름 속에" } };
+
+const STRINGS = {
+  en: {
+    languageGroup: "Language",
+    scoreClickMode: "Score click mode",
+    modePlay: "▶ Click measure to play",
+    modeSelect: "Click measures to select range",
+    followPlayback: "Follow playback",
+    resetTitle: "Clear the measure selection and question, and reset mode",
+    reset: "↺ Reset selection",
+    measureRange: "Measure range",
+    from: "From",
+    to: "To",
+    clear: "Clear",
+    playSelection: "▶ Play selected measures",
+    askHeading: "Ask a question",
+    questionScope: "Question scope",
+    scopeWhole: "Whole piece",
+    scopeRange: "Selected measure range",
+    questionPlaceholder: "Ask in English or Korean, e.g. “How should I phrase these measures?”",
+    questionPlaceholderSamplesOnly: "Pick a sample question below, then press Ask.",
+    sampleQuestions: "Sample questions:",
+    ask: "Ask",
+    footerLive:
+      "Questions are answered live: measure-aware retrieval runs as described in " +
+      "the paper, and Google's Gemini then writes the answer from the retrieved " +
+      "sources in a single pass, instead of the paper's local Qwen3-14B with its " +
+      "separate answer checks, so answers can differ from the paper's. Each answer " +
+      "is labeled with the model that wrote it. When the live model is " +
+      "unavailable, the sample questions show answers precomputed with the local " +
+      "Qwen3-14B pipeline. Questions you ask are sent to the Soprano Lab server " +
+      "and to Google's Vertex AI.",
+    footerEvidence:
+      "The lyrics shown with answers are LLM-assisted transcriptions of the " +
+      "scores. Expert evidence is shown in English translation, with the Korean " +
+      "original available under each item; the few items without an up-to-date " +
+      "translation are shown in Korean.",
+    footerPaper:
+      "Paper: “Soprano Lab: Measure-Aware Question Answering over Expert " +
+      "Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).",
+    syncReady: "Score/audio sync ready",
+    samplesOnly:
+      "This online version answers the sample questions only. Free-form questions " +
+      "need the full system, which runs a local LLM.",
+    liveUnavailable: "The live model is unavailable right now.",
+    liveCouldNotAnswer: "The live model could not answer right now. Please try again in a moment.",
+    dailyLimit: "The live demo has reached its daily question limit. Please try again later.",
+    shortLimit: "Too many questions in a short time. Please wait a few minutes and try again.",
+    noScoreGeometry: "Sheet-music page geometry is not available yet for this piece.",
+    measure: (p) => `Measure ${p.n}`,
+    measureRepeated: (p) => `Measure ${p.n} (performed ${p.count}×)`,
+    occurrenceTitle: (p) => `Measure ${p.n} is performed ${p.count}× — play from:`,
+    pass: (p) => `Pass ${p.n}`,
+    occurrence: (p) => `Occurrence ${p.n}`,
+    rangeSelected: (p) => `Selected measures ${p.from}–${p.to}.`,
+    rangeAnchor: (p) => `Anchor at measure ${p.n} — click another measure, or fill in "To".`,
+    rangeHelp: 'Click two measures on the score in "select range" mode, or type measure numbers here.',
+    measuresUnknown: "Measure numbers are not known yet for this piece.",
+    exampleChip: (p) =>
+      !p.range
+        ? p.text
+        : p.range[0] === p.range[1]
+        ? `${p.text} (measure ${p.range[0]})`
+        : `${p.text} (measures ${p.range[0]}–${p.range[1]})`,
+    typeQuestionFirst: "Type a question first.",
+    selectRangeFirst:
+      'Select a measure range first (click two measures in "select range" mode, or use the From/To fields).',
+    loadingSaved: "Loading the saved answer…",
+    showingPrecomputed: (p) => `${p.message} Showing the answer precomputed with Qwen3-14B instead.`,
+    somethingWrong: (p) => `Something went wrong: ${p.message}`,
+    thinking: "Thinking…",
+    stillThinking:
+      "Still thinking… After a quiet spell the first question also starts " +
+      "the server, which can take up to a minute.",
+    webCoaching: "Web / lesson video (not expert-curated)",
+    scoreContextNotice:
+      "Answered from the score's lyrics only — no expert annotation covers these measures.",
+    sourceLabel: "Source: ",
+    lessonVideo: "Lesson video",
+    webPage: "Web page",
+    sourceFallback: "source",
+    lyricsTitle: "Lyrics in the selected measures",
+    lyricsNote: "LLM-assisted transcription",
+    lyricsBar: (p) => `m. ${p.n}`,
+    noVocalStaff: "no vocal staff",
+    rest: "rest",
+    lyricsTruncated: "Only the first measures of the selection are shown.",
+    modelLive: (p) => `Live · ${p.model}`,
+    modelSaved: "Precomputed · Qwen3-14B",
+    modeExtractive: "Retrieval (extractive)",
+    modeInternal: "LLM · internal knowledge",
+    modeLlmUnavailable: "LLM unavailable",
+    modeScoreOnly: "Score lyrics only",
+    modeAnswerUnavailable: "Answer unavailable",
+    modeNoMatch: "No corpus match",
+    modeGeneral: "General music explanation",
+    modeSourcesBackground: "Sources + general explanation",
+    modeLyricsBackground: "Lyrics + general explanation",
+    modeOutOfScope: "Outside music scope",
+    modeSinglePass: "LLM · with sources",
+    modeComparison: "Source comparison",
+    modeLlm: "LLM · corpus-grounded",
+    withheldTitle: "Could not produce a verified answer.",
+    pipelineTag: "Soprano QA pipeline",
+    tagMeasures: (p) => `Measures ${p.from}–${p.to}`,
+    tagWhole: "Whole piece",
+    langEnglish: "English",
+    langKorean: "Korean",
+    internalCaveat:
+      "No matching corpus evidence was used. This answer comes from the local LLM's " +
+      "internal knowledge, so score-, edition-, and measure-specific details may be inaccurate.",
+    evidence: (p) => `Evidence (${p.n})`,
+    kindSumijo: "Professional Soprano",
+    kindExpert: "Expert annotation",
+    kindWebConditional: "Web reference (conditional rights)",
+    kindWeb: "Web reference",
+    evidenceMeasures: (p) => ` · measures ${p.list}`,
+    evidenceGeneral: " · whole piece / general",
+    backgroundOnly: " (background only)",
+    showOriginal: "English translation · show the Korean original",
+    showTranslation: "Korean original · show the English translation",
+    sources: "Sources: ",
+    notices: (p) => `Source and rights notices (${p.n})`,
+    webEvidence: "web evidence",
+    generatedSummary: (p) => ` · generated summary: ${p.license}`,
+    generatedAttribution: (p) => `Generated-text attribution: ${p.text}`,
+    license: "license",
+    terms: "terms",
+    sourceTermsApply: "Source terms apply",
+  },
+  ko: {
+    languageGroup: "언어",
+    scoreClickMode: "악보 클릭 방식",
+    modePlay: "▶ 마디를 눌러 재생",
+    modeSelect: "마디를 눌러 범위 선택",
+    followPlayback: "재생 위치 따라가기",
+    resetTitle: "마디 선택과 질문을 지우고 클릭 방식을 처음으로 되돌립니다",
+    reset: "↺ 선택 초기화",
+    measureRange: "마디 범위",
+    from: "시작",
+    to: "끝",
+    clear: "지우기",
+    playSelection: "▶ 선택한 마디 재생",
+    askHeading: "질문하기",
+    questionScope: "질문 범위",
+    scopeWhole: "곡 전체",
+    scopeRange: "선택한 마디 범위",
+    questionPlaceholder: "한국어나 영어로 질문하세요. 예: “이 마디들은 어떻게 프레이징하면 좋을까?”",
+    questionPlaceholderSamplesOnly: "아래 예시 질문을 고른 뒤 물어보기를 누르세요.",
+    sampleQuestions: "예시 질문:",
+    ask: "물어보기",
+    footerLive:
+      "질문에는 실시간으로 답합니다. 논문에서 설명한 마디 단위 검색을 그대로 실행한 뒤, " +
+      "논문의 로컬 Qwen3-14B와 별도의 답변 검사 대신 Google Gemini가 검색된 자료를 " +
+      "바탕으로 한 번에 답변을 작성하므로 답변이 논문과 다를 수 있습니다. 각 답변에는 " +
+      "작성한 모델이 표시됩니다. 실시간 모델을 쓸 수 없을 때는 예시 질문에 한해 로컬 " +
+      "Qwen3-14B 파이프라인으로 미리 생성한 답변을 보여 줍니다. 입력한 질문은 Soprano Lab " +
+      "서버와 Google Vertex AI로 전송됩니다.",
+    footerEvidence:
+      "답변과 함께 보이는 가사는 악보를 LLM의 도움을 받아 전사한 것입니다. 전문가 근거는 " +
+      "한국어 원문으로 보여 주며, 영어 번역이 있는 항목은 그 아래에서 번역도 볼 수 있습니다.",
+    footerPaper:
+      "논문: “Soprano Lab: Measure-Aware Question Answering over Expert " +
+      "Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).",
+    syncReady: "악보와 음원 동기화 완료",
+    samplesOnly:
+      "이 온라인 버전은 예시 질문에만 답합니다. 자유 질문은 로컬 LLM을 실행하는 " +
+      "전체 시스템에서 답할 수 있습니다.",
+    liveUnavailable: "지금은 실시간 모델을 쓸 수 없습니다.",
+    liveCouldNotAnswer: "지금은 실시간 모델이 답하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    dailyLimit: "라이브 데모의 하루 질문 한도에 도달했습니다. 나중에 다시 시도해 주세요.",
+    shortLimit: "짧은 시간에 질문이 너무 많았습니다. 몇 분 뒤에 다시 시도해 주세요.",
+    noScoreGeometry: "이 곡은 아직 악보 페이지 정보가 없습니다.",
+    measure: (p) => `${p.n}마디`,
+    measureRepeated: (p) => `${p.n}마디 (${p.count}번 연주)`,
+    occurrenceTitle: (p) => `${p.n}마디는 ${p.count}번 연주됩니다. 재생할 위치:`,
+    pass: (p) => `${p.n}회차`,
+    occurrence: (p) => `${p.n}번째`,
+    rangeSelected: (p) => `${p.from}–${p.to}마디를 선택했습니다.`,
+    rangeAnchor: (p) => `${p.n}마디부터 선택합니다. 다른 마디를 누르거나 “끝”을 입력하세요.`,
+    rangeHelp: "“마디를 눌러 범위 선택” 상태에서 악보의 마디 두 개를 누르거나, 여기에 마디 번호를 입력하세요.",
+    measuresUnknown: "이 곡은 아직 마디 번호가 없습니다.",
+    exampleChip: (p) =>
+      !p.range
+        ? p.text
+        : p.range[0] === p.range[1]
+        ? `${p.text} (${p.range[0]}마디)`
+        : `${p.text} (${p.range[0]}–${p.range[1]}마디)`,
+    typeQuestionFirst: "먼저 질문을 입력하세요.",
+    selectRangeFirst:
+      "먼저 마디 범위를 선택하세요. “마디를 눌러 범위 선택” 상태에서 마디 두 개를 누르거나 시작/끝 칸에 입력하면 됩니다.",
+    loadingSaved: "저장된 답변을 불러오는 중…",
+    showingPrecomputed: (p) => `${p.message} 대신 Qwen3-14B로 미리 생성한 답변을 보여 드립니다.`,
+    somethingWrong: (p) => `문제가 생겼습니다: ${p.message}`,
+    thinking: "답변을 만드는 중…",
+    stillThinking:
+      "아직 답변을 만드는 중… 한동안 질문이 없었다면 첫 질문이 서버를 깨우느라 " +
+      "1분 정도 더 걸릴 수 있습니다.",
+    webCoaching: "웹 / 레슨 영상 (전문가 검수 아님)",
+    scoreContextNotice: "악보의 가사만으로 답했습니다. 이 마디들을 다룬 전문가 주석은 없습니다.",
+    sourceLabel: "출처: ",
+    lessonVideo: "레슨 영상",
+    webPage: "웹 페이지",
+    sourceFallback: "출처",
+    lyricsTitle: "선택한 마디의 가사",
+    lyricsNote: "LLM 보조 전사",
+    lyricsBar: (p) => `${p.n}마디`,
+    noVocalStaff: "성악 보표 없음",
+    rest: "쉼",
+    lyricsTruncated: "선택한 범위의 앞쪽 마디만 보여 줍니다.",
+    modelLive: (p) => `실시간 · ${p.model}`,
+    modelSaved: "미리 생성 · Qwen3-14B",
+    modeExtractive: "검색 (발췌)",
+    modeInternal: "LLM · 내부 지식",
+    modeLlmUnavailable: "LLM 사용 불가",
+    modeScoreOnly: "악보 가사만",
+    modeAnswerUnavailable: "답변 불가",
+    modeNoMatch: "일치하는 자료 없음",
+    modeGeneral: "일반 음악 설명",
+    modeSourcesBackground: "자료 + 일반 설명",
+    modeLyricsBackground: "가사 + 일반 설명",
+    modeOutOfScope: "음악 밖의 질문",
+    modeSinglePass: "LLM · 자료 기반",
+    modeComparison: "자료 비교",
+    modeLlm: "LLM · 자료 근거",
+    withheldTitle: "검증된 답변을 만들지 못했습니다.",
+    pipelineTag: "Soprano QA 파이프라인",
+    tagMeasures: (p) => `${p.from}–${p.to}마디`,
+    tagWhole: "곡 전체",
+    langEnglish: "영어",
+    langKorean: "한국어",
+    internalCaveat:
+      "일치하는 자료를 쓰지 않았습니다. 이 답변은 로컬 LLM의 내부 지식에서 나온 것이라 " +
+      "악보, 판본, 마디에 관한 세부 내용이 틀릴 수 있습니다.",
+    evidence: (p) => `근거 (${p.n})`,
+    kindSumijo: "전문 소프라노",
+    kindExpert: "전문가 주석",
+    kindWebConditional: "웹 자료 (조건부 이용)",
+    kindWeb: "웹 자료",
+    evidenceMeasures: (p) => ` · ${p.list}마디`,
+    evidenceGeneral: " · 곡 전체 / 일반",
+    backgroundOnly: " (배경 자료)",
+    showOriginal: "영어 번역 · 한국어 원문 보기",
+    showTranslation: "한국어 원문 · 영어 번역 보기",
+    sources: "출처: ",
+    notices: (p) => `출처 및 권리 고지 (${p.n})`,
+    webEvidence: "웹 근거",
+    generatedSummary: (p) => ` · 생성 요약: ${p.license}`,
+    generatedAttribution: (p) => `생성 텍스트 저작자 표시: ${p.text}`,
+    license: "라이선스",
+    terms: "이용 약관",
+    sourceTermsApply: "원 출처의 이용 조건이 적용됩니다",
+  },
+};
+
+function t(key, params) {
+  const table = STRINGS[state.lang] || STRINGS.en;
+  const value = key in table ? table[key] : STRINGS.en[key];
+  return typeof value === "function" ? value(params || {}) : value;
+}
+
+function initialLanguage() {
+  const requested = new URLSearchParams(window.location.search).get("lang");
+  if (STRINGS[requested]) return requested;
+  try {
+    const saved = window.localStorage.getItem(LANG_STORAGE_KEY);
+    if (STRINGS[saved]) return saved;
+  } catch (_) {
+    /* storage unavailable */
+  }
+  return /^ko\b/i.test(navigator.language || "") ? "ko" : "en";
+}
+
+state.lang = initialLanguage();
+
+function pieceTitle(piece) {
+  if (!piece) return "";
+  return (PIECE_TITLES[state.lang] || {})[piece.id] || piece.title;
+}
+
+function applyStaticStrings() {
+  document.documentElement.lang = state.lang;
+  for (const node of document.querySelectorAll("[data-i18n]")) {
+    node.textContent = t(node.dataset.i18n);
+  }
+  for (const node of document.querySelectorAll("[data-i18n-placeholder]")) {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+  }
+  for (const node of document.querySelectorAll("[data-i18n-title]")) {
+    node.title = t(node.dataset.i18nTitle);
+  }
+  for (const node of document.querySelectorAll("[data-i18n-aria-label]")) {
+    node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+  }
+  for (const btn of document.querySelectorAll(".lang-btn")) {
+    const active = btn.dataset.lang === state.lang;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", String(active));
+  }
+}
+
+function setLanguage(lang) {
+  if (lang === state.lang || !STRINGS[lang]) return;
+  // A sample question waiting in the box switches to the new language.
+  const waiting = exampleQuestionsFor(state.lang).findIndex(
+    (example) => example.text === el.question.value.trim()
+  );
+  state.lang = lang;
+  try {
+    window.localStorage.setItem(LANG_STORAGE_KEY, lang);
+  } catch (_) {
+    /* storage unavailable */
+  }
+  if (waiting >= 0) {
+    el.question.value = exampleQuestionsFor(lang)[waiting].text;
+  }
+  applyStaticStrings();
+  closeOccurrenceMenu();
+  if (state.currentPiece) {
+    renderPieceTabs();
+    el.nowPlayingTitle.textContent = pieceTitle(state.currentPiece);
+    el.nowPlayingMeasure.textContent =
+      state.currentMeasureNumber != null ? t("measure", { n: state.currentMeasureNumber }) : "";
+    updateMeasureTitles();
+    updateRangeInputsFromState();
+    renderExampleQuestions();
+  }
+  if (!el.askBtn.disabled) el.askStatus.textContent = "";
+  renderHistory();
+}
+
+for (const btn of document.querySelectorAll(".lang-btn")) {
+  btn.addEventListener("click", () => setLanguage(btn.dataset.lang));
+}
+
 // Static snapshot: every data URL is relative to the page, so the site works
 // under a path prefix such as /soprano-lab/. API GETs map to "<path>.json".
 const DATA_BASE = "";
-const ONLINE_ONLY_SAMPLES_NOTICE =
-  "This online version answers the sample questions only. Free-form questions " +
-  "need the full system, which runs a local LLM.";
 
 // Live answers come from the Soprano Lab API (demo/server.py with the Gemini
 // backend) named in index.html's <meta name="soprano-lab-api">. Without it,
@@ -62,7 +406,6 @@ const API_BASE = (
   .trim()
   .replace(/\/+$/, "");
 const SLOW_ANSWER_NOTICE_MS = 10000;
-const LIVE_UNAVAILABLE_NOTICE = "The live model is unavailable right now.";
 
 function dataUrl(path) {
   return DATA_BASE + path.replace(/^\//, "");
@@ -127,8 +470,8 @@ function renderPieceTabs() {
     const dot = document.createElement("span");
     dot.className = "dot";
     btn.appendChild(dot);
-    btn.appendChild(document.createTextNode(p.title));
-    btn.title = p.pending_reason || "Score/audio sync ready";
+    btn.appendChild(document.createTextNode(pieceTitle(p)));
+    btn.title = p.pending_reason || t("syncReady");
     btn.addEventListener("click", () => selectPiece(p.id));
     el.tabs.appendChild(btn);
   }
@@ -145,7 +488,7 @@ async function selectPiece(pieceId) {
 
   renderPieceTabs();
 
-  el.nowPlayingTitle.textContent = state.currentPiece.title;
+  el.nowPlayingTitle.textContent = pieceTitle(state.currentPiece);
   el.nowPlayingMeasure.textContent = "";
   el.audio.pause();
   el.audio.src = dataUrl(`/media/audio/${pieceId}.mp3`);
@@ -191,7 +534,7 @@ function renderScorePages() {
   if (!state.score) {
     const p = document.createElement("p");
     p.className = "hint";
-    p.textContent = "Sheet-music page geometry is not available yet for this piece.";
+    p.textContent = t("noScoreGeometry");
     el.scorePages.appendChild(p);
     return;
   }
@@ -227,9 +570,7 @@ function renderScorePages() {
         box.style.top = b.y * 100 + "%";
         box.style.width = b.width * 100 + "%";
         box.style.height = b.height * 100 + "%";
-        box.title = repeats
-          ? `Measure ${m.measure_number} (performed ${occurrences.length}×)`
-          : `Measure ${m.measure_number}`;
+        box.title = measureTitle(m.measure_number);
         overlay.appendChild(box);
         state.measureBoxes.set(m.measure_number, box);
       }
@@ -240,6 +581,19 @@ function renderScorePages() {
 
   updateCurrentHighlight();
   updateRangeHighlight();
+}
+
+function measureTitle(measureNumber) {
+  const count = (state.measureOccurrences.get(measureNumber) || []).length;
+  return count > 1
+    ? t("measureRepeated", { n: measureNumber, count })
+    : t("measure", { n: measureNumber });
+}
+
+function updateMeasureTitles() {
+  for (const [num, box] of state.measureBoxes) {
+    box.title = measureTitle(num);
+  }
 }
 
 el.scorePages.addEventListener("click", (e) => {
@@ -301,13 +655,14 @@ function openOccurrenceMenu(box, measureNumber, occurrences) {
 
   const title = document.createElement("div");
   title.className = "occurrence-menu-title";
-  title.textContent = `Measure ${measureNumber} is performed ${occurrences.length}× — play from:`;
+  title.textContent = t("occurrenceTitle", { n: measureNumber, count: occurrences.length });
   menu.appendChild(title);
 
   occurrences.forEach((occ, i) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    const label = occ.repeat_pass != null ? `Pass ${occ.repeat_pass}` : `Occurrence ${i + 1}`;
+    const label =
+      occ.repeat_pass != null ? t("pass", { n: occ.repeat_pass }) : t("occurrence", { n: i + 1 });
     btn.textContent = `${label} — ${formatClockTime(occ.start_seconds)}`;
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -382,7 +737,7 @@ el.audio.addEventListener("timeupdate", () => {
   if (num !== state.currentMeasureNumber) {
     state.currentMeasureNumber = num;
     updateCurrentHighlight();
-    el.nowPlayingMeasure.textContent = num != null ? `Measure ${num}` : "";
+    el.nowPlayingMeasure.textContent = num != null ? t("measure", { n: num }) : "";
     if (state.followPlayback && num != null) {
       const box = state.measureBoxes.get(num);
       if (box) box.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
@@ -481,17 +836,17 @@ function updateRangeInputsFromState() {
   if (state.range) {
     el.rangeFrom.value = state.range[0];
     el.rangeTo.value = state.range[1];
-    el.rangeHint.textContent = `Selected measures ${state.range[0]}–${state.range[1]}.`;
+    el.rangeHint.textContent = t("rangeSelected", { from: state.range[0], to: state.range[1] });
   } else if (state.rangeAnchor != null) {
     el.rangeFrom.value = state.rangeAnchor;
     el.rangeTo.value = "";
-    el.rangeHint.textContent = `Anchor at measure ${state.rangeAnchor} — click another measure, or fill in "To".`;
+    el.rangeHint.textContent = t("rangeAnchor", { n: state.rangeAnchor });
   } else {
     el.rangeFrom.value = "";
     el.rangeTo.value = "";
     el.rangeHint.textContent = state.currentPiece && state.currentPiece.measures_known
-      ? 'Click two measures on the score in "select range" mode, or type measure numbers here.'
-      : "Measure numbers are not known yet for this piece.";
+      ? t("rangeHelp")
+      : t("measuresUnknown");
   }
   updatePlaySelectionButton();
 }
@@ -563,10 +918,6 @@ function makeTag(text, cls) {
   return span;
 }
 
-const WEB_COACHING_LABEL = "Web / lesson video (not expert-curated)";
-const SCORE_CONTEXT_NOTICE =
-  "Answered from the score's lyrics only — no expert annotation covers these measures";
-
 function makeLink(url, text) {
   const link = document.createElement("a");
   link.href = url;
@@ -611,11 +962,11 @@ function webCoachingSourceUrl(source) {
 }
 
 function appendWebCoachingSources(container, sources) {
-  container.appendChild(document.createTextNode("Source: "));
+  container.appendChild(document.createTextNode(t("sourceLabel")));
   sources.forEach((source, index) => {
     if (index) container.appendChild(document.createTextNode(" · "));
-    const kind = source.kind === "video" ? "Lesson video" : "Web page";
-    const title = source.title || source.url || source.web_coaching_source_id || "source";
+    const kind = source.kind === "video" ? t("lessonVideo") : t("webPage");
+    const title = source.title || source.url || source.web_coaching_source_id || t("sourceFallback");
     const href = webCoachingSourceUrl(source);
     container.appendChild(document.createTextNode(`${kind}: `));
     container.appendChild(href ? makeLink(href, title) : document.createTextNode(title));
@@ -633,11 +984,11 @@ function renderScoreContext(scoreContext) {
   const head = document.createElement("div");
   head.className = "lyrics-head";
   const title = document.createElement("strong");
-  title.textContent = "Lyrics in the selected measures";
+  title.textContent = t("lyricsTitle");
   head.appendChild(title);
   const note = document.createElement("span");
   note.className = "lyrics-note";
-  note.textContent = "LLM-assisted transcription";
+  note.textContent = t("lyricsNote");
   head.appendChild(note);
   box.appendChild(head);
 
@@ -662,7 +1013,7 @@ function renderScoreContext(scoreContext) {
     row.className = "lyrics-row";
     const bar = document.createElement("span");
     bar.className = "lyrics-bar";
-    bar.textContent = `m. ${m.measure}`;
+    bar.textContent = t("lyricsBar", { n: m.measure });
     row.appendChild(bar);
 
     const lines = document.createElement("div");
@@ -672,7 +1023,7 @@ function renderScoreContext(scoreContext) {
       const rest = document.createElement("span");
       rest.className = "lyrics-empty";
       rest.textContent =
-        m.voice === "no_voice_staff" ? "no vocal staff" : m.voice === "rest" ? "rest" : "—";
+        m.voice === "no_voice_staff" ? t("noVocalStaff") : m.voice === "rest" ? t("rest") : "—";
       lines.appendChild(rest);
     } else {
       lyricLines.forEach((text, index) => {
@@ -698,7 +1049,7 @@ function renderScoreContext(scoreContext) {
   if (scoreContext.truncated) {
     const more = document.createElement("div");
     more.className = "lyrics-note";
-    more.textContent = "Only the first measures of the selection are shown.";
+    more.textContent = t("lyricsTruncated");
     box.appendChild(more);
   }
   return box;
@@ -719,12 +1070,24 @@ function answerWasWithheld(result) {
 function answerModelTag(result) {
   const model = result.model || {};
   if (model.backend === "vertex_gemini" && model.model) {
-    return makeTag(`Live · ${model.model}`, "model-live");
+    return makeTag(t("modelLive", { model: model.model }), "model-live");
   }
   if (result.precomputed) {
-    return makeTag("Precomputed · Qwen3-14B", "model-saved");
+    return makeTag(t("modelSaved"), "model-saved");
   }
   return null;
+}
+
+function addQAItem(question, result) {
+  state.history.push({ question, result });
+  renderQAItem(question, result);
+}
+
+function renderHistory() {
+  el.qaHistory.innerHTML = "";
+  for (const { question, result } of state.history) {
+    renderQAItem(question, result);
+  }
 }
 
 function renderQAItem(question, result) {
@@ -743,47 +1106,47 @@ function renderQAItem(question, result) {
   const noCorpusEvidence = result.answer_basis === "no_corpus_evidence";
   const answerWithheld = answerWasWithheld(result);
   const scoreContextOnly = result.answer_basis === "score_context";
-  let modeLabel = "Retrieval (extractive)";
+  let modeLabel = t("modeExtractive");
   let modeClass = "mode-extractive";
   if (usesInternalKnowledge) {
-    modeLabel = "LLM · internal knowledge";
+    modeLabel = t("modeInternal");
     modeClass = "mode-internal";
   } else if (generationUnavailable) {
-    modeLabel = "LLM unavailable";
+    modeLabel = t("modeLlmUnavailable");
     modeClass = "mode-unavailable";
   } else if (scoreContextOnly) {
-    modeLabel = "Score lyrics only";
+    modeLabel = t("modeScoreOnly");
     modeClass = "mode-score";
   } else if (noCorpusEvidence) {
-    modeLabel = answerWithheld ? "Answer unavailable" : "No corpus match";
+    modeLabel = answerWithheld ? t("modeAnswerUnavailable") : t("modeNoMatch");
     modeClass = "mode-unavailable";
   } else if (["general_music_knowledge", "calculated_music_knowledge"].includes(result.answer_basis)) {
-    modeLabel = "General music explanation";
+    modeLabel = t("modeGeneral");
     modeClass = "mode-llm";
   } else if (result.answer_basis === "retrieved_evidence_with_background") {
-    modeLabel = "Sources + general explanation";
+    modeLabel = t("modeSourcesBackground");
     modeClass = "mode-llm";
   } else if (result.answer_basis === "score_context_with_background") {
-    modeLabel = "Lyrics + general explanation";
+    modeLabel = t("modeLyricsBackground");
     modeClass = "mode-llm";
   } else if (result.answer_basis === "service_scope") {
     // Single-pass writer: the question was outside singing and music.
-    modeLabel = "Outside music scope";
+    modeLabel = t("modeOutOfScope");
     modeClass = "mode-unavailable";
   } else if (result.answer_basis === "service_status") {
     // Single-pass writer: the model returned no usable text.
-    modeLabel = "Answer unavailable";
+    modeLabel = t("modeAnswerUnavailable");
     modeClass = "mode-unavailable";
   } else if (result.generation_mode === "llm_single_pass") {
     // One answer call over the retrieved sources, without the reviewed
     // pipeline's separate answer checks.
-    modeLabel = "LLM · with sources";
+    modeLabel = t("modeSinglePass");
     modeClass = "mode-llm";
   } else if (result.generation_mode === "llm_guarded_source_comparison") {
-    modeLabel = "Source comparison";
+    modeLabel = t("modeComparison");
     modeClass = "mode-llm";
   } else if (result.generation_mode === "llm") {
-    modeLabel = "LLM · corpus-grounded";
+    modeLabel = t("modeLlm");
     modeClass = "mode-llm";
   }
   const modeTag = makeTag(
@@ -791,30 +1154,33 @@ function renderQAItem(question, result) {
     modeClass
   );
   if (answerWithheld) {
-    modeTag.title = "Could not produce a verified answer.";
+    modeTag.title = t("withheldTitle");
   } else if (result.generation_fallback_reason) {
     modeTag.title = result.generation_fallback_reason;
   }
   meta.appendChild(modeTag);
-  meta.appendChild(makeTag("Soprano QA pipeline", "pipeline"));
+  meta.appendChild(makeTag(t("pipelineTag"), "pipeline"));
   const modelTag = answerModelTag(result);
   if (modelTag) {
     meta.appendChild(modelTag);
   }
   const answerPiece = state.pieces.find((piece) => piece.id === result.piece_id);
   meta.appendChild(
-    makeTag(answerPiece ? answerPiece.title : result.piece_id, "answer-piece")
+    makeTag(answerPiece ? pieceTitle(answerPiece) : result.piece_id, "answer-piece")
   );
   if (result.scope === "range") {
     meta.appendChild(
-      makeTag(`Measures ${result.measure_range[0]}–${result.measure_range[1]}`, "scope-range")
+      makeTag(
+        t("tagMeasures", { from: result.measure_range[0], to: result.measure_range[1] }),
+        "scope-range"
+      )
     );
   } else {
-    meta.appendChild(makeTag("Whole piece", "scope-whole"));
+    meta.appendChild(makeTag(t("tagWhole"), "scope-whole"));
   }
   if (result.language) {
     meta.appendChild(
-      makeTag(result.language === "en" ? "English" : "Korean", "language")
+      makeTag(result.language === "en" ? t("langEnglish") : t("langKorean"), "language")
     );
   }
   item.appendChild(meta);
@@ -822,7 +1188,7 @@ function renderQAItem(question, result) {
   if (scoreContextOnly) {
     const badge = document.createElement("div");
     badge.className = "qa-caveat qa-score-only";
-    badge.textContent = SCORE_CONTEXT_NOTICE + ".";
+    badge.textContent = t("scoreContextNotice");
     item.appendChild(badge);
   }
 
@@ -834,9 +1200,7 @@ function renderQAItem(question, result) {
   if (usesInternalKnowledge) {
     const caveat = document.createElement("div");
     caveat.className = "qa-caveat";
-    caveat.textContent =
-      "No matching corpus evidence was used. This answer comes from the local LLM's " +
-      "internal knowledge, so score-, edition-, and measure-specific details may be inaccurate.";
+    caveat.textContent = t("internalCaveat");
     item.appendChild(caveat);
   }
 
@@ -850,7 +1214,7 @@ function renderQAItem(question, result) {
   const details = document.createElement("details");
   details.className = "qa-evidence";
   const summary = document.createElement("summary");
-  summary.textContent = `Evidence (${result.evidence.length})`;
+  summary.textContent = t("evidence", { n: result.evidence.length });
   details.appendChild(summary);
   for (const ev of result.evidence) {
     const evEl = document.createElement("div");
@@ -861,41 +1225,45 @@ function renderQAItem(question, result) {
     if (isWebCoaching) evEl.classList.add("web-coaching");
     const kindLabel =
       ev.kind === "sumijo"
-        ? "Professional Soprano"
+        ? t("kindSumijo")
         : ev.kind === "expert"
-        ? "Expert annotation"
+        ? t("kindExpert")
         : isWebCoaching
-        ? WEB_COACHING_LABEL
+        ? t("webCoaching")
         : ev.usage_class === "research_conditional"
-        ? "Web reference (conditional rights)"
-        : "Web reference";
+        ? t("kindWebConditional")
+        : t("kindWeb");
     const rangeLabel = ev.is_local
-      ? ` · measures ${formatRangeList(ev.measure_ranges)}`
-      : " · whole piece / general";
+      ? t("evidenceMeasures", { list: formatRangeList(ev.measure_ranges) })
+      : t("evidenceGeneral");
     metaLine.textContent =
       `[${ev.id}] · ${kindLabel}${rangeLabel}` +
-      (ev.in_requested_scope ? "" : " (background only)");
+      (ev.in_requested_scope ? "" : t("backgroundOnly"));
     evEl.appendChild(metaLine);
+    // The evidence is Korean; English answers also carry an English
+    // translation (text_en). Show the page language first, the other below.
+    const translated = Boolean(ev.text_en);
+    const translationFirst = translated && state.lang === "en";
     const textEl = document.createElement("div");
-    textEl.textContent = ev.text_en || ev.text;
+    textEl.lang = translationFirst ? "en" : "ko";
+    textEl.textContent = translationFirst ? ev.text_en : ev.text;
     evEl.appendChild(textEl);
-    if (ev.text_en) {
-      // English translation of the Korean expert unit; keep the original at hand.
-      const original = document.createElement("details");
-      original.className = "evidence-original";
-      const originalSummary = document.createElement("summary");
-      originalSummary.textContent = "English translation · show the Korean original";
-      original.appendChild(originalSummary);
-      const originalText = document.createElement("div");
-      originalText.lang = "ko";
-      originalText.textContent = ev.text;
-      original.appendChild(originalText);
-      evEl.appendChild(original);
+    if (translated) {
+      const other = document.createElement("details");
+      other.className = "evidence-original";
+      const otherSummary = document.createElement("summary");
+      otherSummary.textContent = translationFirst ? t("showOriginal") : t("showTranslation");
+      other.appendChild(otherSummary);
+      const otherText = document.createElement("div");
+      otherText.lang = translationFirst ? "ko" : "en";
+      otherText.textContent = translationFirst ? ev.text : ev.text_en;
+      other.appendChild(otherText);
+      evEl.appendChild(other);
     }
     if (ev.sources && ev.sources.length) {
       const sourceLine = document.createElement("div");
       sourceLine.className = "evidence-sources";
-      sourceLine.appendChild(document.createTextNode("Sources: "));
+      sourceLine.appendChild(document.createTextNode(t("sources")));
       ev.sources.forEach((source, index) => {
         if (index) sourceLine.appendChild(document.createTextNode(" · "));
         const link = document.createElement("a");
@@ -923,7 +1291,7 @@ function renderQAItem(question, result) {
     const noticeDetails = document.createElement("details");
     noticeDetails.className = "qa-evidence qa-notices";
     const noticeSummary = document.createElement("summary");
-    noticeSummary.textContent = `Source and rights notices (${notices.length})`;
+    noticeSummary.textContent = t("notices", { n: notices.length });
     noticeDetails.appendChild(noticeSummary);
     for (const notice of notices) {
       const noticeEl = document.createElement("div");
@@ -934,7 +1302,7 @@ function renderQAItem(question, result) {
         (source) => source.web_coaching_source_id || source.kind === "video" || source.kind === "web_page"
       );
       if (noticeIsWebCoaching) {
-        noticeMeta.textContent = `[${notice.record_id}] · ${WEB_COACHING_LABEL}`;
+        noticeMeta.textContent = `[${notice.record_id}] · ${t("webCoaching")}`;
         noticeEl.appendChild(noticeMeta);
         const sourceLine = document.createElement("div");
         sourceLine.className = "rights-condition";
@@ -944,9 +1312,9 @@ function renderQAItem(question, result) {
         continue;
       }
       noticeMeta.textContent =
-        `[${notice.record_id}] · ${notice.usage_class || "web evidence"}` +
+        `[${notice.record_id}] · ${notice.usage_class || t("webEvidence")}` +
         (notice.generated_text_license
-          ? ` · generated summary: ${notice.generated_text_license}`
+          ? t("generatedSummary", { license: notice.generated_text_license })
           : "");
       noticeEl.appendChild(noticeMeta);
 
@@ -955,7 +1323,7 @@ function renderQAItem(question, result) {
         projectCredit.className = "rights-condition";
         projectCredit.appendChild(
           document.createTextNode(
-            `Generated-text attribution: ${notice.generated_text_attribution}`
+            t("generatedAttribution", { text: notice.generated_text_attribution })
           )
         );
         if (notice.generated_text_license_url) {
@@ -964,7 +1332,7 @@ function renderQAItem(question, result) {
           licenseLink.href = notice.generated_text_license_url;
           licenseLink.target = "_blank";
           licenseLink.rel = "noreferrer";
-          licenseLink.textContent = "license";
+          licenseLink.textContent = t("license");
           projectCredit.appendChild(licenseLink);
         }
         noticeEl.appendChild(projectCredit);
@@ -974,15 +1342,15 @@ function renderQAItem(question, result) {
         const condition = document.createElement("div");
         condition.className = "rights-condition";
         condition.appendChild(document.createTextNode(
-          `${inherited.attribution || "Source terms apply"}` +
+          `${inherited.attribution || t("sourceTermsApply")}` +
           (inherited.license_id ? ` · ${inherited.license_id}` : "") +
           (inherited.jurisdictions && inherited.jurisdictions.length
             ? ` · ${inherited.jurisdictions.join(", ")}`
             : "")
         ));
         for (const [label, url] of [
-          ["license", inherited.license_url],
-          ["terms", inherited.terms_url],
+          [t("license"), inherited.license_url],
+          [t("terms"), inherited.terms_url],
         ]) {
           if (!url) continue;
           condition.appendChild(document.createTextNode(" · "));
@@ -1006,15 +1374,14 @@ function renderQAItem(question, result) {
 async function askQuestion() {
   const question = el.question.value.trim();
   if (!question) {
-    el.askStatus.textContent = "Type a question first.";
+    el.askStatus.textContent = t("typeQuestionFirst");
     return;
   }
   const scope = document.querySelector('input[name="scope"]:checked').value;
   let measureRange = null;
   if (scope === "range") {
     if (!state.range) {
-      el.askStatus.textContent =
-        'Select a measure range first (click two measures in "select range" mode, or use the From/To fields).';
+      el.askStatus.textContent = t("selectRangeFirst");
       return;
     }
     measureRange = state.range;
@@ -1027,7 +1394,7 @@ async function askQuestion() {
       try {
         const result = await askLive(question, measureRange);
         el.askStatus.textContent = "";
-        renderQAItem(question, result);
+        addQAItem(question, result);
         el.question.value = "";
         return;
       } catch (err) {
@@ -1046,19 +1413,19 @@ async function askQuestion() {
     if (!saved) {
       el.askStatus.textContent = liveError
         ? liveError.message
-        : ONLINE_ONLY_SAMPLES_NOTICE;
+        : t("samplesOnly");
       return;
     }
-    el.askStatus.textContent = "Loading the saved answer…";
+    el.askStatus.textContent = t("loadingSaved");
     const result = await fetchJSON(dataUrl(saved.file));
     result.precomputed = true;
     el.askStatus.textContent = liveError
-      ? `${liveError.message} Showing the answer precomputed with Qwen3-14B instead.`
+      ? t("showingPrecomputed", { message: liveError.message })
       : "";
-    renderQAItem(question, result);
+    addQAItem(question, result);
     el.question.value = "";
   } catch (err) {
-    el.askStatus.textContent = "Something went wrong: " + err.message;
+    el.askStatus.textContent = t("somethingWrong", { message: err.message });
   } finally {
     el.askBtn.disabled = false;
   }
@@ -1088,26 +1455,24 @@ async function postQuestion(body) {
 // liveUnavailable so the caller can fall back to a saved answer; request
 // errors (4xx) are shown as they are.
 async function askLive(question, measureRange) {
-  el.askStatus.textContent = "Thinking…";
+  el.askStatus.textContent = t("thinking");
   const slowNotice = setTimeout(() => {
-    el.askStatus.textContent =
-      "Still thinking… After a quiet spell the first question also starts " +
-      "the server, which can take up to a minute.";
+    el.askStatus.textContent = t("stillThinking");
   }, SLOW_ANSWER_NOTICE_MS);
   let res;
   try {
     res = await postQuestion(
-      // "language" is omitted: the server infers it from the question
-      // (Hangul -> Korean, otherwise English).
+      // Answers come in the page language, whatever the question's.
       JSON.stringify({
         piece_id: state.currentPieceId,
         question,
         measure_range: measureRange,
         generate: true,
+        language: state.lang,
       })
     );
   } catch (_) {
-    throw Object.assign(new Error(LIVE_UNAVAILABLE_NOTICE), {
+    throw Object.assign(new Error(t("liveUnavailable")), {
       liveUnavailable: true,
     });
   } finally {
@@ -1123,12 +1488,16 @@ async function askLive(question, measureRange) {
     /* ignore */
   }
   const unavailable = res.status === 429 || res.status >= 500;
-  // 429 and 503 carry messages written for visitors; other server errors
-  // do not.
-  if (unavailable && res.status !== 429 && res.status !== 503) {
-    message = LIVE_UNAVAILABLE_NOTICE;
+  // The server's 429 and 503 messages are written for visitors; show them in
+  // the page language. Other server errors get the generic notice.
+  if (res.status === 429) {
+    message = /daily/i.test(message) ? t("dailyLimit") : t("shortLimit");
+  } else if (res.status === 503 && message) {
+    message = t("liveCouldNotAnswer");
+  } else if (unavailable) {
+    message = t("liveUnavailable");
   }
-  throw Object.assign(new Error(message || res.statusText || LIVE_UNAVAILABLE_NOTICE), {
+  throw Object.assign(new Error(message || res.statusText || t("liveUnavailable")), {
     liveUnavailable: unavailable,
   });
 }
@@ -1161,11 +1530,11 @@ if (API_BASE) {
   // Wake a scaled-to-zero API host while the visitor reads the score.
   fetch(API_BASE + "/api/health").catch(() => {});
 } else {
-  el.question.placeholder = "Pick a sample question below, then press Ask.";
+  el.question.dataset.i18nPlaceholder = "questionPlaceholderSamplesOnly";
 }
 
-// Example questions (English; Korean questions work the same way). Range
-// examples switch the scope to the selected measures when a range exists.
+// Example questions, in the page language. Range examples switch the scope
+// to the selected measures when a range exists.
 // Example questions follow rag/sample_questions.md: five
 // per piece with their measure ranges, in the English wording of the parallel
 // English dataset (two without a counterpart there are translated directly).
@@ -1207,6 +1576,51 @@ const EXAMPLE_QUESTIONS = {
   ],
 };
 
+// The same questions in the paper's original Korean wording
+// (rag/sample_questions.md), in the same order.
+const EXAMPLE_QUESTIONS_KO = {
+  "die-forelle": [
+    { text: "피아노 파트에서 두 번째 박의 악센트는 무엇을 표현할까?", range: [2, 27] },
+    { text: "음이 높지 않은데도 이 곡을 부르기 어려운 이유는 무엇일까?", range: null },
+    { text: "곡의 분위기가 바뀔 때 어떻게 표현하는 것이 좋을까?", range: [28, 40] },
+    { text: "독일어 발음이 어려울 때 어떻게 해야 할까?", range: null },
+    { text: "이 곡을 잘 부르려면 어떻게 해야 할까?", range: null },
+  ],
+  "una-voce-poco-fa": [
+    { text: "로시니가 일반적인 부점 리듬 대신 겹부점 리듬을 사용한 이유는 무엇일까?", range: [21, 22] },
+    { text: "짧은 음표가 많은 부분에서 빠른 발음은 어떻게 연습할까?", range: [31, 34] },
+    { text: "이 곡에 간주가 너무 길어서 그동안 뭘 해야할지 모르겠다", range: null },
+    { text: "콜로라투라 테크닉을 잘 익히려면 어떻게 연습할까?", range: null },
+    { text: "꾸밈음이 많이 나오는 이유는 무엇일까?", range: null },
+  ],
+  "la-capinera": [
+    { text: "ff와 pp의 대비는 어떤 음악적 효과를 표현할까?", range: [117, 124] },
+    { text: "트릴은 어떻게 노래해야 할까?", range: [137, 137] },
+    { text: "반주가 없는 곳에서는 박자와 리듬을 어떻게 잡아야 할까?", range: [135, 137] },
+    { text: "사선이 그어진 꾸밈음은 리듬에 맞춰 어떻게 불러야 할까?", range: [22, 22] },
+    { text: "‘l’erbe ed i fior’의 가사를 음정에 어떻게 붙여야 할까?", range: [80, 80] },
+  ],
+  "nella-fantasia": [
+    { text: "음이 갑자기 올라갈 때 어떻게 부르는 것이 좋을까?", range: [11, 17] },
+    { text: "노래하기 힘들거나 숨이 부족할 때 어떻게 해야 할까?", range: [44, 52] },
+    { text: "마지막 음은 얼마나 길게 끌어야 할까?", range: [34, 35] },
+    { text: "이 곡을 클래식 장르로 볼 수 있을까? 클래식 발성으로 불러도 될까?", range: null },
+    { text: "첫 소리는 어떤 다이나믹으로 시작할까?", range: [7, 8] },
+  ],
+  "in-flowery-clouds": [
+    { text: "‘꽃바람’을 음원에서는 스타카토로 부르는 경우가 많지만 악보에 표시가 없다면 무엇을 따라야 할까?", range: [11, 12] },
+    { text: "박자가 바뀌는 이유는 무엇이며, 곡의 분위기는 어떻게 달라질까?", range: [39, 49] },
+    { text: "Larghetto는 어느 정도로 느리게 해야 할까?", range: [74, 79] },
+    { text: "이 노래가 너무 높으면 조정하거나 편곡해도 될까?", range: null },
+    { text: "프레이즈의 시작에 높은 음이 나오는 경우 첫 소리가 잘 나지 않으면 어떻게 해야 할까?", range: [19, 21] },
+  ],
+};
+
+function exampleQuestionsFor(lang) {
+  const lists = lang === "ko" ? EXAMPLE_QUESTIONS_KO : EXAMPLE_QUESTIONS;
+  return lists[state.currentPieceId] || [];
+}
+
 function applyExampleQuestion(example) {
   el.question.value = example.text;
   if (example.range && state.currentPiece && state.currentPiece.measures_known) {
@@ -1232,15 +1646,11 @@ function applyExampleQuestion(example) {
 function renderExampleQuestions() {
   if (!el.exampleQuestions) return;
   el.exampleQuestions.innerHTML = "";
-  const examples = EXAMPLE_QUESTIONS[state.currentPieceId] || [];
-  for (const example of examples) {
+  for (const example of exampleQuestionsFor(state.lang)) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "example-chip";
-    const [lo, hi] = example.range || [];
-    btn.textContent = !example.range
-      ? example.text
-      : lo === hi ? `${example.text} (measure ${lo})` : `${example.text} (measures ${lo}–${hi})`;
+    btn.textContent = t("exampleChip", example);
     btn.addEventListener("click", () => applyExampleQuestion(example));
     el.exampleQuestions.appendChild(btn);
   }
@@ -1251,6 +1661,8 @@ el.question.addEventListener("keydown", (e) => {
 });
 
 // -- boot ---------------------------------------------------------------
+
+applyStaticStrings();
 
 loadPieces().catch((err) => {
   console.error("Failed to load pieces:", err);

@@ -12,7 +12,9 @@ Gemini on Vertex AI then writes the answer in a single pass (the
 `single_pass` pipeline with `answer_provider: vertex_gemini`). The web
 settings equal `settings.gemini.json` except that English questions are also
 translated to Korean for retrieval by Gemini (`query_translation_provider`),
-because the host has no local Qwen3-14B.
+because the host has no local Qwen3-14B. The page sends its language
+(English or Korean) as the answer language; a question without Hangul is
+translated for retrieval in either case.
 
 ```text
 browser ── GitHub Pages: page, score images, audio, saved answers (docs/)
@@ -82,7 +84,7 @@ for that load, which keeps the instance's CPU on, so it usually finishes
 before the visitor's first question; a question that arrives earlier waits
 for it. (Loading before listening made Cloud Run drop the early requests.)
 Each question
-makes one Gemini call, plus one translation call for English questions.
+makes one Gemini call, plus one translation call for questions in English.
 
 ## Cost
 

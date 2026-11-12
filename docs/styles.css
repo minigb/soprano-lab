@@ -45,6 +45,34 @@ html, body {
   gap: 0.4rem;
 }
 
+/* English / 한국어: the page language, which is also the answer language. */
+.lang-toggle {
+  margin-left: auto;
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.lang-btn {
+  border: 0;
+  background: var(--bg);
+  color: var(--ink);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.lang-btn + .lang-btn {
+  border-left: 1px solid var(--border);
+}
+
+.lang-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
 .piece-tab {
   border: 1px solid var(--border);
   background: var(--bg);
@@ -603,6 +631,15 @@ html, body {
 }
 
 @media (max-width: 900px) {
+  /* Title and language toggle on the first row, piece tabs below. */
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+  }
+  .piece-tabs {
+    order: 1;
+    flex-basis: 100%;
+  }
   .layout {
     grid-template-columns: 1fr;
     height: auto;

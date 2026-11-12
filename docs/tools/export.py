@@ -9,16 +9,19 @@ writes, relative to the site root (the parent of this ``tools/`` directory):
   endpoints;
 * ``media/audio/<id>.mp3`` and ``media/score/<id>/<page>.png``: the media
   files the frontend loads;
-* ``answers/<piece>/<n>.json``: the ``POST /api/ask`` responses (absolute local
-  file paths reduced to file names) for the
-  sample questions listed in ``EXAMPLE_QUESTIONS`` in ``app.js`` (``n`` is the
-  1-based chip position), asked with ``language: "en"`` and the chip's measure
-  range (or the whole piece), plus ``answers/index.json``.
+* ``answers/<piece>/<n>.json`` and ``answers/<piece>/<n>.ko.json``: the
+  ``POST /api/ask`` responses (absolute local file paths reduced to file
+  names) for the sample questions listed in ``EXAMPLE_QUESTIONS`` (English,
+  asked with ``language: "en"``) and ``EXAMPLE_QUESTIONS_KO`` (Korean,
+  ``language: "ko"``) in ``app.js``, with the chip's measure range (or the
+  whole piece); ``n`` is the 1-based chip position. ``answers/index.json``
+  lists them; exporting one language keeps the other's entries.
 
 Only the standard library is used. Example:
 
     python3 tools/export.py --server http://127.0.0.1:8792
     python3 tools/export.py --skip-answers          # data and media only
+    python3 tools/export.py --skip-data --languages ko  # Korean answers only
     python3 tools/export.py --compare other_run.json  # report answer diffs
 """
 from __future__ import annotations
@@ -53,12 +56,17 @@ def write(rel_path: str, body: bytes) -> None:
     print(f"  {rel_path} ({len(body):,} bytes)")
 
 
-def sample_questions(app_js: Path) -> dict[str, list[dict]]:
-    """Parse EXAMPLE_QUESTIONS from app.js so the chips and answers stay in sync."""
+# Sample-question list in app.js for each answer language.
+QUESTION_LISTS = {"en": "EXAMPLE_QUESTIONS", "ko": "EXAMPLE_QUESTIONS_KO"}
+
+
+def sample_questions(app_js: Path, language: str = "en") -> dict[str, list[dict]]:
+    """Parse a sample-question list from app.js so the chips and answers stay in sync."""
     source = app_js.read_text(encoding="utf-8")
-    block = re.search(r"const EXAMPLE_QUESTIONS = \{(.*?)\n\};", source, re.S)
+    name = QUESTION_LISTS[language]
+    block = re.search(r"const %s = \{(.*?)\n\};" % name, source, re.S)
     if not block:
-        raise SystemExit("EXAMPLE_QUESTIONS not found in app.js")
+        raise SystemExit(f"{name} not found in app.js")
     questions: dict[str, list[dict]] = {}
     piece = None
     for line in block.group(1).splitlines():
@@ -74,7 +82,7 @@ def sample_questions(app_js: Path) -> dict[str, list[dict]]:
                 {"text": json.loads(entry.group(1)), "range": json.loads(entry.group(2))}
             )
         elif line and line not in ("],",):
-            raise SystemExit(f"unparsed EXAMPLE_QUESTIONS line: {line}")
+            raise SystemExit(f"unparsed {name} line: {line}")
     return questions
 
 
@@ -112,17 +120,39 @@ def export_data(server: str) -> list[str]:
     return piece_ids
 
 
-def export_answers(server: str) -> None:
-    print("Sample-question answers (language: en):")
+def export_answers(server: str, languages: list[str]) -> None:
+    index_path = SITE_ROOT / "answers/index.json"
     index = []
-    for piece_id, examples in sample_questions(SITE_ROOT / "app.js").items():
+    if index_path.exists():
+        index = [
+            entry
+            for entry in json.loads(index_path.read_text(encoding="utf-8"))["answers"]
+            if entry.get("language", "en") not in languages
+        ]
+    for language in languages:
+        index.extend(export_language_answers(server, language))
+    order = {language: i for i, language in enumerate(QUESTION_LISTS)}
+    pieces = list(sample_questions(SITE_ROOT / "app.js"))
+    index.sort(key=lambda e: (pieces.index(e["piece_id"]), order[e["language"]], e["n"]))
+    payload = {"answers": index}
+    write(
+        "answers/index.json",
+        (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+    )
+
+
+def export_language_answers(server: str, language: str) -> list[dict]:
+    print(f"Sample-question answers (language: {language}):")
+    suffix = "" if language == "en" else f".{language}"
+    index = []
+    for piece_id, examples in sample_questions(SITE_ROOT / "app.js", language).items():
         for n, example in enumerate(examples, start=1):
             request = {
                 "piece_id": piece_id,
                 "question": example["text"],
                 "measure_range": example["range"],
                 "generate": True,
-                "language": "en",
+                "language": language,
             }
             print(f"  asking {piece_id} #{n}: {example['text']}", flush=True)
             body = fetch(
@@ -132,7 +162,7 @@ def export_answers(server: str) -> None:
                 timeout=ASK_TIMEOUT_SECONDS,
             )
             response = strip_local_paths(json.loads(body))  # fails on a non-JSON body
-            rel_path = f"answers/{piece_id}/{n}.json"
+            rel_path = f"answers/{piece_id}/{n}{suffix}.json"
             write(rel_path, (json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8"))
             index.append(
                 {
@@ -140,15 +170,11 @@ def export_answers(server: str) -> None:
                     "n": n,
                     "question": example["text"],
                     "measure_range": example["range"],
-                    "language": "en",
+                    "language": language,
                     "file": rel_path,
                 }
             )
-    payload = {"answers": index}
-    write(
-        "answers/index.json",
-        (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
-    )
+    return index
 
 
 def compare(reference_path: Path) -> int:
@@ -158,8 +184,9 @@ def compare(reference_path: Path) -> int:
         for item in json.loads(reference_path.read_text(encoding="utf-8"))
     }
     index = json.loads((SITE_ROOT / "answers/index.json").read_text(encoding="utf-8"))
+    entries = [e for e in index["answers"] if e.get("language", "en") == "en"]
     differences = 0
-    for entry in index["answers"]:
+    for entry in entries:
         key = (entry["piece_id"], entry["question"], tuple(entry["measure_range"] or ()))
         saved = json.loads((SITE_ROOT / entry["file"]).read_text(encoding="utf-8"))
         ref = reference.get(key)
@@ -185,7 +212,7 @@ def compare(reference_path: Path) -> int:
                 print(f"    reference: {ref.get('answer_en')}")
         else:
             print(f"{label}: identical")
-    print(f"{differences} of {len(index['answers'])} answers differ")
+    print(f"{differences} of {len(entries)} answers differ")
     return differences
 
 
@@ -194,13 +221,21 @@ def main() -> None:
     parser.add_argument("--server", default="http://127.0.0.1:8792")
     parser.add_argument("--skip-data", action="store_true", help="do not re-export api/ and media/")
     parser.add_argument("--skip-answers", action="store_true", help="do not re-ask the sample questions")
-    parser.add_argument("--compare", type=Path, help="reference sample-answer JSON to compare with")
+    parser.add_argument(
+        "--languages", default="en,ko",
+        help="answer languages to export, comma-separated (default: en,ko)",
+    )
+    parser.add_argument("--compare", type=Path, help="reference English sample-answer JSON to compare with")
     args = parser.parse_args()
+    languages = [language.strip() for language in args.languages.split(",") if language.strip()]
+    unknown = sorted(set(languages) - set(QUESTION_LISTS))
+    if unknown:
+        parser.error(f"unknown language(s): {', '.join(unknown)}")
     server = args.server.rstrip("/")
     if not args.skip_data:
         export_data(server)
     if not args.skip_answers:
-        export_answers(server)
+        export_answers(server, languages)
     if args.compare:
         compare(args.compare)
 
