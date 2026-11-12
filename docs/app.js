@@ -34,6 +34,7 @@ const el = {
   resetBtn: document.getElementById("reset-btn"),
   audio: document.getElementById("audio"),
   nowPlayingTitle: document.getElementById("now-playing-title"),
+  audioSource: document.getElementById("audio-source"),
   nowPlayingMeasure: document.getElementById("now-playing-measure"),
   rangeFrom: document.getElementById("range-from"),
   rangeTo: document.getElementById("range-to"),
@@ -59,11 +60,25 @@ const el = {
 
 const LANG_STORAGE_KEY = "soprano-lab-lang";
 const PIECE_TITLES = { ko: { "in-flowery-clouds": "꽃구름 속에" } };
+// The YouTube recordings the pieces' audio comes from (Sumi Jo). Die Forelle
+// and In Flowery Clouds are the project's repertoire selection sheet's links
+// ("[KOCCA Sumi Jo] 제재곡 선정"); Una voce poco fa and La Capinera are the
+// album tracks on the "Sumi Jo - Topic" channel; Nella Fantasia's audio starts
+// 22 s into its video, where the link opens.
+const AUDIO_SOURCES = {
+  "die-forelle": "https://youtu.be/kghb9f3fnrA",
+  "una-voce-poco-fa": "https://youtu.be/pzs4eLkCy4o",
+  "la-capinera": "https://youtu.be/ChSsk7gik1A",
+  "nella-fantasia": "https://youtu.be/jQJqL8FsThg?t=22",
+  "in-flowery-clouds": "https://youtu.be/Kq_WhiftELg",
+};
 
 const STRINGS = {
   en: {
     languageGroup: "Language",
     scoreHint: "Click a measure to select it, then another to select a range.",
+    audioSource: "YouTube",
+    audioSourceTitle: "Open the original recording on YouTube",
     menuAsk: (p) =>
       p.from === p.to ? `Ask about measure ${p.from}` : `Ask about measures ${p.from}–${p.to}`,
     menuPlayFrom: (p) => `▶ Play from measure ${p.n}`,
@@ -199,6 +214,8 @@ const STRINGS = {
   ko: {
     languageGroup: "언어",
     scoreHint: "마디를 누르면 선택되고, 다른 마디를 누르면 범위로 선택됩니다.",
+    audioSource: "YouTube",
+    audioSourceTitle: "YouTube에서 원본 영상 보기",
     menuAsk: (p) =>
       p.from === p.to ? `${p.from}마디에 대해 질문하기` : `${p.from}–${p.to}마디에 대해 질문하기`,
     menuPlayFrom: (p) => `▶ ${p.n}마디부터 재생`,
@@ -506,6 +523,8 @@ async function selectPiece(pieceId) {
 
   el.nowPlayingTitle.textContent = pieceTitle(state.currentPiece);
   el.nowPlayingMeasure.textContent = "";
+  el.audioSource.hidden = !AUDIO_SOURCES[pieceId];
+  el.audioSource.href = AUDIO_SOURCES[pieceId] || "";
   el.audio.pause();
   el.audio.src = dataUrl(`/media/audio/${pieceId}.mp3`);
 

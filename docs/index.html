@@ -54,8 +54,16 @@
   <aside class="side-pane">
     <div class="player-card">
       <div class="player-title">
-        <strong id="now-playing-title">—</strong>
-        <span id="now-playing-measure" class="measure-badge"></span>
+        <div class="player-name">
+          <strong id="now-playing-title">—</strong>
+          <span id="now-playing-measure" class="measure-badge"></span>
+        </div>
+        <a id="audio-source" class="source-link" target="_blank" rel="noreferrer" hidden
+           title="Open the original recording on YouTube" data-i18n-title="audioSourceTitle">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="4.5" width="21" height="15" rx="4.5" fill="#e62117"/><path d="M10 9v6l5.2-3z" fill="#fff"/></svg>
+          <span data-i18n="audioSource">YouTube</span>
+          <svg class="external" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+        </a>
       </div>
       <audio id="audio" controls preload="metadata"></audio>
     </div>

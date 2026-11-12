@@ -454,6 +454,61 @@ button:focus-visible {
   font-weight: 650;
 }
 
+.player-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* The recording's YouTube source, at the right of the player's title. */
+.source-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem 0.25rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.source-link[hidden] {
+  display: none;
+}
+
+.source-link:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.source-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.source-link svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.source-link svg.external {
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.7;
+}
+
 .measure-badge {
   background: var(--accent-soft);
   color: var(--accent);

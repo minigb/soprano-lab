@@ -12,6 +12,9 @@ writing single-pass answers instead of the local Qwen3-14B
 ([`../deploy/cloudrun/`](../deploy/cloudrun/)). Each answer is labeled with
 the model that wrote it.
 
+The player links each piece's recording to its YouTube source (Sumi Jo;
+`AUDIO_SOURCES` in `app.js`).
+
 The English / 한국어 toggle in the top bar switches the page between English
 and Korean: its text, the sample questions (the paper's Korean originals in
 Korean) and the language the API answers in, whatever the question's
