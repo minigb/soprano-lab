@@ -94,16 +94,27 @@ published Vertex prices (late 2026). Cloud Run's monthly free tier covers a
 few thousand questions; Artifact Registry storage is cents per month; each
 deploy's build costs about $0.20. `DAILY_ASK_LIMIT` bounds the worst case.
 
-## Running the same server locally
+## Previewing before a deploy
+
+A deploy takes about 15 minutes, so try changes locally first:
 
 ```bash
-source ~/gemini-vertex/env.sh
-cd demo
-SOPRANO_QA_PIPELINE_ROOT=../../soprano-qa-rag-system \
-SOPRANO_QA_SETTINGS=../../soprano-qa-rag-system/config/settings.web.json \
-SOPRANO_LAB_ALLOWED_ORIGINS=http://127.0.0.1:8793 \
-  conda run --no-capture-output -n soprano-qa python server.py --port 8792
+deploy/cloudrun/preview.sh
 ```
 
-Then serve `docs/` (`python3 -m http.server 8793` from the repository root)
-with the meta tag set to `http://127.0.0.1:8792`.
+This serves the page from the working tree's `docs/` at
+<http://127.0.0.1:8797/>, with the same API in the same process: the request
+handler of `demo/server.py`, with the RAG worktree
+`../soprano-qa-rag-system-web` and its web settings, answering with Gemini on
+Vertex AI. [`preview.py`](preview.py) points the page's API meta tag at that
+same origin and hands `/api/health` and `/api/ask` to the API's handler. It
+opens no other port. (`demo/server.py` run on its own serves its older page,
+`demo/static`, which has no language toggle.) Uncommitted changes in `docs/`,
+`demo/` and the RAG worktree all show; the script notes when the worktree
+differs from `RAG_REF`, which is what a deploy builds. Ctrl-C stops it.
+`PORT`, `RAG_ROOT` and `PYTHON` override the defaults.
+
+To open the preview on another computer, forward the port over SSH
+(`ssh -L 8797:127.0.0.1:8797 <host>`), or let VS Code Remote-SSH forward it.
+Then open <http://127.0.0.1:8797/> there. Questions are real Vertex AI calls,
+with no question limits.
