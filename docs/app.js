@@ -197,7 +197,7 @@ const STRINGS = {
       "No matching corpus evidence was used. This answer comes from the local LLM's " +
       "internal knowledge, so score-, edition-, and measure-specific details may be inaccurate.",
     evidence: (p) => `Evidence (${p.n})`,
-    kindSumijo: "Professional Soprano",
+    kindSumijo: "World-renowned singer",
     kindExpert: "Expert annotation",
     kindWebConditional: "Web reference (conditional rights)",
     kindWeb: "Web reference",
@@ -331,7 +331,7 @@ const STRINGS = {
       "일치하는 자료를 쓰지 않았습니다. 이 답변은 로컬 LLM의 내부 지식에서 나온 것이라 " +
       "악보, 판본, 마디에 관한 세부 내용이 틀릴 수 있습니다.",
     evidence: (p) => `근거 (${p.n})`,
-    kindSumijo: "전문 소프라노",
+    kindSumijo: "세계적 성악가",
     kindExpert: "전문가 주석",
     kindWebConditional: "웹 자료 (조건부 이용)",
     kindWeb: "웹 자료",
