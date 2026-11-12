@@ -1,6 +1,7 @@
 """Settings for serving the API to the static page on another origin."""
 from __future__ import annotations
 
+import io
 import json
 import os
 import threading
@@ -55,7 +56,9 @@ class AskLimiterTests(unittest.TestCase):
         self.assertIsNone(server._parse_rate(""))
 
 
-class HostingHttpTests(unittest.TestCase):
+class ServerTestCase(unittest.TestCase):
+    """A server on a free port, with the page's origin allowed."""
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), QuietHandler)
@@ -97,6 +100,8 @@ class HostingHttpTests(unittest.TestCase):
             "POST", "/api/ask", json.dumps(body).encode("utf-8"), {"Origin": origin}
         )
 
+
+class HostingHttpTests(ServerTestCase):
     def test_allowed_origin_gets_cors_headers(self) -> None:
         with mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)):
             status, headers, _ = self.ask()
@@ -226,6 +231,110 @@ class HostingHttpTests(unittest.TestCase):
             with mock.patch.dict(os.environ, {"SOPRANO_LAB_TRUST_PROXY": "1"}):
                 self.request("POST", "/api/ask", body.encode(), forwarded)
         self.assertEqual(seen, ["127.0.0.1", "5.6.7.8"])
+
+
+class RecordsHttpTests(ServerTestCase):
+    """Question and feedback records (SOPRANO_LAB_RECORDS=1)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.stdout = io.StringIO()
+        for patcher in (
+            mock.patch.dict(os.environ, {"SOPRANO_LAB_RECORDS": "1"}),
+            mock.patch("sys.stdout", self.stdout),
+            mock.patch.object(server, "FEEDBACK_LIMITER", AskLimiter(per_client=(3, 600))),
+        ):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def records(self):
+        return [json.loads(line) for line in self.stdout.getvalue().splitlines()]
+
+    def feedback(self, **overrides):
+        body = {"piece_id": "die-forelle", "language": "en", "rating": "up", **overrides}
+        return self.request(
+            "POST", "/api/feedback", json.dumps(body).encode("utf-8"),
+            {"Origin": PAGES_ORIGIN, "X-Forwarded-For": "9.9.9.9"},
+        )
+
+    def test_health_says_records_are_kept(self) -> None:
+        self.assertTrue(json.loads(self.request("GET", "/api/health")[2])["records"])
+        with mock.patch.dict(os.environ, {"SOPRANO_LAB_RECORDS": ""}):
+            self.assertFalse(json.loads(self.request("GET", "/api/health")[2])["records"])
+
+    def test_saved_question_is_recorded_without_the_client(self) -> None:
+        answer = {**ANSWER, "evidence": [{"id": "die-forelle-ku-002"}], "answer_basis": "retrieved_evidence"}
+        with mock.patch.object(server.qa, "ask", return_value=answer):
+            status, _, raw = self.ask(save=True, measure_range=[2, 27], language="en")
+        self.assertEqual(status, 200)
+        (record,) = self.records()
+        self.assertEqual(json.loads(raw)["record_id"], record["record_id"])
+        self.assertEqual(record["event"], server.QUESTION_EVENT)
+        self.assertEqual(record["question"], "어떻게 부르나요?")
+        self.assertEqual(record["measure_range"], [2, 27])
+        self.assertEqual(record["answer"], "ok")
+        self.assertEqual(record["evidence_ids"], ["die-forelle-ku-002"])
+        self.assertNotIn("127.0.0.1", self.stdout.getvalue())
+
+    def test_unsaved_question_is_not_recorded(self) -> None:
+        with mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)):
+            for overrides in ({}, {"save": False}):
+                status, _, raw = self.ask(**overrides)
+                self.assertEqual(status, 200)
+                self.assertNotIn("record_id", json.loads(raw))
+            self.assertEqual(self.ask(save="yes")[0], 400)
+        self.assertEqual(self.records(), [])
+
+    def test_questions_are_not_recorded_when_records_are_off(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"SOPRANO_LAB_RECORDS": ""}),
+            mock.patch.object(server.qa, "ask", return_value=dict(ANSWER)),
+        ):
+            self.assertNotIn("record_id", json.loads(self.ask(save=True)[2]))
+            self.assertEqual(self.feedback()[0], 404)
+        self.assertEqual(self.records(), [])
+
+    def test_feedback_is_recorded(self) -> None:
+        question_id = "a" * 32
+        status, headers, raw = self.feedback(
+            record_id=question_id, rating="down", comment="  Too vague.  "
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Access-Control-Allow-Origin"], PAGES_ORIGIN)
+        (record,) = self.records()
+        self.assertEqual(json.loads(raw)["record_id"], record["record_id"])
+        self.assertEqual(record["event"], server.FEEDBACK_EVENT)
+        self.assertEqual(record["question_record_id"], question_id)
+        self.assertEqual(record["rating"], "down")
+        self.assertEqual(record["comment"], "Too vague.")
+        self.assertNotIn("9.9.9.9", self.stdout.getvalue())
+
+    def test_feedback_on_a_precomputed_answer(self) -> None:
+        status, _, _ = self.feedback(answer_file="answers/die-forelle/3.ko.json", rating=None, comment="좋아요")
+        self.assertEqual(status, 200)
+        self.assertEqual(self.records()[0]["answer_file"], "answers/die-forelle/3.ko.json")
+
+    def test_invalid_feedback_is_rejected(self) -> None:
+        for overrides in (
+            {"rating": "meh"},
+            {"rating": None, "comment": "   "},
+            {"comment": "x" * (server.MAX_FEEDBACK_COMMENT_CHARS + 1)},
+            {"record_id": "not-an-id"},
+            {"answer_file": "../secrets.json"},
+            {"piece_id": "nope"},
+            {"language": "fr"},
+        ):
+            with self.subTest(overrides=overrides):
+                self.assertEqual(self.feedback(**overrides)[0], 400)
+        self.assertEqual(self.records(), [])
+
+    def test_feedback_is_limited(self) -> None:
+        for _ in range(3):
+            self.assertEqual(self.feedback()[0], 200)
+        status, headers, _ = self.feedback()
+        self.assertEqual(status, 429)
+        self.assertTrue(int(headers["Retry-After"]) > 0)
+        self.assertEqual(len(self.records()), 3)
 
 
 if __name__ == "__main__":

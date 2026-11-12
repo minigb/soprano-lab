@@ -11,6 +11,8 @@
 # From your own computer, forward the port and open the page there:
 #   ssh -L 8797:127.0.0.1:8797 <this host>   then  http://127.0.0.1:8797/
 # Ctrl-C stops it. Questions are real Vertex AI calls, with no question limits.
+# Question and feedback records are printed here, one JSON line each, instead
+# of going to Cloud Logging.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,5 +38,6 @@ source "$GEMINI_ENV" >/dev/null
 export SOPRANO_QA_PIPELINE_ROOT="$RAG_ROOT"
 export SOPRANO_QA_SETTINGS="$RAG_ROOT/config/settings.web.json"
 export SOPRANO_LAB_WARMUP=1
+export SOPRANO_LAB_RECORDS=1
 
 exec "$PYTHON" "$HERE/preview.py" --port "$PORT" --docs "$REPO_ROOT/docs"

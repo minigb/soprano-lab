@@ -24,6 +24,8 @@ const state = {
   lang: "en",
   // Answers shown so far, oldest first, so a language switch can relabel them.
   history: [],
+  // Whether the live API saves questions and takes feedback (/api/health).
+  recordsEnabled: false,
 };
 
 const el = {
@@ -46,6 +48,8 @@ const el = {
   exampleQuestionsRange: document.getElementById("example-questions-range"),
   askBtn: document.getElementById("ask-btn"),
   askStatus: document.getElementById("ask-status"),
+  saveNote: document.getElementById("save-note"),
+  saveOptOut: document.getElementById("save-optout"),
   qaHistory: document.getElementById("qa-history"),
 };
 
@@ -119,6 +123,17 @@ const STRINGS = {
     loadingSaved: "Loading the saved answer…",
     precomputedTitle: "The live model is unavailable.",
     precomputedBody: "This answer was precomputed with Qwen3-14B.",
+    saveNote:
+      "Questions and answers are saved to improve this demo. Please don't include " +
+      "personal information.",
+    saveOptOut: "Don't save my questions",
+    feedbackPrompt: "Was this answer helpful?",
+    feedbackUp: "Helpful",
+    feedbackDown: "Not helpful",
+    feedbackCommentPlaceholder: "Tell us more (optional)",
+    feedbackSend: "Send",
+    feedbackThanks: "Thanks for your feedback.",
+    feedbackFailed: "Your feedback could not be sent. Please try again.",
     somethingWrong: (p) => `Something went wrong: ${p.message}`,
     thinking: "Thinking…",
     stillThinking:
@@ -237,6 +252,15 @@ const STRINGS = {
     loadingSaved: "저장된 답변을 불러오는 중…",
     precomputedTitle: "실시간 모델을 쓸 수 없습니다.",
     precomputedBody: "이 답변은 Qwen3-14B로 미리 만든 답변입니다.",
+    saveNote: "질문과 답변은 데모 개선을 위해 저장됩니다. 개인정보는 입력하지 마세요.",
+    saveOptOut: "내 질문 저장하지 않기",
+    feedbackPrompt: "이 답변이 도움이 되었나요?",
+    feedbackUp: "도움이 됨",
+    feedbackDown: "도움이 안 됨",
+    feedbackCommentPlaceholder: "의견을 남겨 주세요 (선택)",
+    feedbackSend: "보내기",
+    feedbackThanks: "의견을 보내 주셔서 감사합니다.",
+    feedbackFailed: "의견을 보내지 못했습니다. 다시 시도해 주세요.",
     somethingWrong: (p) => `문제가 생겼습니다: ${p.message}`,
     thinking: "답변을 만드는 중…",
     stillThinking:
@@ -1066,20 +1090,22 @@ function answerModelTag(result) {
 }
 
 function addQAItem(question, result) {
-  state.history.push({ question, result });
-  renderQAItem(question, result);
+  const entry = { question, result, feedback: { rating: null, draft: "" } };
+  state.history.push(entry);
+  renderQAItem(entry);
   // The newest answer is on top of the history, below the question card.
   el.qaHistory.firstElementChild.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderHistory() {
   el.qaHistory.innerHTML = "";
-  for (const { question, result } of state.history) {
-    renderQAItem(question, result);
+  for (const entry of state.history) {
+    renderQAItem(entry);
   }
 }
 
-function renderQAItem(question, result) {
+function renderQAItem(entry) {
+  const { question, result } = entry;
   const item = document.createElement("div");
   item.className = "qa-item";
 
@@ -1367,8 +1393,159 @@ function renderQAItem(question, result) {
     item.appendChild(noticeDetails);
   }
 
+  if (feedbackWanted(result)) {
+    entry.feedbackBox = renderFeedback(entry);
+    item.appendChild(entry.feedbackBox);
+  }
+
   el.qaHistory.prepend(item);
 }
+
+// -- saved questions and feedback -------------------------------------------
+//
+// A live API that keeps records (GET /api/health says "records": true) saves
+// each question with its answer unless the visitor ticks "Don't save my
+// questions" under the Ask button; the note there says so before the first
+// question. Each answer then takes a rating and an optional comment. Nothing
+// is saved without the live API. demo/server.py has the record format.
+
+const SAVE_OPTOUT_KEY = "soprano-lab-save-optout";
+const THUMB_ICONS = {
+  // Feather icons (MIT): thumbs-up, thumbs-down.
+  up:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>',
+  down:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>',
+};
+
+function questionWillBeSaved() {
+  return !el.saveNote.hidden && !el.saveOptOut.checked;
+}
+
+function feedbackWanted(result) {
+  return Boolean(API_BASE) && (state.recordsEnabled || Boolean(result.record_id));
+}
+
+function renderFeedback(entry) {
+  const { feedback } = entry;
+  const box = document.createElement("div");
+  box.className = "qa-feedback";
+
+  const row = document.createElement("div");
+  row.className = "feedback-row";
+  const prompt = document.createElement("span");
+  prompt.textContent = t("feedbackPrompt");
+  row.appendChild(prompt);
+  for (const rating of ["up", "down"]) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "feedback-btn" + (feedback.rating === rating ? " active" : "");
+    btn.setAttribute("aria-pressed", String(feedback.rating === rating));
+    btn.setAttribute("aria-label", t(rating === "up" ? "feedbackUp" : "feedbackDown"));
+    btn.title = btn.getAttribute("aria-label");
+    btn.innerHTML = THUMB_ICONS[rating];
+    btn.disabled = Boolean(feedback.sending);
+    btn.addEventListener("click", () => rateAnswer(entry, rating));
+    row.appendChild(btn);
+  }
+  box.appendChild(row);
+
+  if (feedback.rating && !feedback.commentSent) {
+    const form = document.createElement("div");
+    form.className = "feedback-form";
+    const comment = document.createElement("textarea");
+    comment.rows = 2;
+    comment.maxLength = 2000;
+    comment.placeholder = t("feedbackCommentPlaceholder");
+    comment.value = feedback.draft;
+    comment.addEventListener("input", () => {
+      feedback.draft = comment.value;
+    });
+    const send = document.createElement("button");
+    send.type = "button";
+    send.className = "feedback-send";
+    send.textContent = t("feedbackSend");
+    send.disabled = Boolean(feedback.sending);
+    send.addEventListener("click", () => sendComment(entry));
+    form.append(comment, send);
+    box.appendChild(form);
+  }
+
+  if (feedback.status) {
+    const status = document.createElement("p");
+    status.className = "feedback-status" + (feedback.status === "feedbackFailed" ? " error" : "");
+    status.setAttribute("role", "status");
+    status.textContent = t(feedback.status);
+    box.appendChild(status);
+  }
+  return box;
+}
+
+function refreshFeedback(entry) {
+  if (!entry.feedbackBox || !entry.feedbackBox.isConnected) return;
+  const fresh = renderFeedback(entry);
+  entry.feedbackBox.replaceWith(fresh);
+  entry.feedbackBox = fresh;
+}
+
+async function postFeedback(entry, fields) {
+  const { result } = entry;
+  try {
+    const res = await fetch(API_BASE + "/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        record_id: result.record_id || null,
+        answer_file: result.answer_file || null,
+        piece_id: result.piece_id,
+        language: result.language || state.lang,
+        ...fields,
+      }),
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function rateAnswer(entry, rating) {
+  const { feedback } = entry;
+  if (feedback.sending || feedback.rating === rating) return;
+  const previous = feedback.rating;
+  Object.assign(feedback, { rating, sending: true, status: "" });
+  refreshFeedback(entry);
+  const sent = await postFeedback(entry, { rating });
+  Object.assign(feedback, { sending: false }, sent ? {} : { rating: previous, status: "feedbackFailed" });
+  refreshFeedback(entry);
+}
+
+async function sendComment(entry) {
+  const { feedback } = entry;
+  const comment = feedback.draft.trim();
+  if (feedback.sending || !comment) return;
+  Object.assign(feedback, { sending: true, status: "" });
+  refreshFeedback(entry);
+  const sent = await postFeedback(entry, { rating: feedback.rating, comment });
+  Object.assign(
+    feedback,
+    { sending: false, status: sent ? "feedbackThanks" : "feedbackFailed" },
+    sent ? { commentSent: true, draft: "" } : {}
+  );
+  refreshFeedback(entry);
+}
+
+try {
+  el.saveOptOut.checked = window.localStorage.getItem(SAVE_OPTOUT_KEY) === "1";
+} catch (_) {
+  /* storage unavailable */
+}
+el.saveOptOut.addEventListener("change", () => {
+  try {
+    window.localStorage.setItem(SAVE_OPTOUT_KEY, el.saveOptOut.checked ? "1" : "0");
+  } catch (_) {
+    /* storage unavailable */
+  }
+});
 
 async function askQuestion() {
   const question = el.question.value.trim();
@@ -1418,6 +1595,7 @@ async function askQuestion() {
     el.askStatus.textContent = t("loadingSaved");
     const result = await fetchJSON(dataUrl(saved.file));
     result.precomputed = true;
+    result.answer_file = saved.file;
     el.askStatus.textContent =
       liveError && liveError.message !== t("liveUnavailable") ? liveError.message : "";
     addQAItem(question, result);
@@ -1467,6 +1645,7 @@ async function askLive(question, measureRange) {
         measure_range: measureRange,
         generate: true,
         language: state.lang,
+        save: questionWillBeSaved(),
       })
     );
   } catch (_) {
@@ -1525,8 +1704,17 @@ async function findSavedAnswer(pieceId, question, measureRange) {
 el.askBtn.addEventListener("click", askQuestion);
 
 if (API_BASE) {
-  // Wake a scaled-to-zero API host while the visitor reads the score.
-  fetch(API_BASE + "/api/health").catch(() => {});
+  // Wake a scaled-to-zero API host while the visitor reads the score. The
+  // save note shows meanwhile; it goes away if the API keeps no records.
+  el.saveNote.hidden = false;
+  fetch(API_BASE + "/api/health")
+    .then((res) => (res.ok ? res.json() : {}))
+    .catch(() => ({}))
+    .then((health) => {
+      state.recordsEnabled = health.records === true;
+      el.saveNote.hidden = !state.recordsEnabled;
+      if (state.recordsEnabled && state.history.length) renderHistory();
+    });
 } else {
   el.question.dataset.i18nPlaceholder = "questionPlaceholderSamplesOnly";
 }

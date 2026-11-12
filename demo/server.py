@@ -23,6 +23,11 @@ SOPRANO_LAB_WARMUP           1 to load the retrieval index in the background at
                              until it is ready, so on a host that throttles CPU
                              between requests (Cloud Run) the page's wake-up
                              call keeps the CPU on while the index loads
+SOPRANO_LAB_RECORDS          1 to keep records: each answered question whose
+                             request has "save": true, and each POST
+                             /api/feedback, is printed to stdout as one JSON
+                             line (on Cloud Run, a Cloud Logging entry). No
+                             client address or other identifier is recorded.
 """
 from __future__ import annotations
 
@@ -37,6 +42,8 @@ import sys
 import threading
 import time
 import traceback
+import uuid
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -149,6 +156,70 @@ class AskLimiter:
 
 
 ASK_LIMITER = AskLimiter.from_env()
+
+
+# -- records -----------------------------------------------------------------
+#
+# With SOPRANO_LAB_RECORDS=1 the page tells visitors that questions and
+# answers are saved, and lets them opt out; it then sends "save": true with a
+# question. Records are JSON lines on stdout, which Cloud Run turns into
+# structured Cloud Logging entries (jsonPayload); deploy/cloudrun/deploy.sh
+# routes them to a log bucket that keeps them.
+
+QUESTION_EVENT = "soprano_lab_question"
+FEEDBACK_EVENT = "soprano_lab_feedback"
+MAX_FEEDBACK_BODY_BYTES = 8 * 1024
+MAX_FEEDBACK_COMMENT_CHARS = 2000
+FEEDBACK_RATINGS = ("up", "down")
+RECORD_ID_RE = re.compile(r"^[0-9a-f]{32}$")
+# A precomputed answer of the static page, e.g. answers/die-forelle/3.ko.json.
+ANSWER_FILE_RE = re.compile(r"^answers/[a-z0-9-]+/[0-9]+(?:\.[a-z]+)?\.json$")
+_RECORD_LOCK = threading.Lock()
+
+
+def records_enabled() -> bool:
+    return os.environ.get("SOPRANO_LAB_RECORDS") == "1"
+
+
+def write_record(event: str, fields: dict) -> str:
+    """Print one record as a JSON line and return its id."""
+    record_id = uuid.uuid4().hex
+    record = {
+        "severity": "INFO",
+        "message": event,
+        "event": event,
+        "record_id": record_id,
+        "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        # The Cloud Run revision that answered, when there is one.
+        "revision": os.environ.get("K_REVISION"),
+        **fields,
+    }
+    line = json.dumps(record, ensure_ascii=False)
+    with _RECORD_LOCK:
+        sys.stdout.write(line + "\n")
+        sys.stdout.flush()
+    return record_id
+
+
+def question_record(question, piece_id, measure_range, language, result) -> dict:
+    model = result.get("model") if isinstance(result.get("model"), dict) else {}
+    return {
+        "piece_id": piece_id,
+        "measure_range": list(measure_range) if measure_range else None,
+        "language": language,
+        "question": question,
+        "answer": result.get("answer"),
+        "answer_basis": result.get("answer_basis"),
+        "generation_mode": result.get("generation_mode"),
+        "model": model.get("model"),
+        "evidence_ids": [
+            ev.get("id") for ev in result.get("evidence") or [] if isinstance(ev, dict)
+        ],
+    }
+
+
+# Feedback per client and overall, so that a script cannot fill the records.
+FEEDBACK_LIMITER = AskLimiter(per_client=(30, 600), daily=2000)
 
 
 REMOTE_MODEL_UNAVAILABLE = (
@@ -287,7 +358,12 @@ class Handler(BaseHTTPRequestHandler):
                 if os.environ.get("SOPRANO_LAB_WARMUP") == "1":
                     ready = WARMED_UP.wait(HEALTH_WARMUP_WAIT_SECONDS)
                 self._send_json(
-                    {"ok": True, "ready": ready, "model": qa.model_status()}
+                    {
+                        "ok": True,
+                        "ready": ready,
+                        "model": qa.model_status(),
+                        "records": records_enabled(),
+                    }
                 )
                 return
             if path == "/api/pieces":
@@ -360,6 +436,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/ask":
                 self._handle_ask()
                 return
+            if path == "/api/feedback":
+                self._handle_feedback()
+                return
             self.close_connection = True  # the request body was not read
             self._send_error_json(404, "not found")
         except qa.BACKEND_UNAVAILABLE_ERRORS as exc:
@@ -371,25 +450,32 @@ class Handler(BaseHTTPRequestHandler):
             traceback.print_exc()
             self._send_error_json(500, "internal error")
 
-    def _handle_ask(self):
+    def _read_json_body(self, limit: int):
+        """Return the request's JSON object, or None after sending an error."""
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             self.close_connection = True
             self._send_error_json(400, "invalid Content-Length")
-            return
-        if length < 0 or length > MAX_ASK_BODY_BYTES:
+            return None
+        if length < 0 or length > limit:
             self.close_connection = True
             self._send_error_json(413, "request body too large")
-            return
+            return None
         raw = self.rfile.read(length) if length else b"{}"
         try:
             body = json.loads(raw.decode("utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError):
             self._send_error_json(400, "invalid JSON body")
-            return
+            return None
         if not isinstance(body, dict):
             self._send_error_json(400, "request body must be a JSON object")
+            return None
+        return body
+
+    def _handle_ask(self):
+        body = self._read_json_body(MAX_ASK_BODY_BYTES)
+        if body is None:
             return
 
         piece_id = body.get("piece_id")
@@ -397,6 +483,7 @@ class Handler(BaseHTTPRequestHandler):
         measure_range = body.get("measure_range")
         want_generation = body.get("generate", True)
         language = body.get("language")
+        save = body.get("save", False)
 
         if piece_id not in dataset.PIECE_IDS:
             self._send_error_json(400, "unknown piece_id")
@@ -410,6 +497,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if not isinstance(want_generation, bool):
             self._send_error_json(400, "generate must be true or false")
+            return
+        if not isinstance(save, bool):
+            self._send_error_json(400, "save must be true or false")
             return
         if language is None:
             language = infer_language(question)
@@ -500,7 +590,82 @@ class Handler(BaseHTTPRequestHandler):
             result["language_supported"] = language_supported
             if result["language"] == "en":
                 add_english_text(result)
+            if save and records_enabled():
+                result["record_id"] = write_record(
+                    QUESTION_EVENT,
+                    question_record(question, piece_id, range_tuple, language, result),
+                )
         self._send_json(result)
+
+    def _handle_feedback(self):
+        """Record a rating and an optional comment on one answer.
+
+        A live answer is named by the record_id its question was saved with
+        (absent when the visitor opted out); a precomputed one by its file
+        in the static page's answers/.
+        """
+        if not records_enabled():
+            self.close_connection = True  # the request body was not read
+            self._send_error_json(404, "feedback is not collected here")
+            return
+        body = self._read_json_body(MAX_FEEDBACK_BODY_BYTES)
+        if body is None:
+            return
+        rating = body.get("rating")
+        comment = body.get("comment", "")
+        record_id = body.get("record_id")
+        answer_file = body.get("answer_file")
+        piece_id = body.get("piece_id")
+        language = body.get("language")
+        if rating is not None and rating not in FEEDBACK_RATINGS:
+            self._send_error_json(400, 'rating must be "up", "down" or null')
+            return
+        if not isinstance(comment, str) or len(comment) > MAX_FEEDBACK_COMMENT_CHARS:
+            self._send_error_json(
+                400, f"comment must be a string of at most {MAX_FEEDBACK_COMMENT_CHARS} characters"
+            )
+            return
+        comment = comment.strip()
+        if rating is None and not comment:
+            self._send_error_json(400, "a rating or a comment is required")
+            return
+        if record_id is not None and not (
+            isinstance(record_id, str) and RECORD_ID_RE.match(record_id)
+        ):
+            self._send_error_json(400, "invalid record_id")
+            return
+        if answer_file is not None and not (
+            isinstance(answer_file, str) and ANSWER_FILE_RE.match(answer_file)
+        ):
+            self._send_error_json(400, "invalid answer_file")
+            return
+        if piece_id not in dataset.PIECE_IDS:
+            self._send_error_json(400, "unknown piece_id")
+            return
+        if language not in SUPPORTED_LANGUAGES:
+            self._send_error_json(400, 'language must be "ko" or "en"')
+            return
+        limited = FEEDBACK_LIMITER.acquire(self._client_address())
+        if limited:
+            wait = int(limited[1]) + 1
+            self._send_json(
+                {"error": "Too much feedback in a short time.", "retry_after": wait},
+                status=429,
+                headers={"Retry-After": str(wait)},
+            )
+            return
+        feedback_id = write_record(
+            FEEDBACK_EVENT,
+            {
+                "question_record_id": record_id,
+                "answer_file": answer_file,
+                "piece_id": piece_id,
+                "language": language,
+                "rating": rating,
+                "comment": comment or None,
+            },
+        )
+        self._send_json({"ok": True, "record_id": feedback_id})
 
 
 def _warm_up():

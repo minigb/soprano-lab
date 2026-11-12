@@ -39,6 +39,12 @@ html, body {
   color: var(--ink);
 }
 
+/* Korean wraps between words, not inside them. */
+html:lang(ko) body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 button, input, textarea {
   font: inherit;
 }
@@ -618,6 +624,41 @@ button:focus-visible {
   margin: 0;
 }
 
+/* Questions and answers are saved; the visitor may opt out. */
+.save-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.save-note[hidden] {
+  display: none;
+}
+
+.save-note p {
+  margin: 0;
+}
+
+.save-optout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink-2);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.save-optout input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
 /* Sample questions */
 
 .examples {
@@ -871,6 +912,130 @@ button:focus-visible {
 
 .evidence-original summary:hover {
   color: var(--ink-2);
+}
+
+/* Rating and comment on an answer */
+
+.qa-feedback {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.feedback-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.feedback-row span {
+  margin-right: 0.3rem;
+}
+
+.feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.feedback-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feedback-btn:hover:not(:disabled) {
+  border-color: rgba(28, 69, 134, 0.35);
+  color: var(--accent);
+}
+
+.feedback-btn.active {
+  background: var(--accent-soft);
+  border-color: rgba(28, 69, 134, 0.35);
+  color: var(--accent);
+}
+
+.feedback-btn.active svg {
+  fill: rgba(28, 69, 134, 0.18);
+}
+
+.feedback-btn:disabled {
+  cursor: wait;
+}
+
+.feedback-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.feedback-form textarea {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.feedback-form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus);
+}
+
+.feedback-form textarea::placeholder {
+  color: #9ca0aa;
+}
+
+.feedback-send {
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.feedback-send:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.feedback-send:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.feedback-status {
+  margin: 0.45rem 0 0;
+  font-size: 0.76rem;
+  color: #17703a;
+}
+
+.feedback-status.error {
+  color: var(--danger);
 }
 
 /* Lyrics of the selected measures */

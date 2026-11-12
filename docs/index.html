@@ -81,6 +81,14 @@
       </div>
       <textarea id="question" rows="3" placeholder="Write your question here" data-i18n-placeholder="questionPlaceholder"></textarea>
       <button id="ask-btn" type="button" data-i18n="ask">Ask</button>
+      <div id="save-note" class="save-note" hidden>
+        <p data-i18n="saveNote">Questions and answers are saved to improve this
+          demo. Please don't include personal information.</p>
+        <label class="save-optout">
+          <input type="checkbox" id="save-optout" />
+          <span data-i18n="saveOptOut">Don't save my questions</span>
+        </label>
+      </div>
       <div id="ask-status" class="hint"></div>
       <div class="examples">
         <span class="examples-label" data-i18n="sampleQuestions">Sample questions</span>

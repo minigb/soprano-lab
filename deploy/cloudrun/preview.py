@@ -1,8 +1,9 @@
 """Serve docs/ and the live API on one port, for preview.sh.
 
 The page is served from the working tree's docs/, with its API meta tag
-pointing at this same origin. Its two API calls (GET /api/health, POST
-/api/ask) go to demo/server.py's request handler, run in this process. Only
+pointing at this same origin. Its API calls (GET /api/health, POST /api/ask,
+POST /api/feedback) go to demo/server.py's request handler, run in this
+process. Only
 this one port is open, so an SSH tunnel or VS Code needs to forward just it,
 and no CORS setup is needed. (A separate API port would get forwarded too, and
 demo/server.py serves its own copy of the page, demo/static, at its root.)
@@ -51,7 +52,7 @@ def make_handler(docs: Path):
             self._preview_static(self.path.split("?", 1)[0], head=True)
 
         def do_POST(self):
-            if self.path.split("?", 1)[0] == "/api/ask":
+            if self.path.split("?", 1)[0] in ("/api/ask", "/api/feedback"):
                 super().do_POST()
             else:
                 self.close_connection = True  # the request body is left unread

@@ -24,6 +24,9 @@ ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-https://minigb.github.io}"
 ASK_LIMIT="${ASK_LIMIT:-6/600}"
 DAILY_ASK_LIMIT="${DAILY_ASK_LIMIT:-200}"
 BUILD_MACHINE="${BUILD_MACHINE:-e2-highcpu-8}"
+RECORDS="${RECORDS:-1}"
+RECORDS_BUCKET="${RECORDS_BUCKET:-soprano-lab-records}"
+RECORDS_RETENTION_DAYS="${RECORDS_RETENTION_DAYS:-3650}"
 
 # What the image needs from the RAG repository (no evaluations, tests, sites).
 RAG_PATHS=(soprano_qa config data scripts requirements.txt requirements-vertex.txt)
@@ -107,7 +110,8 @@ retry() {
 
 echo "Enabling APIs (no-op when already enabled)…"
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
-  artifactregistry.googleapis.com aiplatform.googleapis.com --project "$PROJECT"
+  artifactregistry.googleapis.com aiplatform.googleapis.com \
+  logging.googleapis.com --project "$PROJECT"
 retry 12 gcloud artifacts repositories list --project "$PROJECT" \
   --location "$REGION" --quiet >/dev/null
 retry 12 gcloud builds list --project "$PROJECT" --region "$REGION" \
@@ -143,6 +147,33 @@ gcloud artifacts repositories add-iam-policy-binding "$REPOSITORY" --project "$P
 gcloud projects add-iam-policy-binding "$PROJECT" --condition None \
   --member "$build_account" --role roles/logging.logWriter >/dev/null
 
+# Question and feedback records are Cloud Logging entries (JSON lines on the
+# service's stdout). The _Default log bucket keeps them 30 days; a sink copies
+# them to their own bucket, kept RECORDS_RETENTION_DAYS. records.sh reads them.
+if [[ "$RECORDS" == 1 ]]; then
+  if gcloud logging buckets describe "$RECORDS_BUCKET" --location global \
+      --project "$PROJECT" >/dev/null 2>&1; then
+    gcloud logging buckets update "$RECORDS_BUCKET" --location global \
+      --project "$PROJECT" --retention-days "$RECORDS_RETENTION_DAYS" >/dev/null
+  else
+    gcloud logging buckets create "$RECORDS_BUCKET" --location global \
+      --project "$PROJECT" --retention-days "$RECORDS_RETENTION_DAYS" \
+      --description "Soprano Lab question and feedback records"
+  fi
+  records_filter="resource.type=\"cloud_run_revision\""
+  records_filter+=" AND resource.labels.service_name=\"$SERVICE\""
+  records_filter+=" AND (jsonPayload.event=\"soprano_lab_question\""
+  records_filter+=" OR jsonPayload.event=\"soprano_lab_feedback\")"
+  records_destination="logging.googleapis.com/projects/$PROJECT/locations/global/buckets/$RECORDS_BUCKET"
+  if gcloud logging sinks describe "$RECORDS_BUCKET" --project "$PROJECT" >/dev/null 2>&1; then
+    gcloud logging sinks update "$RECORDS_BUCKET" "$records_destination" \
+      --log-filter "$records_filter" --project "$PROJECT" >/dev/null
+  else
+    gcloud logging sinks create "$RECORDS_BUCKET" "$records_destination" \
+      --log-filter "$records_filter" --project "$PROJECT"
+  fi
+fi
+
 context="$(mktemp -d)"
 trap 'rm -rf "$context"' EXIT
 assemble_context "$context"
@@ -166,6 +197,7 @@ env_vars="GOOGLE_CLOUD_PROJECT=$PROJECT"
 env_vars+="@SOPRANO_LAB_ALLOWED_ORIGINS=$ALLOWED_ORIGINS"
 env_vars+="@SOPRANO_LAB_ASK_LIMIT=$ASK_LIMIT"
 env_vars+="@SOPRANO_LAB_DAILY_ASK_LIMIT=$DAILY_ASK_LIMIT"
+env_vars+="@SOPRANO_LAB_RECORDS=$RECORDS"
 
 # One instance at most: the question limits are per process, and it caps cost.
 # Scales to zero when idle; the page wakes it with /api/health.

@@ -100,6 +100,17 @@ reported as 503 with a short retry message.
 [`../deploy/cloudrun/`](../deploy/cloudrun/) deploys it with the RAG
 pipeline's web settings (`config/settings.web.json`).
 
+With `SOPRANO_LAB_RECORDS=1` the server keeps records for the page's saved
+questions and feedback, and `/api/health` reports `"records": true`. A question
+sent with `"save": true` is printed to stdout with its answer as one JSON line
+(`"event": "soprano_lab_question"`, with a `record_id` that the response also
+carries). `POST /api/feedback` takes a rating (`"up"` or `"down"`) and an
+optional comment on one answer, named by that `record_id` or, for a
+precomputed answer, by its `answer_file`; it is printed the same way
+(`"event": "soprano_lab_feedback"`) and limited per visitor. No client address
+or other identifier is recorded. Off by default; the server then answers
+`/api/feedback` with 404.
+
 ## Test
 
 From `demo/`:

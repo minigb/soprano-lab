@@ -31,6 +31,14 @@ quota; asking a sample question with its listed range (or the whole piece)
 then loads the saved response in the page's language and renders it exactly
 as the live app does.
 
+When the live API keeps records (its `/api/health` says so), a note under
+the Ask button says that questions and answers are saved to improve the demo
+and asks visitors not to include personal information. "Don't save my
+questions" opts out; the browser remembers the choice. Each answer then has
+👍 / 👎 buttons and an optional comment, sent to the API as feedback,
+whether or not the question was saved. Without the live API nothing is
+saved and neither is shown.
+
 Lyrics shown beside answers are LLM-assisted transcriptions of the scores.
 Expert evidence is Korean. On the English page it is shown in English
 translation where the answer carries one, with the Korean original

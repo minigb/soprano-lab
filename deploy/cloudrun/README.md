@@ -72,6 +72,9 @@ Settings (environment variables of `deploy.sh`):
 | `DAILY_ASK_LIMIT` | `200` | questions per rolling 24 h, all visitors |
 | `REGION` | `us-central1` | Cloud Run and Artifact Registry region |
 | `BUILD_MACHINE` | `e2-highcpu-8` | Cloud Build machine type |
+| `RECORDS` | `1` | keep saved questions and feedback (`0`: none) |
+| `RECORDS_BUCKET` | `soprano-lab-records` | log bucket and sink that keep them |
+| `RECORDS_RETENTION_DAYS` | `3650` | how long the bucket keeps them |
 
 `--context-only` only assembles the build context (`CONTEXT_DIR`) for
 inspection.
@@ -85,6 +88,32 @@ before the visitor's first question; a question that arrives earlier waits
 for it. (Loading before listening made Cloud Run drop the early requests.)
 Each question
 makes one Gemini call, plus one translation call for questions in English.
+
+## Saved questions and feedback
+
+The page says, under its Ask button, that questions and answers are saved to
+improve the demo, and offers "Don't save my questions". Unless a visitor ticks
+it, each live answer is recorded with its question, piece, measure range,
+page language, the model, the answer, its basis and the cited evidence ids.
+The 👍 / 👎 buttons and comment box under each answer record feedback on it.
+No IP address, browser or other identifier is recorded; the per-visitor limits
+keep addresses in memory only.
+
+The service prints each record as one JSON line, which Cloud Run stores as a
+structured Cloud Logging entry (`jsonPayload`, `event` is
+`soprano_lab_question` or `soprano_lab_feedback`). `deploy.sh` creates a log
+bucket (`RECORDS_BUCKET`, kept `RECORDS_RETENTION_DAYS`, by default the
+10-year maximum) and a sink that copies these entries there; the `_Default`
+bucket keeps its copy 30 days. A feedback entry's `question_record_id` is the
+`record_id` of the question it rates. To download them:
+
+```bash
+source ~/gemini-vertex/env.sh
+deploy/cloudrun/records.sh > records.jsonl      # DAYS=7 for the last week
+```
+
+`RECORDS=0 deploy/cloudrun/deploy.sh` deploys without records; the page then
+shows neither the note nor the feedback buttons.
 
 ## Cost
 
@@ -117,4 +146,5 @@ differs from `RAG_REF`, which is what a deploy builds. Ctrl-C stops it.
 To open the preview on another computer, forward the port over SSH
 (`ssh -L 8797:127.0.0.1:8797 <host>`), or let VS Code Remote-SSH forward it.
 Then open <http://127.0.0.1:8797/> there. Questions are real Vertex AI calls,
-with no question limits.
+with no question limits. Saved questions and feedback are printed in the
+preview's terminal, one JSON line each, instead of going to Cloud Logging.
