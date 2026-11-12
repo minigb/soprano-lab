@@ -19,7 +19,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$HERE" rev-parse --show-toplevel)"
 PORT="${PORT:-8797}"
 RAG_ROOT="${RAG_ROOT:-$REPO_ROOT/../soprano-qa-rag-system-web}"
-RAG_REF="${RAG_REF:-web-demo-gemini}"
+RAG_REF="${RAG_REF:-origin/main}"
 PYTHON="${PYTHON:-$HOME/miniconda3/envs/soprano-qa/bin/python}"
 GEMINI_ENV="${GEMINI_ENV:-$HOME/gemini-vertex/env.sh}"
 

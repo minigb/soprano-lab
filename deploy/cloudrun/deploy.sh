@@ -17,7 +17,7 @@ SERVICE="${SERVICE:-soprano-lab-api}"
 REPOSITORY="${REPOSITORY:-soprano-lab}"
 RUNTIME_ACCOUNT_NAME="${RUNTIME_ACCOUNT_NAME:-soprano-lab-api}"
 RAG_REPO="${RAG_REPO:-$REPO_ROOT/../soprano-qa-rag-system}"
-RAG_REF="${RAG_REF:-web-demo-gemini}"
+RAG_REF="${RAG_REF:-origin/main}"
 DATASET="${SOPRANO_QA_DATASET_ROOT:-$REPO_ROOT/../soprano-qa-dataset}"
 DATASET_REF="${DATASET_REF:-HEAD}"
 ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-https://minigb.github.io}"
@@ -27,6 +27,12 @@ BUILD_MACHINE="${BUILD_MACHINE:-e2-highcpu-8}"
 RECORDS="${RECORDS:-1}"
 RECORDS_BUCKET="${RECORDS_BUCKET:-soprano-lab-records}"
 RECORDS_RETENTION_DAYS="${RECORDS_RETENTION_DAYS:-3650}"
+
+# By default the image is built from the shared repository's main as GitHub
+# has it, so bring that ref up to date first.
+if [[ $RAG_REF == origin/* ]]; then
+  git -C "$RAG_REPO" fetch -q origin "${RAG_REF#origin/}"
+fi
 
 # What the image needs from the RAG repository (no evaluations, tests, sites).
 RAG_PATHS=(soprano_qa config data scripts requirements.txt requirements-vertex.txt)

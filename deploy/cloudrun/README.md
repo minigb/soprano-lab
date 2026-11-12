@@ -65,7 +65,7 @@ Settings (environment variables of `deploy.sh`):
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `RAG_REPO` | `../soprano-qa-rag-system` | RAG repository to build from |
-| `RAG_REF` | `web-demo-gemini` | its branch or commit |
+| `RAG_REF` | `origin/main` | its branch or commit; an `origin/` ref is fetched first |
 | `DATASET_REF` | `HEAD` | dataset revision to bundle |
 | `ALLOWED_ORIGINS` | `https://minigb.github.io` | CORS origins of the page |
 | `ASK_LIMIT` | `6/600` | questions per visitor per 600 s |
