@@ -14,14 +14,18 @@ writes, relative to the site root (the parent of this ``tools/`` directory):
   names) for the sample questions listed in ``EXAMPLE_QUESTIONS`` (English,
   asked with ``language: "en"``) and ``EXAMPLE_QUESTIONS_KO`` (Korean,
   ``language: "ko"``) in ``app.js``, with the chip's measure range (or the
-  whole piece); ``n`` is the 1-based chip position. ``answers/index.json``
-  lists them; exporting one language keeps the other's entries.
+  whole piece); ``n`` is the 1-based position in the piece's list.
+  ``answers/index.json`` lists them; exporting one language keeps the
+  other's entries. With ``--reuse``, a question whose piece, wording, range
+  and language already have a saved answer keeps it, and only the rest are
+  asked. Answer files the new index no longer lists are removed.
 
 Only the standard library is used. Example:
 
     python3 tools/export.py --server http://127.0.0.1:8792
     python3 tools/export.py --skip-answers          # data and media only
     python3 tools/export.py --skip-data --languages ko  # Korean answers only
+    python3 tools/export.py --skip-data --reuse       # ask new samples only
     python3 tools/export.py --compare other_run.json  # report answer diffs
 """
 from __future__ import annotations
@@ -120,17 +124,27 @@ def export_data(server: str) -> list[str]:
     return piece_ids
 
 
-def export_answers(server: str, languages: list[str]) -> None:
+def answer_key(piece_id: str, question: str, measure_range, language: str) -> tuple:
+    return (piece_id, question, tuple(measure_range or ()), language)
+
+
+def export_answers(server: str, languages: list[str], reuse: bool = False) -> None:
     index_path = SITE_ROOT / "answers/index.json"
-    index = []
+    old_index = []
     if index_path.exists():
-        index = [
-            entry
-            for entry in json.loads(index_path.read_text(encoding="utf-8"))["answers"]
-            if entry.get("language", "en") not in languages
-        ]
+        old_index = json.loads(index_path.read_text(encoding="utf-8"))["answers"]
+    # Read the reusable answers before any file is rewritten.
+    saved = {}
+    if reuse:
+        for entry in old_index:
+            path = SITE_ROOT / entry["file"]
+            if entry.get("language", "en") in languages and path.is_file():
+                key = answer_key(entry["piece_id"], entry["question"], entry["measure_range"],
+                                 entry.get("language", "en"))
+                saved[key] = path.read_bytes()
+    index = [entry for entry in old_index if entry.get("language", "en") not in languages]
     for language in languages:
-        index.extend(export_language_answers(server, language))
+        index.extend(export_language_answers(server, language, saved))
     order = {language: i for i, language in enumerate(QUESTION_LISTS)}
     pieces = list(sample_questions(SITE_ROOT / "app.js"))
     index.sort(key=lambda e: (pieces.index(e["piece_id"]), order[e["language"]], e["n"]))
@@ -139,14 +153,37 @@ def export_answers(server: str, languages: list[str]) -> None:
         "answers/index.json",
         (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
     )
+    # Remove answers of the exported languages that are no longer samples.
+    listed = {entry["file"] for entry in index}
+    for path in sorted((SITE_ROOT / "answers").glob("*/*.json")):
+        match = re.fullmatch(r"\d+(?:\.([a-z]+))?\.json", path.name)
+        rel_path = path.relative_to(SITE_ROOT).as_posix()
+        if match and (match.group(1) or "en") in languages and rel_path not in listed:
+            path.unlink()
+            print(f"  removed {rel_path}")
 
 
-def export_language_answers(server: str, language: str) -> list[dict]:
+def export_language_answers(server: str, language: str, saved: dict | None = None) -> list[dict]:
     print(f"Sample-question answers (language: {language}):")
     suffix = "" if language == "en" else f".{language}"
     index = []
     for piece_id, examples in sample_questions(SITE_ROOT / "app.js", language).items():
         for n, example in enumerate(examples, start=1):
+            rel_path = f"answers/{piece_id}/{n}{suffix}.json"
+            entry = {
+                "piece_id": piece_id,
+                "n": n,
+                "question": example["text"],
+                "measure_range": example["range"],
+                "language": language,
+                "file": rel_path,
+            }
+            key = answer_key(piece_id, example["text"], example["range"], language)
+            if saved and key in saved:
+                print(f"  reusing {piece_id} #{n}: {example['text']}", flush=True)
+                write(rel_path, saved[key])
+                index.append(entry)
+                continue
             request = {
                 "piece_id": piece_id,
                 "question": example["text"],
@@ -162,18 +199,8 @@ def export_language_answers(server: str, language: str) -> list[dict]:
                 timeout=ASK_TIMEOUT_SECONDS,
             )
             response = strip_local_paths(json.loads(body))  # fails on a non-JSON body
-            rel_path = f"answers/{piece_id}/{n}{suffix}.json"
             write(rel_path, (json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8"))
-            index.append(
-                {
-                    "piece_id": piece_id,
-                    "n": n,
-                    "question": example["text"],
-                    "measure_range": example["range"],
-                    "language": language,
-                    "file": rel_path,
-                }
-            )
+            index.append(entry)
     return index
 
 
@@ -225,6 +252,10 @@ def main() -> None:
         "--languages", default="en,ko",
         help="answer languages to export, comma-separated (default: en,ko)",
     )
+    parser.add_argument(
+        "--reuse", action="store_true",
+        help="keep saved answers of unchanged sample questions; ask only new ones",
+    )
     parser.add_argument("--compare", type=Path, help="reference English sample-answer JSON to compare with")
     args = parser.parse_args()
     languages = [language.strip() for language in args.languages.split(",") if language.strip()]
@@ -235,7 +266,7 @@ def main() -> None:
     if not args.skip_data:
         export_data(server)
     if not args.skip_answers:
-        export_answers(server, languages)
+        export_answers(server, languages, reuse=args.reuse)
     if args.compare:
         compare(args.compare)
 

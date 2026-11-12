@@ -3,18 +3,15 @@
     {
       "piece_id": "die-forelle",
       "n": 1,
-      "question": "What does the accent on the second beat in the piano part express?",
-      "measure_range": [
-        2,
-        27
-      ],
+      "question": "Why is this piece difficult to sing even though its notes are not high?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/die-forelle/1.json"
     },
     {
       "piece_id": "die-forelle",
       "n": 2,
-      "question": "Why is this piece difficult to sing even though its notes are not high?",
+      "question": "What should a singer do when German pronunciation is difficult?",
       "measure_range": null,
       "language": "en",
       "file": "answers/die-forelle/2.json"
@@ -22,45 +19,45 @@
     {
       "piece_id": "die-forelle",
       "n": 3,
-      "question": "How should a change in the piece's mood be expressed?",
-      "measure_range": [
-        28,
-        40
-      ],
+      "question": "What should a singer do to sing this piece well?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/die-forelle/3.json"
     },
     {
       "piece_id": "die-forelle",
       "n": 4,
-      "question": "What should a singer do when German pronunciation is difficult?",
-      "measure_range": null,
+      "question": "What does the accent on the second beat in the piano part express?",
+      "measure_range": [
+        2,
+        27
+      ],
       "language": "en",
       "file": "answers/die-forelle/4.json"
     },
     {
       "piece_id": "die-forelle",
       "n": 5,
-      "question": "What should a singer do to sing this piece well?",
-      "measure_range": null,
+      "question": "How should a change in the piece's mood be expressed?",
+      "measure_range": [
+        28,
+        40
+      ],
       "language": "en",
       "file": "answers/die-forelle/5.json"
     },
     {
       "piece_id": "die-forelle",
       "n": 1,
-      "question": "피아노 파트에서 두 번째 박의 악센트는 무엇을 표현할까?",
-      "measure_range": [
-        2,
-        27
-      ],
+      "question": "음이 높지 않은데도 이 곡을 부르기 어려운 이유는 무엇일까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/die-forelle/1.ko.json"
     },
     {
       "piece_id": "die-forelle",
       "n": 2,
-      "question": "음이 높지 않은데도 이 곡을 부르기 어려운 이유는 무엇일까?",
+      "question": "독일어 발음이 어려울 때 어떻게 해야 할까?",
       "measure_range": null,
       "language": "ko",
       "file": "answers/die-forelle/2.ko.json"
@@ -68,56 +65,53 @@
     {
       "piece_id": "die-forelle",
       "n": 3,
-      "question": "곡의 분위기가 바뀔 때 어떻게 표현하는 것이 좋을까?",
-      "measure_range": [
-        28,
-        40
-      ],
+      "question": "이 곡을 잘 부르려면 어떻게 해야 할까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/die-forelle/3.ko.json"
     },
     {
       "piece_id": "die-forelle",
       "n": 4,
-      "question": "독일어 발음이 어려울 때 어떻게 해야 할까?",
-      "measure_range": null,
+      "question": "피아노 파트에서 두 번째 박의 악센트는 무엇을 표현할까?",
+      "measure_range": [
+        2,
+        27
+      ],
       "language": "ko",
       "file": "answers/die-forelle/4.ko.json"
     },
     {
       "piece_id": "die-forelle",
       "n": 5,
-      "question": "이 곡을 잘 부르려면 어떻게 해야 할까?",
-      "measure_range": null,
+      "question": "곡의 분위기가 바뀔 때 어떻게 표현하는 것이 좋을까?",
+      "measure_range": [
+        28,
+        40
+      ],
       "language": "ko",
       "file": "answers/die-forelle/5.ko.json"
     },
     {
       "piece_id": "una-voce-poco-fa",
       "n": 1,
-      "question": "Why did Rossini use a double-dotted rhythm instead of a standard dotted rhythm?",
-      "measure_range": [
-        21,
-        22
-      ],
+      "question": "The interludes in this piece are so long that I don't know what to do during them.",
+      "measure_range": null,
       "language": "en",
       "file": "answers/una-voce-poco-fa/1.json"
     },
     {
       "piece_id": "una-voce-poco-fa",
       "n": 2,
-      "question": "How can rapid diction be practiced in passages with many short notes?",
-      "measure_range": [
-        31,
-        34
-      ],
+      "question": "How should one practice coloratura technique effectively?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/una-voce-poco-fa/2.json"
     },
     {
       "piece_id": "una-voce-poco-fa",
       "n": 3,
-      "question": "The interludes in this piece are so long that I don't know what to do during them.",
+      "question": "Why does this aria contain so many ornaments?",
       "measure_range": null,
       "language": "en",
       "file": "answers/una-voce-poco-fa/3.json"
@@ -125,45 +119,56 @@
     {
       "piece_id": "una-voce-poco-fa",
       "n": 4,
-      "question": "How should one practice coloratura technique effectively?",
-      "measure_range": null,
+      "question": "Why did Rossini use a double-dotted rhythm instead of a standard dotted rhythm?",
+      "measure_range": [
+        21,
+        22
+      ],
       "language": "en",
       "file": "answers/una-voce-poco-fa/4.json"
     },
     {
       "piece_id": "una-voce-poco-fa",
       "n": 5,
-      "question": "Why does this aria contain so many ornaments?",
-      "measure_range": null,
+      "question": "How can rapid diction be practiced in passages with many short notes?",
+      "measure_range": [
+        31,
+        34
+      ],
       "language": "en",
       "file": "answers/una-voce-poco-fa/5.json"
     },
     {
       "piece_id": "una-voce-poco-fa",
-      "n": 1,
-      "question": "로시니가 일반적인 부점 리듬 대신 겹부점 리듬을 사용한 이유는 무엇일까?",
+      "n": 6,
+      "question": "Why do some performances approach ma with portamento after guidar?",
       "measure_range": [
-        21,
-        22
+        67,
+        67
       ],
+      "language": "en",
+      "file": "answers/una-voce-poco-fa/6.json"
+    },
+    {
+      "piece_id": "una-voce-poco-fa",
+      "n": 1,
+      "question": "이 곡에 간주가 너무 길어서 그동안 뭘 해야할지 모르겠다",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/una-voce-poco-fa/1.ko.json"
     },
     {
       "piece_id": "una-voce-poco-fa",
       "n": 2,
-      "question": "짧은 음표가 많은 부분에서 빠른 발음은 어떻게 연습할까?",
-      "measure_range": [
-        31,
-        34
-      ],
+      "question": "콜로라투라 테크닉을 잘 익히려면 어떻게 연습할까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/una-voce-poco-fa/2.ko.json"
     },
     {
       "piece_id": "una-voce-poco-fa",
       "n": 3,
-      "question": "이 곡에 간주가 너무 길어서 그동안 뭘 해야할지 모르겠다",
+      "question": "꾸밈음이 많이 나오는 이유는 무엇일까?",
       "measure_range": null,
       "language": "ko",
       "file": "answers/una-voce-poco-fa/3.ko.json"
@@ -171,37 +176,51 @@
     {
       "piece_id": "una-voce-poco-fa",
       "n": 4,
-      "question": "콜로라투라 테크닉을 잘 익히려면 어떻게 연습할까?",
-      "measure_range": null,
+      "question": "로시니가 일반적인 부점 리듬 대신 겹부점 리듬을 사용한 이유는 무엇일까?",
+      "measure_range": [
+        21,
+        22
+      ],
       "language": "ko",
       "file": "answers/una-voce-poco-fa/4.ko.json"
     },
     {
       "piece_id": "una-voce-poco-fa",
       "n": 5,
-      "question": "꾸밈음이 많이 나오는 이유는 무엇일까?",
-      "measure_range": null,
+      "question": "짧은 음표가 많은 부분에서 빠른 발음은 어떻게 연습할까?",
+      "measure_range": [
+        31,
+        34
+      ],
       "language": "ko",
       "file": "answers/una-voce-poco-fa/5.ko.json"
     },
     {
+      "piece_id": "una-voce-poco-fa",
+      "n": 6,
+      "question": "유튜브 영상에서 guidar 뒤에 portamento로 ma를 내는 이유는 무엇일까?",
+      "measure_range": [
+        67,
+        67
+      ],
+      "language": "ko",
+      "file": "answers/una-voce-poco-fa/6.ko.json"
+    },
+    {
       "piece_id": "la-capinera",
       "n": 1,
-      "question": "What musical effect does the contrast between ff and pp express?",
-      "measure_range": [
-        117,
-        124
-      ],
+      "question": "How should lyrics be fitted when technique or ornamentation is involved?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/la-capinera/1.json"
     },
     {
       "piece_id": "la-capinera",
       "n": 2,
-      "question": "How should a trill be sung?",
+      "question": "How should a slashed ornament be fitted into the rhythm?",
       "measure_range": [
-        137,
-        137
+        22,
+        22
       ],
       "language": "en",
       "file": "answers/la-capinera/2.json"
@@ -209,10 +228,10 @@
     {
       "piece_id": "la-capinera",
       "n": 3,
-      "question": "How should the beat and rhythm be maintained in a passage without accompaniment?",
+      "question": "How should the lyrics l’erbe ed i fior be placed on the pitches?",
       "measure_range": [
-        135,
-        137
+        80,
+        80
       ],
       "language": "en",
       "file": "answers/la-capinera/3.json"
@@ -220,43 +239,29 @@
     {
       "piece_id": "la-capinera",
       "n": 4,
-      "question": "How should a slashed ornament be fitted into the rhythm?",
+      "question": "What musical effect does the contrast between ff and pp express?",
       "measure_range": [
-        22,
-        22
+        117,
+        124
       ],
       "language": "en",
       "file": "answers/la-capinera/4.json"
     },
     {
       "piece_id": "la-capinera",
-      "n": 5,
-      "question": "How should the lyrics l’erbe ed i fior be placed on the pitches?",
-      "measure_range": [
-        80,
-        80
-      ],
-      "language": "en",
-      "file": "answers/la-capinera/5.json"
-    },
-    {
-      "piece_id": "la-capinera",
       "n": 1,
-      "question": "ff와 pp의 대비는 어떤 음악적 효과를 표현할까?",
-      "measure_range": [
-        117,
-        124
-      ],
+      "question": "테크닉이나 기교가 들어갈 때 가사는 어떻게 붙여야 할까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/la-capinera/1.ko.json"
     },
     {
       "piece_id": "la-capinera",
       "n": 2,
-      "question": "트릴은 어떻게 노래해야 할까?",
+      "question": "사선이 그어진 꾸밈음은 리듬에 맞춰 어떻게 불러야 할까?",
       "measure_range": [
-        137,
-        137
+        22,
+        22
       ],
       "language": "ko",
       "file": "answers/la-capinera/2.ko.json"
@@ -264,10 +269,10 @@
     {
       "piece_id": "la-capinera",
       "n": 3,
-      "question": "반주가 없는 곳에서는 박자와 리듬을 어떻게 잡아야 할까?",
+      "question": "‘l’erbe ed i fior’의 가사를 음정에 어떻게 붙여야 할까?",
       "measure_range": [
-        135,
-        137
+        80,
+        80
       ],
       "language": "ko",
       "file": "answers/la-capinera/3.ko.json"
@@ -275,167 +280,160 @@
     {
       "piece_id": "la-capinera",
       "n": 4,
-      "question": "사선이 그어진 꾸밈음은 리듬에 맞춰 어떻게 불러야 할까?",
+      "question": "ff와 pp의 대비는 어떤 음악적 효과를 표현할까?",
       "measure_range": [
-        22,
-        22
+        117,
+        124
       ],
       "language": "ko",
       "file": "answers/la-capinera/4.ko.json"
     },
     {
-      "piece_id": "la-capinera",
-      "n": 5,
-      "question": "‘l’erbe ed i fior’의 가사를 음정에 어떻게 붙여야 할까?",
-      "measure_range": [
-        80,
-        80
-      ],
-      "language": "ko",
-      "file": "answers/la-capinera/5.ko.json"
-    },
-    {
       "piece_id": "nella-fantasia",
       "n": 1,
-      "question": "How should a sudden upward leap be sung?",
-      "measure_range": [
-        11,
-        17
-      ],
+      "question": "Can this piece be regarded as classical, and can it be sung with classical vocal production?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/nella-fantasia/1.json"
     },
     {
       "piece_id": "nella-fantasia",
       "n": 2,
-      "question": "What should a singer do when singing is difficult or breath runs short?",
-      "measure_range": [
-        44,
-        52
-      ],
+      "question": "Are there restrictions on the singer's gender or voice type for this piece?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/nella-fantasia/2.json"
     },
     {
       "piece_id": "nella-fantasia",
       "n": 3,
-      "question": "How long should the final note be held?",
-      "measure_range": [
-        34,
-        35
-      ],
+      "question": "What does D.S. al Coda indicate?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/nella-fantasia/3.json"
     },
     {
       "piece_id": "nella-fantasia",
       "n": 4,
-      "question": "Can this piece be regarded as classical, and can it be sung with classical vocal production?",
-      "measure_range": null,
-      "language": "en",
-      "file": "answers/nella-fantasia/4.json"
-    },
-    {
-      "piece_id": "nella-fantasia",
-      "n": 5,
       "question": "With what dynamic should the opening note begin?",
       "measure_range": [
         7,
         8
       ],
       "language": "en",
-      "file": "answers/nella-fantasia/5.json"
+      "file": "answers/nella-fantasia/4.json"
     },
     {
       "piece_id": "nella-fantasia",
-      "n": 1,
-      "question": "음이 갑자기 올라갈 때 어떻게 부르는 것이 좋을까?",
+      "n": 5,
+      "question": "How should a sudden upward leap be sung?",
       "measure_range": [
         11,
         17
       ],
+      "language": "en",
+      "file": "answers/nella-fantasia/5.json"
+    },
+    {
+      "piece_id": "nella-fantasia",
+      "n": 6,
+      "question": "What should a singer do when singing is difficult or breath runs short?",
+      "measure_range": [
+        44,
+        52
+      ],
+      "language": "en",
+      "file": "answers/nella-fantasia/6.json"
+    },
+    {
+      "piece_id": "nella-fantasia",
+      "n": 1,
+      "question": "이 곡을 클래식 장르로 볼 수 있을까? 클래식 발성으로 불러도 될까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/nella-fantasia/1.ko.json"
     },
     {
       "piece_id": "nella-fantasia",
       "n": 2,
-      "question": "노래하기 힘들거나 숨이 부족할 때 어떻게 해야 할까?",
-      "measure_range": [
-        44,
-        52
-      ],
+      "question": "이 곡을 부르는 데 성별이나 성부의 제한이 있을까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/nella-fantasia/2.ko.json"
     },
     {
       "piece_id": "nella-fantasia",
       "n": 3,
-      "question": "마지막 음은 얼마나 길게 끌어야 할까?",
-      "measure_range": [
-        34,
-        35
-      ],
+      "question": "D.S. al Coda는 어떤 뜻일까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/nella-fantasia/3.ko.json"
     },
     {
       "piece_id": "nella-fantasia",
       "n": 4,
-      "question": "이 곡을 클래식 장르로 볼 수 있을까? 클래식 발성으로 불러도 될까?",
-      "measure_range": null,
-      "language": "ko",
-      "file": "answers/nella-fantasia/4.ko.json"
-    },
-    {
-      "piece_id": "nella-fantasia",
-      "n": 5,
       "question": "첫 소리는 어떤 다이나믹으로 시작할까?",
       "measure_range": [
         7,
         8
       ],
       "language": "ko",
+      "file": "answers/nella-fantasia/4.ko.json"
+    },
+    {
+      "piece_id": "nella-fantasia",
+      "n": 5,
+      "question": "음이 갑자기 올라갈 때 어떻게 부르는 것이 좋을까?",
+      "measure_range": [
+        11,
+        17
+      ],
+      "language": "ko",
       "file": "answers/nella-fantasia/5.ko.json"
+    },
+    {
+      "piece_id": "nella-fantasia",
+      "n": 6,
+      "question": "노래하기 힘들거나 숨이 부족할 때 어떻게 해야 할까?",
+      "measure_range": [
+        44,
+        52
+      ],
+      "language": "ko",
+      "file": "answers/nella-fantasia/6.ko.json"
     },
     {
       "piece_id": "in-flowery-clouds",
       "n": 1,
-      "question": "If kkotbaram (\"flower breeze\") is often sung staccato in recordings but has no such marking in the score, what should guide the performance?",
-      "measure_range": [
-        11,
-        12
-      ],
+      "question": "If this song is too high, may I adjust or arrange it?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/in-flowery-clouds/1.json"
     },
     {
       "piece_id": "in-flowery-clouds",
       "n": 2,
-      "question": "Why does the meter change, and how does the mood of the piece change?",
-      "measure_range": [
-        39,
-        49
-      ],
+      "question": "Why does the piece return to its earlier meter?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/in-flowery-clouds/2.json"
     },
     {
       "piece_id": "in-flowery-clouds",
       "n": 3,
-      "question": "How slowly should Larghetto be taken?",
-      "measure_range": [
-        74,
-        79
-      ],
+      "question": "What are the small notes?",
+      "measure_range": null,
       "language": "en",
       "file": "answers/in-flowery-clouds/3.json"
     },
     {
       "piece_id": "in-flowery-clouds",
       "n": 4,
-      "question": "If this song is too high, may I adjust or arrange it?",
-      "measure_range": null,
+      "question": "If kkotbaram (\"flower breeze\") is often sung staccato in recordings but has no such marking in the score, what should guide the performance?",
+      "measure_range": [
+        11,
+        12
+      ],
       "language": "en",
       "file": "answers/in-flowery-clouds/4.json"
     },
@@ -452,42 +450,47 @@
     },
     {
       "piece_id": "in-flowery-clouds",
-      "n": 1,
-      "question": "‘꽃바람’을 음원에서는 스타카토로 부르는 경우가 많지만 악보에 표시가 없다면 무엇을 따라야 할까?",
+      "n": 6,
+      "question": "Why does the meter change, and how does the mood of the piece change?",
       "measure_range": [
-        11,
-        12
+        39,
+        49
       ],
+      "language": "en",
+      "file": "answers/in-flowery-clouds/6.json"
+    },
+    {
+      "piece_id": "in-flowery-clouds",
+      "n": 1,
+      "question": "이 노래가 너무 높으면 조정하거나 편곡해도 될까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/in-flowery-clouds/1.ko.json"
     },
     {
       "piece_id": "in-flowery-clouds",
       "n": 2,
-      "question": "박자가 바뀌는 이유는 무엇이며, 곡의 분위기는 어떻게 달라질까?",
-      "measure_range": [
-        39,
-        49
-      ],
+      "question": "박자가 다시 이전 박자로 돌아오는 이유는 무엇일까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/in-flowery-clouds/2.ko.json"
     },
     {
       "piece_id": "in-flowery-clouds",
       "n": 3,
-      "question": "Larghetto는 어느 정도로 느리게 해야 할까?",
-      "measure_range": [
-        74,
-        79
-      ],
+      "question": "작은 음표들은 무엇일까?",
+      "measure_range": null,
       "language": "ko",
       "file": "answers/in-flowery-clouds/3.ko.json"
     },
     {
       "piece_id": "in-flowery-clouds",
       "n": 4,
-      "question": "이 노래가 너무 높으면 조정하거나 편곡해도 될까?",
-      "measure_range": null,
+      "question": "‘꽃바람’을 음원에서는 스타카토로 부르는 경우가 많지만 악보에 표시가 없다면 무엇을 따라야 할까?",
+      "measure_range": [
+        11,
+        12
+      ],
       "language": "ko",
       "file": "answers/in-flowery-clouds/4.ko.json"
     },
@@ -501,6 +504,17 @@
       ],
       "language": "ko",
       "file": "answers/in-flowery-clouds/5.ko.json"
+    },
+    {
+      "piece_id": "in-flowery-clouds",
+      "n": 6,
+      "question": "박자가 바뀌는 이유는 무엇이며, 곡의 분위기는 어떻게 달라질까?",
+      "measure_range": [
+        39,
+        49
+      ],
+      "language": "ko",
+      "file": "answers/in-flowery-clouds/6.ko.json"
     }
   ]
 }

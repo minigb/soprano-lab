@@ -7,9 +7,17 @@
 <!-- Base URL of the live Soprano Lab API (demo/server.py); empty answers the
      sample questions from answers/ only. Set by deploy/cloudrun/deploy.sh. -->
 <meta name="soprano-lab-api" content="https://soprano-lab-api-rsreofesga-uc.a.run.app" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8E%BC%3C/text%3E%3C/svg%3E" />
+<!-- Pretendard (Latin and Hangul) for the page, Cormorant Garamond for the title. -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&amp;text=Soprano%20Lab&amp;display=swap" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+<div class="app">
 <header class="topbar">
   <h1>Soprano Lab</h1>
   <nav id="piece-tabs" class="piece-tabs"></nav>
@@ -18,6 +26,15 @@
     <button class="lang-btn" type="button" data-lang="ko" lang="ko">한국어</button>
   </div>
 </header>
+
+<section class="site-note" aria-label="About this demo" data-i18n-aria-label="noteLabel">
+  <ul>
+    <li data-i18n="noteLive">Answers are written live by Gemini 3.8 Flash from
+      the sources found by the paper's measure-aware retrieval.</li>
+    <li data-i18n="noteEvidence">Expert comments are shown in English
+      translation, with the Korean original under each item.</li>
+  </ul>
+</section>
 
 <main class="layout">
   <section class="score-pane">
@@ -62,41 +79,33 @@
         <label><input type="radio" name="scope" value="whole" checked /> <span data-i18n="scopeWhole">Whole piece</span></label>
         <label><input type="radio" name="scope" value="range" /> <span data-i18n="scopeRange">Selected measure range</span></label>
       </div>
-      <textarea id="question" rows="3" placeholder="Ask in English or Korean, e.g. “How should I phrase these measures?”" data-i18n-placeholder="questionPlaceholder"></textarea>
-      <div class="examples">
-        <span class="examples-label" data-i18n="sampleQuestions">Sample questions:</span>
-        <div id="example-questions" class="example-chips"></div>
-      </div>
+      <textarea id="question" rows="3" placeholder="Write your question here" data-i18n-placeholder="questionPlaceholder"></textarea>
       <button id="ask-btn" type="button" data-i18n="ask">Ask</button>
       <div id="ask-status" class="hint"></div>
+      <div class="examples">
+        <span class="examples-label" data-i18n="sampleQuestions">Sample questions</span>
+        <div class="example-group">
+          <span class="example-group-label" data-i18n="sampleWhole">About the whole piece</span>
+          <div id="example-questions-whole" class="example-chips"></div>
+        </div>
+        <div class="example-group">
+          <span class="example-group-label" data-i18n="sampleRange">About a measure range</span>
+          <div id="example-questions-range" class="example-chips"></div>
+        </div>
+      </div>
     </div>
 
     <div id="qa-history" class="qa-history"></div>
   </aside>
 </main>
 
-<footer class="site-note">
-  <p data-i18n="footerLive">
-    Questions are answered live: measure-aware retrieval runs as described in
-    the paper, and Google's Gemini then writes the answer from the retrieved
-    sources in a single pass, instead of the paper's local Qwen3-14B with its
-    separate answer checks, so answers can differ from the paper's. Each answer
-    is labeled with the model that wrote it. When the live model is
-    unavailable, the sample questions show answers precomputed with the local
-    Qwen3-14B pipeline. Questions you ask are sent to the Soprano Lab server
-    and to Google's Vertex AI.
-  </p>
-  <p data-i18n="footerEvidence">
-    The lyrics shown with answers are LLM-assisted transcriptions of the
-    scores. Expert evidence is shown in English translation, with the Korean
-    original available under each item; the few items without an up-to-date
-    translation are shown in Korean.
-  </p>
+<footer class="site-footer">
   <p data-i18n="footerPaper">
     Paper: “Soprano Lab: Measure-Aware Question Answering over Expert
     Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).
   </p>
 </footer>
+</div>
 
 <script src="app.js"></script>
 </body>

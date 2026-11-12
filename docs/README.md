@@ -18,7 +18,13 @@ Korean) and the language the API answers in, whatever the question's
 language. `?lang=en` or `?lang=ko` picks one in a link; otherwise the
 visitor's last choice, or on a first visit the browser's language, decides.
 
-The page also keeps the 25 sample questions' answers precomputed by the full
+Each piece has up to three sample questions about the whole piece and up to
+three about a measure range, shown as two groups. They are the paper's
+sample questions (`../rag/sample_questions.md`) and, to fill the groups, the
+dataset's evaluation questions, each in its own wording and scope; pieces
+with fewer such questions show fewer.
+
+The page also keeps the sample questions' answers precomputed by the full
 local system (Qwen3-14B), in English and in Korean. They are shown when the
 meta tag is empty, or when the API is unreachable, rate-limited or out of
 quota; asking a sample question with its listed range (or the whole piece)
@@ -87,8 +93,10 @@ in `EXAMPLE_QUESTIONS` (`app.js`, `language: "en"`) and `EXAMPLE_QUESTIONS_KO`
 (`language: "ko"`) with the chip's range, saving the exact JSON responses.
 `--skip-answers` exports data and media only; `--skip-data` re-asks only;
 `--languages ko` re-asks one language and keeps the other's answers;
-`--compare <file>` reports differences of the English answers from another
-run's.
+`--reuse` keeps the saved answer of a question whose wording and range are
+unchanged and asks only the new ones; `--compare <file>` reports differences
+of the English answers from another run's. Answer files no longer listed are
+removed.
 
 ## Previewing locally
 

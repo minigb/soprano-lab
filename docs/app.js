@@ -42,7 +42,8 @@ const el = {
   playSelection: document.getElementById("play-selection"),
   rangeHint: document.getElementById("range-hint"),
   question: document.getElementById("question"),
-  exampleQuestions: document.getElementById("example-questions"),
+  exampleQuestionsWhole: document.getElementById("example-questions-whole"),
+  exampleQuestionsRange: document.getElementById("example-questions-range"),
   askBtn: document.getElementById("ask-btn"),
   askStatus: document.getElementById("ask-status"),
   qaHistory: document.getElementById("qa-history"),
@@ -76,24 +77,21 @@ const STRINGS = {
     questionScope: "Question scope",
     scopeWhole: "Whole piece",
     scopeRange: "Selected measure range",
-    questionPlaceholder: "Ask in English or Korean, e.g. “How should I phrase these measures?”",
+    questionPlaceholder: "Write your question here",
     questionPlaceholderSamplesOnly: "Pick a sample question below, then press Ask.",
-    sampleQuestions: "Sample questions:",
+    sampleQuestions: "Sample questions",
+    sampleWhole: "About the whole piece",
+    sampleRange: "About a measure range",
     ask: "Ask",
-    footerLive:
-      "Questions are answered live: measure-aware retrieval runs as described in " +
-      "the paper, and Google's Gemini then writes the answer from the retrieved " +
-      "sources in a single pass, instead of the paper's local Qwen3-14B with its " +
-      "separate answer checks, so answers can differ from the paper's. Each answer " +
-      "is labeled with the model that wrote it. When the live model is " +
-      "unavailable, the sample questions show answers precomputed with the local " +
-      "Qwen3-14B pipeline. Questions you ask are sent to the Soprano Lab server " +
-      "and to Google's Vertex AI.",
-    footerEvidence:
-      "The lyrics shown with answers are LLM-assisted transcriptions of the " +
-      "scores. Expert evidence is shown in English translation, with the Korean " +
-      "original available under each item; the few items without an up-to-date " +
-      "translation are shown in Korean.",
+    noteLabel: "About this demo",
+    // The model name follows vertex_gemini.model in the RAG repository's
+    // config/settings.web.json, which the Cloud Run API is built with.
+    noteLive:
+      "Answers are written live by Gemini 3.8 Flash from the sources found by the " +
+      "paper's measure-aware retrieval.",
+    noteEvidence:
+      "Expert comments are shown in English translation, with the Korean original " +
+      "under each item.",
     footerPaper:
       "Paper: “Soprano Lab: Measure-Aware Question Answering over Expert " +
       "Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).",
@@ -115,17 +113,12 @@ const STRINGS = {
     rangeAnchor: (p) => `Anchor at measure ${p.n} — click another measure, or fill in "To".`,
     rangeHelp: 'Click two measures on the score in "select range" mode, or type measure numbers here.',
     measuresUnknown: "Measure numbers are not known yet for this piece.",
-    exampleChip: (p) =>
-      !p.range
-        ? p.text
-        : p.range[0] === p.range[1]
-        ? `${p.text} (measure ${p.range[0]})`
-        : `${p.text} (measures ${p.range[0]}–${p.range[1]})`,
     typeQuestionFirst: "Type a question first.",
     selectRangeFirst:
       'Select a measure range first (click two measures in "select range" mode, or use the From/To fields).',
     loadingSaved: "Loading the saved answer…",
-    showingPrecomputed: (p) => `${p.message} Showing the answer precomputed with Qwen3-14B instead.`,
+    precomputedTitle: "The live model is unavailable.",
+    precomputedBody: "This answer was precomputed with Qwen3-14B.",
     somethingWrong: (p) => `Something went wrong: ${p.message}`,
     thinking: "Thinking…",
     stillThinking:
@@ -161,7 +154,7 @@ const STRINGS = {
     modeLlm: "LLM · corpus-grounded",
     withheldTitle: "Could not produce a verified answer.",
     pipelineTag: "Soprano QA pipeline",
-    tagMeasures: (p) => `Measures ${p.from}–${p.to}`,
+    tagMeasures: (p) => (p.from === p.to ? `Measure ${p.from}` : `Measures ${p.from}–${p.to}`),
     tagWhole: "Whole piece",
     langEnglish: "English",
     langKorean: "Korean",
@@ -204,20 +197,19 @@ const STRINGS = {
     questionScope: "질문 범위",
     scopeWhole: "곡 전체",
     scopeRange: "선택한 마디 범위",
-    questionPlaceholder: "한국어나 영어로 질문하세요. 예: “이 마디들은 어떻게 프레이징하면 좋을까?”",
+    questionPlaceholder: "여기에 질문을 입력하세요",
     questionPlaceholderSamplesOnly: "아래 예시 질문을 고른 뒤 물어보기를 누르세요.",
-    sampleQuestions: "예시 질문:",
+    sampleQuestions: "예시 질문",
+    sampleWhole: "곡 전체에 대한 질문",
+    sampleRange: "마디 범위에 대한 질문",
     ask: "물어보기",
-    footerLive:
-      "질문에는 실시간으로 답합니다. 논문에서 설명한 마디 단위 검색을 그대로 실행한 뒤, " +
-      "논문의 로컬 Qwen3-14B와 별도의 답변 검사 대신 Google Gemini가 검색된 자료를 " +
-      "바탕으로 한 번에 답변을 작성하므로 답변이 논문과 다를 수 있습니다. 각 답변에는 " +
-      "작성한 모델이 표시됩니다. 실시간 모델을 쓸 수 없을 때는 예시 질문에 한해 로컬 " +
-      "Qwen3-14B 파이프라인으로 미리 생성한 답변을 보여 줍니다. 입력한 질문은 Soprano Lab " +
-      "서버와 Google Vertex AI로 전송됩니다.",
-    footerEvidence:
-      "답변과 함께 보이는 가사는 악보를 LLM의 도움을 받아 전사한 것입니다. 전문가 근거는 " +
-      "한국어 원문으로 보여 주며, 영어 번역이 있는 항목은 그 아래에서 번역도 볼 수 있습니다.",
+    noteLabel: "데모 안내",
+    noteLive:
+      "답변은 논문의 마디 단위 검색으로 찾은 자료를 바탕으로 Gemini 3.8 Flash가 실시간으로 " +
+      "작성합니다.",
+    noteEvidence:
+      "전문가 근거는 한국어 원문으로 보여 주며, 영어 번역이 있으면 각 항목 아래에서 볼 수 " +
+      "있습니다.",
     footerPaper:
       "논문: “Soprano Lab: Measure-Aware Question Answering over Expert " +
       "Vocal-Performance Annotations” (ISMIR 2026 Late-Breaking Demo).",
@@ -239,17 +231,12 @@ const STRINGS = {
     rangeAnchor: (p) => `${p.n}마디부터 선택합니다. 다른 마디를 누르거나 “끝”을 입력하세요.`,
     rangeHelp: "“마디를 눌러 범위 선택” 상태에서 악보의 마디 두 개를 누르거나, 여기에 마디 번호를 입력하세요.",
     measuresUnknown: "이 곡은 아직 마디 번호가 없습니다.",
-    exampleChip: (p) =>
-      !p.range
-        ? p.text
-        : p.range[0] === p.range[1]
-        ? `${p.text} (${p.range[0]}마디)`
-        : `${p.text} (${p.range[0]}–${p.range[1]}마디)`,
     typeQuestionFirst: "먼저 질문을 입력하세요.",
     selectRangeFirst:
       "먼저 마디 범위를 선택하세요. “마디를 눌러 범위 선택” 상태에서 마디 두 개를 누르거나 시작/끝 칸에 입력하면 됩니다.",
     loadingSaved: "저장된 답변을 불러오는 중…",
-    showingPrecomputed: (p) => `${p.message} 대신 Qwen3-14B로 미리 생성한 답변을 보여 드립니다.`,
+    precomputedTitle: "실시간 모델을 쓸 수 없습니다.",
+    precomputedBody: "이 답변은 Qwen3-14B로 미리 만든 답변입니다.",
     somethingWrong: (p) => `문제가 생겼습니다: ${p.message}`,
     thinking: "답변을 만드는 중…",
     stillThinking:
@@ -284,7 +271,7 @@ const STRINGS = {
     modeLlm: "LLM · 자료 근거",
     withheldTitle: "검증된 답변을 만들지 못했습니다.",
     pipelineTag: "Soprano QA 파이프라인",
-    tagMeasures: (p) => `${p.from}–${p.to}마디`,
+    tagMeasures: (p) => (p.from === p.to ? `${p.from}마디` : `${p.from}–${p.to}마디`),
     tagWhole: "곡 전체",
     langEnglish: "영어",
     langKorean: "한국어",
@@ -1081,6 +1068,8 @@ function answerModelTag(result) {
 function addQAItem(question, result) {
   state.history.push({ question, result });
   renderQAItem(question, result);
+  // The newest answer is on top of the history, below the question card.
+  el.qaHistory.firstElementChild.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderHistory() {
@@ -1190,6 +1179,16 @@ function renderQAItem(question, result) {
     badge.className = "qa-caveat qa-score-only";
     badge.textContent = t("scoreContextNotice");
     item.appendChild(badge);
+  }
+
+  if (result.precomputed) {
+    const notice = document.createElement("div");
+    notice.className = "qa-caveat qa-precomputed";
+    notice.setAttribute("role", "note");
+    const title = document.createElement("strong");
+    title.textContent = t("precomputedTitle");
+    notice.append(title, " ", t("precomputedBody"));
+    item.appendChild(notice);
   }
 
   const ans = document.createElement("div");
@@ -1419,9 +1418,8 @@ async function askQuestion() {
     el.askStatus.textContent = t("loadingSaved");
     const result = await fetchJSON(dataUrl(saved.file));
     result.precomputed = true;
-    el.askStatus.textContent = liveError
-      ? t("showingPrecomputed", { message: liveError.message })
-      : "";
+    el.askStatus.textContent =
+      liveError && liveError.message !== t("liveUnavailable") ? liveError.message : "";
     addQAItem(question, result);
     el.question.value = "";
   } catch (err) {
@@ -1533,86 +1531,92 @@ if (API_BASE) {
   el.question.dataset.i18nPlaceholder = "questionPlaceholderSamplesOnly";
 }
 
-// Example questions, in the page language. Range examples switch the scope
-// to the selected measures when a range exists.
-// Example questions follow rag/sample_questions.md: five
-// per piece with their measure ranges, in the English wording of the parallel
-// English dataset (two without a counterpart there are translated directly).
+// Example questions, in the page language: per piece, up to three about the
+// whole piece (range null), then up to three about a measure range, which
+// select that range. They are the paper's sample questions
+// (rag/sample_questions.md), with their wording and scope, and otherwise the
+// dataset's evaluation questions (expert_curation/evaluation_questions), in
+// their paraphrased wording and scope; no question is written for the page.
+// English wording is the parallel English dataset's (two paper questions
+// without a counterpart there are translated directly).
 const EXAMPLE_QUESTIONS = {
   "die-forelle": [
-    { text: "What does the accent on the second beat in the piano part express?", range: [2, 27] },
     { text: "Why is this piece difficult to sing even though its notes are not high?", range: null },
-    { text: "How should a change in the piece's mood be expressed?", range: [28, 40] },
     { text: "What should a singer do when German pronunciation is difficult?", range: null },
     { text: "What should a singer do to sing this piece well?", range: null },
+    { text: "What does the accent on the second beat in the piano part express?", range: [2, 27] },
+    { text: "How should a change in the piece's mood be expressed?", range: [28, 40] },
   ],
   "una-voce-poco-fa": [
-    { text: "Why did Rossini use a double-dotted rhythm instead of a standard dotted rhythm?", range: [21, 22] },
-    { text: "How can rapid diction be practiced in passages with many short notes?", range: [31, 34] },
     { text: "The interludes in this piece are so long that I don't know what to do during them.", range: null },
     { text: "How should one practice coloratura technique effectively?", range: null },
     { text: "Why does this aria contain so many ornaments?", range: null },
+    { text: "Why did Rossini use a double-dotted rhythm instead of a standard dotted rhythm?", range: [21, 22] },
+    { text: "How can rapid diction be practiced in passages with many short notes?", range: [31, 34] },
+    { text: "Why do some performances approach ma with portamento after guidar?", range: [67, 67] },
   ],
   "la-capinera": [
-    { text: "What musical effect does the contrast between ff and pp express?", range: [117, 124] },
-    { text: "How should a trill be sung?", range: [137, 137] },
-    { text: "How should the beat and rhythm be maintained in a passage without accompaniment?", range: [135, 137] },
+    { text: "How should lyrics be fitted when technique or ornamentation is involved?", range: null },
     { text: "How should a slashed ornament be fitted into the rhythm?", range: [22, 22] },
     { text: "How should the lyrics l’erbe ed i fior be placed on the pitches?", range: [80, 80] },
+    { text: "What musical effect does the contrast between ff and pp express?", range: [117, 124] },
   ],
   "nella-fantasia": [
+    { text: "Can this piece be regarded as classical, and can it be sung with classical vocal production?", range: null },
+    { text: "Are there restrictions on the singer's gender or voice type for this piece?", range: null },
+    { text: "What does D.S. al Coda indicate?", range: null },
+    { text: "With what dynamic should the opening note begin?", range: [7, 8] },
     { text: "How should a sudden upward leap be sung?", range: [11, 17] },
     { text: "What should a singer do when singing is difficult or breath runs short?", range: [44, 52] },
-    { text: "How long should the final note be held?", range: [34, 35] },
-    { text: "Can this piece be regarded as classical, and can it be sung with classical vocal production?", range: null },
-    { text: "With what dynamic should the opening note begin?", range: [7, 8] },
   ],
   "in-flowery-clouds": [
-    { text: "If kkotbaram (\"flower breeze\") is often sung staccato in recordings but has no such marking in the score, what should guide the performance?", range: [11, 12] },
-    { text: "Why does the meter change, and how does the mood of the piece change?", range: [39, 49] },
-    { text: "How slowly should Larghetto be taken?", range: [74, 79] },
     { text: "If this song is too high, may I adjust or arrange it?", range: null },
+    { text: "Why does the piece return to its earlier meter?", range: null },
+    { text: "What are the small notes?", range: null },
+    { text: "If kkotbaram (\"flower breeze\") is often sung staccato in recordings but has no such marking in the score, what should guide the performance?", range: [11, 12] },
     { text: "What should I do if the first note does not come out well when a phrase begins on a high note?", range: [19, 21] },
+    { text: "Why does the meter change, and how does the mood of the piece change?", range: [39, 49] },
   ],
 };
 
-// The same questions in the paper's original Korean wording
-// (rag/sample_questions.md), in the same order.
+// The same questions in their original Korean wording, in the same order.
 const EXAMPLE_QUESTIONS_KO = {
   "die-forelle": [
-    { text: "피아노 파트에서 두 번째 박의 악센트는 무엇을 표현할까?", range: [2, 27] },
     { text: "음이 높지 않은데도 이 곡을 부르기 어려운 이유는 무엇일까?", range: null },
-    { text: "곡의 분위기가 바뀔 때 어떻게 표현하는 것이 좋을까?", range: [28, 40] },
     { text: "독일어 발음이 어려울 때 어떻게 해야 할까?", range: null },
     { text: "이 곡을 잘 부르려면 어떻게 해야 할까?", range: null },
+    { text: "피아노 파트에서 두 번째 박의 악센트는 무엇을 표현할까?", range: [2, 27] },
+    { text: "곡의 분위기가 바뀔 때 어떻게 표현하는 것이 좋을까?", range: [28, 40] },
   ],
   "una-voce-poco-fa": [
-    { text: "로시니가 일반적인 부점 리듬 대신 겹부점 리듬을 사용한 이유는 무엇일까?", range: [21, 22] },
-    { text: "짧은 음표가 많은 부분에서 빠른 발음은 어떻게 연습할까?", range: [31, 34] },
     { text: "이 곡에 간주가 너무 길어서 그동안 뭘 해야할지 모르겠다", range: null },
     { text: "콜로라투라 테크닉을 잘 익히려면 어떻게 연습할까?", range: null },
     { text: "꾸밈음이 많이 나오는 이유는 무엇일까?", range: null },
+    { text: "로시니가 일반적인 부점 리듬 대신 겹부점 리듬을 사용한 이유는 무엇일까?", range: [21, 22] },
+    { text: "짧은 음표가 많은 부분에서 빠른 발음은 어떻게 연습할까?", range: [31, 34] },
+    { text: "유튜브 영상에서 guidar 뒤에 portamento로 ma를 내는 이유는 무엇일까?", range: [67, 67] },
   ],
   "la-capinera": [
-    { text: "ff와 pp의 대비는 어떤 음악적 효과를 표현할까?", range: [117, 124] },
-    { text: "트릴은 어떻게 노래해야 할까?", range: [137, 137] },
-    { text: "반주가 없는 곳에서는 박자와 리듬을 어떻게 잡아야 할까?", range: [135, 137] },
+    { text: "테크닉이나 기교가 들어갈 때 가사는 어떻게 붙여야 할까?", range: null },
     { text: "사선이 그어진 꾸밈음은 리듬에 맞춰 어떻게 불러야 할까?", range: [22, 22] },
     { text: "‘l’erbe ed i fior’의 가사를 음정에 어떻게 붙여야 할까?", range: [80, 80] },
+    { text: "ff와 pp의 대비는 어떤 음악적 효과를 표현할까?", range: [117, 124] },
   ],
   "nella-fantasia": [
+    { text: "이 곡을 클래식 장르로 볼 수 있을까? 클래식 발성으로 불러도 될까?", range: null },
+    { text: "이 곡을 부르는 데 성별이나 성부의 제한이 있을까?", range: null },
+    { text: "D.S. al Coda는 어떤 뜻일까?", range: null },
+    { text: "첫 소리는 어떤 다이나믹으로 시작할까?", range: [7, 8] },
     { text: "음이 갑자기 올라갈 때 어떻게 부르는 것이 좋을까?", range: [11, 17] },
     { text: "노래하기 힘들거나 숨이 부족할 때 어떻게 해야 할까?", range: [44, 52] },
-    { text: "마지막 음은 얼마나 길게 끌어야 할까?", range: [34, 35] },
-    { text: "이 곡을 클래식 장르로 볼 수 있을까? 클래식 발성으로 불러도 될까?", range: null },
-    { text: "첫 소리는 어떤 다이나믹으로 시작할까?", range: [7, 8] },
   ],
   "in-flowery-clouds": [
-    { text: "‘꽃바람’을 음원에서는 스타카토로 부르는 경우가 많지만 악보에 표시가 없다면 무엇을 따라야 할까?", range: [11, 12] },
-    { text: "박자가 바뀌는 이유는 무엇이며, 곡의 분위기는 어떻게 달라질까?", range: [39, 49] },
-    { text: "Larghetto는 어느 정도로 느리게 해야 할까?", range: [74, 79] },
     { text: "이 노래가 너무 높으면 조정하거나 편곡해도 될까?", range: null },
+    { text: "박자가 다시 이전 박자로 돌아오는 이유는 무엇일까?", range: null },
+    { text: "작은 음표들은 무엇일까?", range: null },
+    { text: "‘꽃바람’을 음원에서는 스타카토로 부르는 경우가 많지만 악보에 표시가 없다면 무엇을 따라야 할까?", range: [11, 12] },
     { text: "프레이즈의 시작에 높은 음이 나오는 경우 첫 소리가 잘 나지 않으면 어떻게 해야 할까?", range: [19, 21] },
+    { text: "박자가 바뀌는 이유는 무엇이며, 곡의 분위기는 어떻게 달라질까?", range: [39, 49] },
   ],
 };
 
@@ -1643,16 +1647,33 @@ function applyExampleQuestion(example) {
   el.question.focus();
 }
 
+// Whole-piece and measure-range examples are shown as two groups; a group
+// without examples for the piece is hidden.
 function renderExampleQuestions() {
-  if (!el.exampleQuestions) return;
-  el.exampleQuestions.innerHTML = "";
-  for (const example of exampleQuestionsFor(state.lang)) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "example-chip";
-    btn.textContent = t("exampleChip", example);
-    btn.addEventListener("click", () => applyExampleQuestion(example));
-    el.exampleQuestions.appendChild(btn);
+  const examples = exampleQuestionsFor(state.lang);
+  for (const [box, wantsRange] of [
+    [el.exampleQuestionsWhole, false],
+    [el.exampleQuestionsRange, true],
+  ]) {
+    if (!box) continue;
+    box.innerHTML = "";
+    for (const example of examples.filter((e) => Boolean(e.range) === wantsRange)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "example-chip";
+      const text = document.createElement("span");
+      text.textContent = example.text;
+      btn.appendChild(text);
+      if (example.range) {
+        const range = document.createElement("span");
+        range.className = "chip-range";
+        range.textContent = t("tagMeasures", { from: example.range[0], to: example.range[1] });
+        btn.appendChild(range);
+      }
+      btn.addEventListener("click", () => applyExampleQuestion(example));
+      box.appendChild(btn);
+    }
+    box.closest(".example-group").hidden = !box.childElementCount;
   }
 }
 renderExampleQuestions();
