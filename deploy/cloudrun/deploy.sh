@@ -206,7 +206,8 @@ env_vars+="@SOPRANO_LAB_DAILY_ASK_LIMIT=$DAILY_ASK_LIMIT"
 env_vars+="@SOPRANO_LAB_RECORDS=$RECORDS"
 
 # One instance at most: the question limits are per process, and it caps cost.
-# Scales to zero when idle; the page wakes it with /api/health.
+# No minimum instance, so idle time is free; keep_warm.sh's scheduled
+# /api/health calls keep it warm, and the page wakes it if it went cold.
 gcloud run deploy "$SERVICE" --project "$PROJECT" --region "$REGION" \
   --image "$IMAGE" --service-account "$RUNTIME_ACCOUNT" --allow-unauthenticated \
   --cpu 2 --memory 4Gi --concurrency 8 --timeout 300 \

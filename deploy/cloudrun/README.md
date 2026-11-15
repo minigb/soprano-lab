@@ -79,8 +79,10 @@ Settings (environment variables of `deploy.sh`):
 `--context-only` only assembles the build context (`CONTEXT_DIR`) for
 inspection.
 
-The service runs with at most one instance (2 vCPU, 4 GiB), scales to zero
-when idle, and is woken by the page's `/api/health` call. A new instance
+The service runs with at most one instance (2 vCPU, 4 GiB) and no minimum
+instance, so an idle instance costs nothing; `keep_warm.sh` keeps it from
+going cold (see below). A cold service is woken by the page's `/api/health`
+call. A new instance
 listens at once and loads the embedding model and index in the background
 (`SOPRANO_LAB_WARMUP=1`; about a minute on Cloud Run). The wake-up call waits
 for that load, which keeps the instance's CPU on, so it usually finishes
@@ -88,6 +90,25 @@ before the visitor's first question; a question that arrives earlier waits
 for it. (Loading before listening made Cloud Run drop the early requests.)
 Each question
 makes one Gemini call, plus one translation call for questions in English.
+
+## Keeping the instance warm
+
+A cold start takes 75–90 s, so a visitor who asks right away waits that long.
+Cloud Run keeps an idle instance for up to 15 minutes after its last request
+and does not bill it, so a Cloud Scheduler job that calls `/api/health` every
+five minutes keeps the instance, with its index loaded, almost always ready.
+It is not a guarantee: when Cloud Run does replace the instance, the next
+call loads the new one. A minimum instance would guarantee it, but bills the
+idle instance, about $39 a month at 2 vCPU and 4 GiB.
+
+```bash
+source ~/gemini-vertex/env.sh
+deploy/cloudrun/keep_warm.sh            # create or update the job, once
+deploy/cloudrun/keep_warm.sh --delete   # remove it
+```
+
+The job targets the service URL, so it survives redeploys. `KEEP_WARM_SCHEDULE`
+changes its cron schedule, in UTC.
 
 ## Saved questions and feedback
 
@@ -121,7 +142,9 @@ Measured on the RAG evaluation's Gemini 3.8 Flash calls: about 2,000 input
 and 115 output tokens per answer, so roughly $2–3 per 1,000 questions at
 published Vertex prices (late 2026). Cloud Run's monthly free tier covers a
 few thousand questions; Artifact Registry storage is cents per month; each
-deploy's build costs about $0.20. `DAILY_ASK_LIMIT` bounds the worst case.
+deploy's build costs about $0.20. The keep-warm job is free: Cloud Scheduler
+gives each billing account three jobs a month, then $0.10 per job, and its
+pings fall within Cloud Run's free tier. `DAILY_ASK_LIMIT` bounds the worst case.
 
 ## Previewing before a deploy
 
