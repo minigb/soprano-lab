@@ -16,8 +16,12 @@ REGION="${REGION:-us-central1}"
 SERVICE="${SERVICE:-soprano-lab-api}"
 REPOSITORY="${REPOSITORY:-soprano-lab}"
 RUNTIME_ACCOUNT_NAME="${RUNTIME_ACCOUNT_NAME:-soprano-lab-api}"
-RAG_REPO="${RAG_REPO:-$REPO_ROOT/../soprano-qa-rag-system}"
-RAG_REF="${RAG_REF:-origin/main}"
+# The RAG system and the demo server are this repository's submodules; by
+# default the image is built from the commits that HEAD records for them.
+RAG_REPO="${RAG_REPO:-$REPO_ROOT/soprano-qa-rag-system}"
+RAG_REF="${RAG_REF:-$(git -C "$REPO_ROOT" rev-parse HEAD:soprano-qa-rag-system)}"
+DEMO_REPO="${DEMO_REPO:-$REPO_ROOT/soprano-qa-demo}"
+DEMO_REF="${DEMO_REF:-$(git -C "$REPO_ROOT" rev-parse HEAD:soprano-qa-demo)}"
 DATASET="${SOPRANO_QA_DATASET_ROOT:-$REPO_ROOT/../soprano-qa-dataset}"
 DATASET_REF="${DATASET_REF:-HEAD}"
 ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-https://minigb.github.io}"
@@ -28,14 +32,17 @@ RECORDS="${RECORDS:-1}"
 RECORDS_BUCKET="${RECORDS_BUCKET:-soprano-lab-records}"
 RECORDS_RETENTION_DAYS="${RECORDS_RETENTION_DAYS:-3650}"
 
-# By default the image is built from the shared repository's main as GitHub
-# has it, so bring that ref up to date first.
-if [[ $RAG_REF == origin/* ]]; then
-  git -C "$RAG_REPO" fetch -q origin "${RAG_REF#origin/}"
-fi
+for repo_ref in "$RAG_REPO@$RAG_REF" "$DEMO_REPO@$DEMO_REF"; do
+  if ! git -C "${repo_ref%@*}" cat-file -e "${repo_ref#*@}^{commit}" 2>/dev/null; then
+    echo "${repo_ref%@*} lacks ${repo_ref#*@}; run: git submodule update --init" >&2
+    exit 1
+  fi
+done
 
-# What the image needs from the RAG repository (no evaluations, tests, sites).
+# What the image needs from the RAG repository (no evaluations, tests, sites)
+# and from the demo (no tests).
 RAG_PATHS=(soprano_qa config data scripts requirements.txt requirements-vertex.txt)
+DEMO_PATHS=(backend server.py static)
 
 # Dataset files the pipeline and server read (corpus inputs, lyrics, score
 # geometry, alignments, English translations). Audio and score images are
@@ -72,12 +79,12 @@ done
 
 assemble_context() {
   local context="$1"
-  mkdir -p "$context/soprano-lab" "$context/soprano-qa-rag-system" "$context/soprano-qa-dataset"
-  if [[ -n "$(git -C "$REPO_ROOT" status --porcelain -- demo deploy)" ]]; then
-    echo "warning: demo/ or deploy/ has uncommitted changes; deploying git HEAD" >&2
+  mkdir -p "$context/soprano-qa-demo" "$context/soprano-qa-rag-system" "$context/soprano-qa-dataset"
+  if [[ -n "$(git -C "$REPO_ROOT" status --porcelain -- deploy soprano-qa-rag-system soprano-qa-demo)" ]]; then
+    echo "warning: deploy/ or a submodule differs from git HEAD; deploying what HEAD records" >&2
   fi
-  git -C "$REPO_ROOT" archive HEAD demo | tar -x -C "$context/soprano-lab"
-  rm -rf "$context/soprano-lab/demo/tests"
+  git -C "$DEMO_REPO" archive "$DEMO_REF" -- "${DEMO_PATHS[@]}" \
+    | tar -x -C "$context/soprano-qa-demo"
   git -C "$REPO_ROOT" show HEAD:deploy/cloudrun/Dockerfile > "$context/Dockerfile"
   git -C "$REPO_ROOT" show HEAD:deploy/cloudrun/prepare_image.py > "$context/prepare_image.py"
   git -C "$RAG_REPO" archive "$RAG_REF" -- "${RAG_PATHS[@]}" \
@@ -85,7 +92,8 @@ assemble_context() {
   git -C "$DATASET" archive "$DATASET_REF" -- "${DATASET_PATHS[@]}" \
     | tar -x -C "$context/soprano-qa-dataset"
   echo "Build context: $context ($(du -sh "$context" | cut -f1));" \
-    "RAG $(git -C "$RAG_REPO" rev-parse --short "$RAG_REF"), dataset $(git -C "$DATASET" rev-parse --short "$DATASET_REF")"
+    "RAG $(git -C "$RAG_REPO" rev-parse --short "$RAG_REF"), demo $(git -C "$DEMO_REPO" rev-parse --short "$DEMO_REF")," \
+    "dataset $(git -C "$DATASET" rev-parse --short "$DATASET_REF")"
 }
 
 if (( context_only )); then

@@ -2,11 +2,11 @@
 
 The page is served from the working tree's docs/, with its API meta tag
 pointing at this same origin. Its API calls (GET /api/health, POST /api/ask,
-POST /api/feedback) go to demo/server.py's request handler, run in this
-process. Only
+POST /api/feedback) go to soprano-qa-demo/server.py's request handler, run in
+this process. Only
 this one port is open, so an SSH tunnel or VS Code needs to forward just it,
 and no CORS setup is needed. (A separate API port would get forwarded too, and
-demo/server.py serves its own copy of the page, demo/static, at its root.)
+the demo server serves its own page, soprano-qa-demo/static, at its root.)
 
 Run it with the RAG pipeline's Python and environment; preview.sh sets them.
 """
@@ -23,9 +23,9 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "demo"))
+sys.path.insert(0, str(REPO_ROOT / "soprano-qa-demo"))
 
-import server as api  # noqa: E402  demo/server.py
+import server as api  # noqa: E402  soprano-qa-demo/server.py
 
 META_RE = re.compile(r'(<meta name="soprano-lab-api" content=")[^"]*(")')
 RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)$")

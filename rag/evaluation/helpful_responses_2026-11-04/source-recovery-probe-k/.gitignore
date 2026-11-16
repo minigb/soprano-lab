@@ -1,5 +1,0 @@
-runtime/
-*.log
-*.private-traces.jsonl
-*.private-failure.json
-__pycache__/

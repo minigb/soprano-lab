@@ -6,8 +6,9 @@ website's `public/soprano-lab/`). It shows five soprano works with a
 scrollable score, synchronized audio, and measure-range selection.
 
 Questions are answered live by the API named in `index.html`
-(`<meta name="soprano-lab-api" content="…">`): `../demo/server.py` with the
-measure-aware RAG pipeline, deployed to Cloud Run with Gemini on Vertex AI
+(`<meta name="soprano-lab-api" content="…">`): the demo server of
+`../soprano-qa-demo/` with the measure-aware RAG pipeline of
+`../soprano-qa-rag-system/`, deployed to Cloud Run with Gemini on Vertex AI
 writing single-pass answers instead of the local Qwen3-14B
 ([`../deploy/cloudrun/`](../deploy/cloudrun/)). Each answer is labeled with
 the model that wrote it.
@@ -23,7 +24,7 @@ visitor's last choice, or on a first visit the browser's language, decides.
 
 Each piece's sample questions are shown as two groups, about a measure range
 and about the whole piece, three at first and the rest behind "Show more".
-The first three are the paper's sample questions (`../rag/sample_questions.md`),
+The first three are the paper's sample questions (`../soprano-qa-rag-system/sample_questions.md`),
 filled up with the dataset's evaluation questions, each in its own wording
 and scope. The rest are the other evaluation questions that the live demo
 answered from their expert source, in Korean and in English (49 of 53 in a

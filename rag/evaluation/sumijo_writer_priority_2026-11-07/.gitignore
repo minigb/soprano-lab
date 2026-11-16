@@ -1,5 +1,0 @@
-*.lock
-*.log
-*.pending
-*.private-failure.json
-__pycache__/

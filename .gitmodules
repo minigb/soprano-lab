@@ -1,0 +1,6 @@
+[submodule "soprano-qa-rag-system"]
+	path = soprano-qa-rag-system
+	url = https://github.com/minigb/soprano-qa-rag-system.git
+[submodule "soprano-qa-demo"]
+	path = soprano-qa-demo
+	url = https://github.com/minigb/soprano-qa-demo.git

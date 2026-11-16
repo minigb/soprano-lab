@@ -1,18 +1,19 @@
-# Soprano Lab live API for the static page (docs/): demo/server.py with the
+# Soprano Lab live API for the static page (docs/): the demo server with the
 # measure-aware RAG pipeline on CPU, writing answers with Gemini on Vertex AI
-# (config/settings.web.json of the RAG repository).
+# (SOPRANO_QA_LLM_PROVIDER=vertex_gemini; everything else is the RAG
+# repository's default configuration).
 #
 # deploy.sh assembles the build context; it is not this directory:
 #   soprano-qa-rag-system/  the RAG repository at RAG_REF (code, config, corpus)
+#   soprano-qa-demo/        the demo server at DEMO_REF
 #   soprano-qa-dataset/     the dataset files the pipeline reads (private)
-#   soprano-lab/demo/       this repository's demo server (git HEAD)
 #   prepare_image.py        corpus check and embedding warm-up, below
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     SOPRANO_QA_PIPELINE_ROOT=/app/soprano-qa-rag-system \
-    SOPRANO_QA_SETTINGS=/app/soprano-qa-rag-system/config/settings.web.json \
+    SOPRANO_QA_LLM_PROVIDER=vertex_gemini \
     SOPRANO_QA_DATASET_ROOT=/app/soprano-qa-dataset \
     GOOGLE_CLOUD_LOCATION=global
 
@@ -20,8 +21,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Same layout as the RAG repository's own checkout instructions, so the
-# settings' relative dataset path resolves.
+# The repositories sit side by side, as in their own checkout instructions,
+# so the default settings' relative dataset path resolves.
 COPY soprano-qa-rag-system/requirements.txt soprano-qa-rag-system/requirements-vertex.txt /tmp/req/
 # CPU build of llama-cpp-python (only the Qwen3-Embedding retrieval model runs
 # here) and the Vertex SDK pinned by the RAG repository.
@@ -42,8 +43,8 @@ RUN python scripts/download_embedding_model.py
 RUN GOOGLE_CLOUD_PROJECT=image-build python /app/prepare_image.py
 
 # The demo server comes last, so changing it leaves the layers above intact.
-COPY soprano-lab /app/soprano-lab
-WORKDIR /app/soprano-lab/demo
+COPY soprano-qa-demo /app/soprano-qa-demo
+WORKDIR /app/soprano-qa-demo
 ENV PORT=8080 \
     SOPRANO_LAB_TRUST_PROXY=1 \
     SOPRANO_LAB_WARMUP=1

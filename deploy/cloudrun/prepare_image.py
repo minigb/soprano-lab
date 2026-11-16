@@ -1,7 +1,7 @@
 """Image build step: verify the bundled dataset and warm the retrieval index.
 
 Run from the RAG repository root during the Docker build (see Dockerfile),
-with SOPRANO_QA_SETTINGS selecting the web settings. The bundled dataset must
+with the Dockerfile's environment selecting Gemini. The bundled dataset must
 be the revision the committed corpus (data/) was built from: its input
 fingerprint is location-independent, so a mismatch means the dataset checkout
 used for the deploy differs from the one behind the committed corpus. The

@@ -2,19 +2,20 @@
 
 The web page in [`docs/`](../../docs/) (GitHub Pages,
 <https://minigb.github.io/soprano-lab/>) answers free-form questions by
-calling this API: [`demo/server.py`](../../demo/server.py) with the
-measure-aware RAG pipeline from
-[soprano-qa-rag-system](https://github.com/minigb/soprano-qa-rag-system)
-and its web settings, `config/settings.web.json`.
+calling this API: the server of
+[soprano-qa-demo](https://github.com/minigb/soprano-qa-demo) with the
+measure-aware RAG pipeline of
+[soprano-qa-rag-system](https://github.com/minigb/soprano-qa-rag-system), both
+this repository's submodules.
 
-Retrieval runs as in the paper: BM25 plus Qwen3-Embedding-0.6B, on CPU here.
-Gemini on Vertex AI then writes the answer in a single pass (the
-`single_pass` pipeline with `answer_provider: vertex_gemini`). The web
-settings equal `settings.gemini.json` except that English questions are also
-translated to Korean for retrieval by Gemini (`query_translation_provider`),
-because the host has no local Qwen3-14B. The page sends its language
-(English or Korean) as the answer language; a question without Hangul is
-translated for retrieval in either case.
+The API runs the RAG system's default configuration with one change: the
+answer model is Gemini on Vertex AI (`SOPRANO_QA_LLM_PROVIDER=vertex_gemini`,
+set in the [Dockerfile](Dockerfile)), because the host has no GPU for the local
+Qwen3-14B. Retrieval runs as in the paper, BM25 plus Qwen3-Embedding-0.6B on
+CPU, and Gemini writes the answer in a single pass. English questions are
+translated to Korean for retrieval by the same model. The page sends its
+language (English or Korean) as the answer language; a question without Hangul
+is translated for retrieval in either case.
 
 ```text
 browser ── GitHub Pages: page, score images, audio, saved answers (docs/)
@@ -28,7 +29,7 @@ the precomputed Qwen3-14B answers for the sample questions.
 
 `deploy.sh` assembles the build context from:
 
-- `demo/` of this repository at git `HEAD`;
+- the demo server at `DEMO_REF` (`backend/`, `server.py`, `static/`; no tests);
 - the RAG repository at `RAG_REF` (`soprano_qa/`, `config/`, `data/`,
   `scripts/` and the requirements; no evaluations or tests);
 - the dataset checkout beside this repository (`DATASET_PATHS` in the script:
@@ -64,8 +65,10 @@ Settings (environment variables of `deploy.sh`):
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `RAG_REPO` | `../soprano-qa-rag-system` | RAG repository to build from |
-| `RAG_REF` | `origin/main` | its branch or commit; an `origin/` ref is fetched first |
+| `RAG_REPO` | `soprano-qa-rag-system` | RAG repository to build from |
+| `RAG_REF` | commit recorded at `HEAD` | its commit; by default the submodule commit this repository's `HEAD` records |
+| `DEMO_REPO` | `soprano-qa-demo` | demo repository to build from |
+| `DEMO_REF` | commit recorded at `HEAD` | its commit, in the same way |
 | `DATASET_REF` | `HEAD` | dataset revision to bundle |
 | `ALLOWED_ORIGINS` | `https://minigb.github.io` | CORS origins of the page |
 | `ASK_LIMIT` | `6/600` | questions per visitor per 600 s |
@@ -156,15 +159,20 @@ deploy/cloudrun/preview.sh
 
 This serves the page from the working tree's `docs/` at
 <http://127.0.0.1:8797/>, with the same API in the same process: the request
-handler of `demo/server.py`, with the RAG worktree
-`../soprano-qa-rag-system-web` and its web settings, answering with Gemini on
-Vertex AI. [`preview.py`](preview.py) points the page's API meta tag at that
-same origin and hands `/api/health` and `/api/ask` to the API's handler. It
-opens no other port. (`demo/server.py` run on its own serves its older page,
-`demo/static`, which has no language toggle.) Uncommitted changes in `docs/`,
-`demo/` and the RAG worktree all show; the script notes when the worktree
-differs from `RAG_REF`, which is what a deploy builds. Ctrl-C stops it.
-`PORT`, `RAG_ROOT` and `PYTHON` override the defaults.
+handler of `soprano-qa-demo/server.py` with the `soprano-qa-rag-system`
+submodule, answering with Gemini on Vertex AI. The dataset is read from
+`../soprano-qa-dataset`. [`preview.py`](preview.py) points the page's API meta
+tag at that same origin and hands `/api/health` and `/api/ask` to the API's
+handler. It opens no other port. (The demo server run on its own serves its
+own page, `soprano-qa-demo/static`, which has no language toggle.) Uncommitted
+changes in `docs/` and in both submodules all show; the script notes when a
+submodule differs from the commit `HEAD` records, which is what a deploy
+builds. Ctrl-C stops it. `PORT`, `RAG_ROOT`, `DATASET_ROOT` and `PYTHON`
+override the defaults.
+
+The retrieval model must be in `soprano-qa-rag-system/models/`, where the RAG
+system's own setup puts it (`python scripts/download_embedding_model.py`);
+git ignores it there.
 
 To open the preview on another computer, forward the port over SSH
 (`ssh -L 8797:127.0.0.1:8797 <host>`), or let VS Code Remote-SSH forward it.
